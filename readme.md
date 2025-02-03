@@ -1,6 +1,55 @@
 # DStatus
 
-一个现代化的服务器状态监控面板，基于 Node.js 和 Material Design 设计风格。
+<div align="center">
+    <img src="static/img/logo.svg" alt="DStatus Logo" width="160"/>
+    <p>一个现代化的服务器状态监控面板</p>
+</div>
+
+> 🎨 设计理念：简约而不简单，优雅且实用
+
+DStatus 采用现代化的设计语言，将功能性与美观性完美结合。基于 Material Design 设计规范，通过 TailwindCSS 实现的响应式界面，为用户带来流畅的监控体验。
+
+## ✨ 设计特点
+
+### 界面设计
+- 🎯 简洁直观的卡片式布局
+- 🌈 柔和的色彩过渡动画
+- 📱 完美适配移动端和桌面端
+- 🌙 智能的明暗主题切换
+- 📊 优雅的数据可视化
+
+### 交互体验
+- ⚡ 流畅的拖拽排序
+- 🔄 平滑的状态更新动画
+- 👆 直观的触控操作
+- 🎯 精确的数据筛选
+- 💫 细腻的过渡效果
+
+### 视觉风格
+- 📊 清晰的数据层级
+- 🎨 舒适的配色方案
+- 🔤 优雅的字体排版
+- 🖼️ 精致的图标设计
+- 📱 响应式布局适配
+
+## 📸 界面预览
+
+<div align="center">
+    <table>
+        <tr>
+            <td align="center">
+                <strong>🌙 暗黑模式</strong><br/>
+                <img src="docs/images/dark-mode.png" alt="Dark Mode" width="400"/>
+            </td>
+        </tr>
+        <tr>
+            <td align="center">
+                <strong>📱 移动端视图</strong><br/>
+                <img src="docs/images/mobile-view.png" alt="Mobile View" width="200"/>
+            </td>
+        </tr>
+    </table>
+</div>
 
 ![GitHub](https://img.shields.io/github/license/fev125/dstatus)
 ![Node Version](https://img.shields.io/badge/node-%3E%3D12-brightgreen)
