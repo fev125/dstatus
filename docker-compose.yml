@@ -2,10 +2,12 @@ services:
   web:
     build: .
     ports:
-      - "3000:3000"
+      - "${WEB_PORT:-5555}:5555"      # Web 管理界面端口
+      - "${CONTROL_PORT:-9999}:9999"   # 默认被控端通信端口
     volumes:
-      - .:/app
-      - /app/node_modules
+      - ./database:/app/database
+      - ./logs:/app/logs
     environment:
-      - NODE_ENV=development
-    command: npm run dev
+      - NODE_ENV=production
+      - CONTROL_PORT=${CONTROL_PORT:-9999}  # 传递给应用
+    restart: always
