@@ -1,0 +1,198 @@
+{% set title = "分组管理" %}
+{%set admin = true%}
+{% extends "../base.html" %}
+
+{%block content%}
+<div class="max-w-7xl mx-auto">
+    <!-- 分组列表卡片 -->
+    <div class="bg-slate-900/80 backdrop-blur rounded-lg border border-slate-800/50">
+        <!-- 卡片标题 -->
+        <div class="flex items-center justify-between p-4 border-b border-slate-800/50">
+            <div class="flex items-center gap-3">
+                <i class="material-icons text-blue-500">folder</i>
+                <div>
+                    <h3 class="text-lg font-medium text-white">分组管理</h3>
+                    <p class="text-sm text-slate-400">管理服务器分组</p>
+                </div>
+            </div>
+            <!-- 添加分组按钮 -->
+            <button onclick="showAddDialog()" 
+                    class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 rounded-md transition-colors">
+                <i class="material-icons text-[18px]">add</i>
+                <span>新增分组</span>
+            </button>
+        </div>
+
+        <!-- 分组列表 -->
+        <div class="divide-y divide-slate-800/50" id="groupList">
+            {%for group in groups%}
+            <div class="flex items-center justify-between p-4 group" data-id="{{group.id}}">
+                <div class="flex items-center gap-3">
+                    <i class="material-icons text-slate-400">folder</i>
+                    <div>
+                        <h4 class="text-base font-medium text-white">{{group.name}}</h4>
+                        <p class="text-sm text-slate-400">{{group.server_count}} 个服务器</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {%if group.id != 'default'%}
+                    <button class="p-1.5 text-slate-400 hover:text-white rounded-md hover:bg-slate-800/50"
+                            onclick="showEditDialog('{{group.id}}', '{{group.name}}')">
+                        <i class="material-icons">edit</i>
+                    </button>
+                    <button class="p-1.5 text-slate-400 hover:text-red-400 rounded-md hover:bg-slate-800/50"
+                            onclick="deleteGroup('{{group.id}}')">
+                        <i class="material-icons">delete</i>
+                    </button>
+                    {%endif%}
+                </div>
+            </div>
+            {%endfor%}
+        </div>
+    </div>
+</div>
+
+<!-- 添加/编辑分组对话框 -->
+<div id="groupDialog" class="hidden fixed inset-0 z-50 overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity"></div>
+        <div class="relative bg-slate-900 rounded-lg max-w-md w-full">
+            <div class="p-6">
+                <h3 class="text-lg font-medium text-white mb-4" id="dialogTitle">新增分组</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">分组名称</label>
+                        <input type="text" 
+                               id="groupName"
+                               class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                </div>
+                <div class="mt-6 flex justify-end gap-3">
+                    <button onclick="closeDialog()"
+                            class="px-4 py-2 text-sm font-medium text-slate-300 hover:text-white bg-slate-800/50 hover:bg-slate-700/50 rounded-md transition-colors">
+                        取消
+                    </button>
+                    <button onclick="saveGroup()"
+                            class="px-4 py-2 text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 rounded-md transition-colors">
+                        保存
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{%endblock%}
+
+{%block js%}
+<script>
+// 分组管理
+const groupDialog = {
+    mode: 'add',
+    currentId: null,
+    
+    show(mode = 'add', id = null, name = '') {
+        this.mode = mode;
+        this.currentId = id;
+        document.getElementById('dialogTitle').textContent = mode === 'add' ? '新增分组' : '编辑分组';
+        document.getElementById('groupName').value = name;
+        document.getElementById('groupDialog').classList.remove('hidden');
+    },
+    
+    close() {
+        document.getElementById('groupDialog').classList.add('hidden');
+        document.getElementById('groupName').value = '';
+    },
+    
+    async save() {
+        const name = document.getElementById('groupName').value.trim();
+        if (!name) {
+            notice('请输入分组名称');
+            return;
+        }
+        
+        try {
+            startloading();
+            const url = this.mode === 'add' ? '/admin/groups/add' : `/admin/groups/${this.currentId}/edit`;
+            const res = await postjson(url, { name });
+            
+            if (res.status) {
+                notice('保存成功');
+                this.close();
+                location.reload();
+            } else {
+                notice(res.data || '保存失败');
+            }
+        } catch (error) {
+            notice('操作失败');
+        } finally {
+            endloading();
+        }
+    }
+};
+
+// 显示添加对话框
+function showAddDialog() {
+    groupDialog.show('add');
+}
+
+// 显示编辑对话框
+function showEditDialog(id, name) {
+    groupDialog.show('edit', id, name);
+}
+
+// 关闭对话框
+function closeDialog() {
+    groupDialog.close();
+}
+
+// 保存分组
+function saveGroup() {
+    groupDialog.save();
+}
+
+// 删除分组
+async function deleteGroup(id) {
+    if (!confirm('确认删除此分组？组内服务器将被移动到默认分组。')) return;
+    
+    try {
+        startloading();
+        const res = await postjson(`/admin/groups/${id}/del`);
+        
+        if (res.status) {
+            notice('删除成功');
+            location.reload();
+        } else {
+            notice(res.data || '删除失败');
+        }
+    } catch (error) {
+        notice('操作失败');
+    } finally {
+        endloading();
+    }
+}
+
+// 初始化拖拽排序
+new Sortable(document.getElementById('groupList'), {
+    animation: 150,
+    ghostClass: 'bg-slate-800/50',
+    onEnd: async function() {
+        const groups = Array.from(document.querySelectorAll('#groupList > div')).map(el => el.dataset.id);
+        try {
+            startloading();
+            const res = await postjson('/admin/groups/order', { groups });
+            if (res.status) {
+                notice('排序已保存');
+            } else {
+                notice(res.data || '保存失败');
+                location.reload();
+            }
+        } catch (error) {
+            notice('操作失败');
+            location.reload();
+        } finally {
+            endloading();
+        }
+    }
+});
+</script>
+{%endblock%} 

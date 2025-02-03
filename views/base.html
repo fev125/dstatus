@@ -1,0 +1,189 @@
+{%set Title=setting.site.name%}
+<!DOCTYPE html>
+<html lang="zh" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="is-admin" content="{{admin|default(false)}}">
+    <title>{{Title}} - NekoNekoStatus</title>
+    <link rel="shortcut icon" href="/img/logo.svg">
+    
+    <!-- Material Icons 字体预加载 -->
+    <link rel="preload" href="https://fonts.gstatic.com/s/materialicons/v140/flUhRq6tzZclQEJ-Vdg-IuiaDsNc.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="https://fonts.googleapis.com/icon?family=Material+Icons" as="style">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <!-- 编译后的 Tailwind CSS -->
+    <link rel="stylesheet" href="/css/style.min.css">
+    
+    <style>
+        /* 设置系统字体栈 */
+        :root {
+            --font-family-sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial, sans-serif;
+        }
+        
+        body {
+            font-family: var(--font-family-sans);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Material Icons 基础样式 */
+        .material-icons {
+            font-family: 'Material Icons';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 20px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            vertical-align: middle;
+            width: 1em;
+            height: 1em;
+            overflow: hidden;
+            white-space: nowrap;
+            direction: ltr;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+            /* 添加占位背景和隐藏内容 */
+            background: rgba(148, 163, 184, 0.1);
+            border-radius: 4px;
+            transition: all 0.2s;
+            color: transparent;
+            position: relative;
+        }
+
+        /* 字体加载完成后显示图标 */
+        .fonts-loaded .material-icons {
+            background: transparent;
+            color: currentColor;
+        }
+
+        /* 加载中的占位效果 */
+        .material-icons::before {
+            content: '';
+            position: absolute;
+            inset: 2px;
+            background: rgba(148, 163, 184, 0.1);
+            border-radius: 2px;
+            opacity: 1;
+            transition: opacity 0.2s;
+        }
+
+        .fonts-loaded .material-icons::before {
+            opacity: 0;
+        }
+
+        /* 图标尺寸类 */
+        .material-icons.text-sm {
+            font-size: 16px;
+            width: 16px;
+            height: 16px;
+        }
+
+        .material-icons.text-lg {
+            font-size: 24px;
+            width: 24px;
+            height: 24px;
+        }
+
+        /* 标题图标 */
+        h1 .material-icons,
+        h2 .material-icons,
+        .card-title .material-icons {
+            font-size: 24px;
+            width: 24px;
+            height: 24px;
+        }
+
+        /* 次级标题图标 */
+        h3 .material-icons,
+        .section-title .material-icons {
+            font-size: 22px;
+            width: 22px;
+            height: 22px;
+        }
+
+        /* 数据展示图标 */
+        .data-icon .material-icons {
+            font-size: 18px;
+            width: 18px;
+            height: 18px;
+        }
+
+        /* 操作图标 */
+        .action-icon .material-icons {
+            font-size: 20px;
+            width: 20px;
+            height: 20px;
+        }
+    </style>
+    <script>
+        // 检测字体加载
+        if ("fonts" in document) {
+            // 创建字体加载检测器
+            const materialIconsFont = new FontFace(
+                'Material Icons',
+                'url(https://fonts.gstatic.com/s/materialicons/v140/flUhRq6tzZclQEJ-Vdg-IuiaDsNc.woff2)',
+                { style: 'normal', weight: '400' }
+            );
+
+            // 加载字体
+            materialIconsFont.load().then(function(loadedFace) {
+                document.fonts.add(loadedFace);
+                document.documentElement.classList.add('fonts-loaded');
+            }).catch(function(error) {
+                console.warn('字体加载失败:', error);
+                // 降级处理：仍然添加类以显示图标
+                document.documentElement.classList.add('fonts-loaded');
+            });
+        } else {
+            // 降级方案：如果浏览器不支持 Font Loading API
+            document.documentElement.classList.add('fonts-loaded');
+        }
+    </script>
+    <!-- 预加载主题，避免闪烁 -->
+    <script>
+        // 在 HTML 解析前就执行主题初始化
+        (function() {
+            const isDark = localStorage.getItem('theme') !== 'light';
+            document.documentElement.classList.toggle('dark', isDark);
+        })();
+    </script>
+</head>
+<body class="min-h-screen bg-slate-900 text-slate-100">
+    <!-- Loading 指示器 -->
+    <div id='loading' class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 flex items-center justify-center">
+            <div class="loading"></div>
+        </div>
+    </div>
+
+    <!-- 顶部导航栏 -->
+    {%include 'appbar.html'%}
+
+    <!-- 主容器 -->
+    <div id='container' class="container mx-auto px-4 py-6 {%if fluid%}max-w-full{%endif%}">
+        {%block content%}{%endblock%}
+    </div>
+
+    <!-- 页脚 -->
+    {%include "./footer.html"%}
+
+    <!-- 核心脚本 -->
+    <script src="/js/core.js"></script>
+    <!-- Sortable.js -->
+    <script src="/node_modules/sortablejs/Sortable.min.js"></script>
+    <script>
+        // 设置最小高度
+        var container = document.querySelector("#container");
+        container.style.minHeight = window.innerHeight - document.body.clientHeight + container.clientHeight + 'px';
+    </script>
+    {%block js%}
+    {%endblock%}
+</body>
+</html>

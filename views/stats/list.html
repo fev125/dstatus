@@ -1,0 +1,93 @@
+{%set title = "节点状态"%}
+{%extends "../base.html"%}
+
+{%block content%}
+<div class="fixed right-6 bottom-6" mdui-tooltip="{content:'切换卡片主题'}">
+    <a href="?theme=card" class="flex items-center justify-center w-14 h-14 rounded-full bg-blue-600 hover:bg-blue-700 shadow-lg transition-colors">
+        <i class="material-icons text-white">view_module</i>
+    </a>
+</div>
+
+<div class="bg-slate-900 rounded-lg border border-slate-800/60 overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="w-full border-collapse whitespace-nowrap">
+            <thead>
+                <tr class="border-b border-slate-800">
+                    <th class="p-3 text-left text-sm font-medium text-slate-400">名称</th>
+                    <th class="p-3 text-left text-sm font-medium text-slate-400">下行</th>
+                    <th class="p-3 text-left text-sm font-medium text-slate-400">上行</th>
+                    <th class="p-3 text-left text-sm font-medium text-slate-400 hidden md:table-cell">总下行</th>
+                    <th class="p-3 text-left text-sm font-medium text-slate-400 hidden md:table-cell">总上行</th>
+                    <th class="p-3 text-left text-sm font-medium text-slate-400">CPU</th>
+                    <th class="p-3 text-left text-sm font-medium text-slate-400">内存</th>
+                    <th class="p-3 text-left text-sm font-medium text-slate-400 w-24">操作</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800">
+                {%for sid,node in stats%}
+                {%if node.stat!=-1%}
+                <tr class="hover:bg-slate-800/50 transition-colors {%if node.stat==0%}text-slate-500{%endif%}">
+                    <td class="p-3">
+                        <a href="/stats/{{sid}}/" class="hover:text-blue-400 transition-colors">{{node.name}}</a>
+                    </td>
+                    <td class="p-3">
+                        <st><span id="{{sid}}_NET_IN" class="font-medium">NaN</span></st>
+                    </td>
+                    <td class="p-3">
+                        <at><span id="{{sid}}_NET_OUT" class="font-medium">NaN</span></at>
+                    </td>
+                    <td class="p-3 hidden md:table-cell">
+                        <st><span id="{{sid}}_NET_IN_TOTAL" class="font-medium">NaN</span></st>
+                    </td>
+                    <td class="p-3 hidden md:table-cell">
+                        <at><span id="{{sid}}_NET_OUT_TOTAL" class="font-medium">NaN</span></at>
+                    </td>
+                    <td class="p-3 min-w-[140px]">
+                        <div class="relative h-7 bg-slate-800 rounded-full overflow-hidden">
+                            <div id="{{sid}}_CPU_progress" 
+                                 class="absolute inset-0 bg-blue-500/80 transition-all duration-200" 
+                                 style="width: 0%">
+                            </div>
+                            <span id="{{sid}}_CPU" 
+                                  class="absolute inset-0 flex items-center px-3 font-medium text-white">
+                                NaN
+                            </span>
+                        </div>
+                    </td>
+                    <td class="p-3 min-w-[140px]">
+                        <div id="{{sid}}_MEM_item" class="relative h-7 bg-slate-800 rounded-full overflow-hidden">
+                            <div id="{{sid}}_MEM_progress" 
+                                 class="absolute inset-0 bg-violet-500/80 transition-all duration-200" 
+                                 style="width: 0%">
+                            </div>
+                            <span id="{{sid}}_MEM" 
+                                  class="absolute inset-0 flex items-center px-3 font-medium text-white">
+                                NaN
+                            </span>
+                        </div>
+                    </td>
+                    <td class="p-3">
+                        <div class="flex items-center gap-1">
+                            <button class="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-700 rounded-md transition-colors">
+                                <i class="material-icons text-base" id="{{sid}}_host">info_outline</i>
+                            </button>
+                            {%if admin%}
+                            <a href="/admin/servers/{{sid}}/" 
+                               class="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-700 rounded-md transition-colors">
+                                <i class="material-icons text-base">edit</i>
+                            </a>
+                            {%endif%}
+                        </div>
+                    </td>
+                </tr>
+                {%endif%}
+                {%endfor%}
+            </tbody>
+        </table>
+    </div>
+</div>
+{%endblock%}
+
+{%block js%}
+<script src="/js/stats.js"></script>
+{%endblock%}

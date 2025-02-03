@@ -1,0 +1,180 @@
+{% set title = "管理设置" %}
+{%set admin = true%}
+{% extends "../base.html" %}
+
+{%block content%}
+<div class="max-w-7xl mx-auto">
+    <textarea id="setting_data" class="hidden">{{setting|dump}}</textarea>
+    
+    <!-- 设置卡片 -->
+    <div class="bg-slate-900/80 backdrop-blur rounded-lg border border-slate-800/50">
+        <!-- 卡片标题 -->
+        <div class="flex items-center justify-between p-4 border-b border-slate-800/50">
+            <div class="flex items-center gap-3">
+                <i class="material-icons text-blue-500">settings</i>
+                <div>
+                    <h3 class="text-lg font-medium text-white">系统设置</h3>
+                    <p class="text-sm text-slate-400">System Settings</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 卡片内容 -->
+        <div class="p-6 space-y-8">
+            <!-- 基础设置 -->
+            <div class="space-y-4">
+                <h4 class="text-base font-medium text-slate-200">基础设置</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">监听端口</label>
+                        <input type="number" 
+                               value="{{setting.listen}}" 
+                               key="listen"
+                               class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">管理密码</label>
+                        <input type="password" 
+                               value="{{setting.password}}" 
+                               key="password"
+                               class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 站点设置 -->
+            <div class="space-y-4">
+                <h4 class="text-base font-medium text-slate-200">站点设置</h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">站点名称</label>
+                        <input type="text" 
+                               value="{{setting.site.name}}" 
+                               key="site.name"
+                               class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">站点网址</label>
+                        <input type="text" 
+                               value="{{setting.site.url}}" 
+                               key="site.url"
+                               class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">默认主题</label>
+                        <select key="theme"
+                                class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="card" {%if setting.theme == "card"%}selected{%endif%}>卡片</option>
+                            <option value="list" {%if setting.theme == "list"%}selected{%endif%}>列表</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 客户端设置 -->
+            <div class="space-y-4">
+                <h4 class="text-base font-medium text-slate-200">客户端设置</h4>
+                <div>
+                    <label class="block text-sm font-medium text-slate-400 mb-2">neko-status 下载地址</label>
+                    <input type="text" 
+                           value="{{setting.neko_status_url}}" 
+                           key="neko_status_url"
+                           class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+            </div>
+
+            <!-- Telegram 通知设置 -->
+            <div class="space-y-4">
+                <h4 class="text-base font-medium text-slate-200">Telegram 通知设置</h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">Bot Token</label>
+                        <input type="text" 
+                               value="{{setting.bot.token}}" 
+                               key="bot.token"
+                               class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">Chat ID 列表 (用,分割)</label>
+                        <input type="text" 
+                               value="{{setting.bot.chatIds}}" 
+                               key="bot.chatIds" 
+                               isarray=1
+                               class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">使用 Webhook</label>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" 
+                                   {%if setting.bot.webhook%}checked{%endif%} 
+                                   key="bot.webhook"
+                                   class="sr-only peer">
+                            <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 调试设置 -->
+            <div class="flex items-center space-x-2">
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" 
+                           {%if setting.debug%}checked{%endif%} 
+                           key="debug"
+                           class="sr-only peer">
+                    <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                </label>
+                <span class="text-sm font-medium text-slate-400">调试模式</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 保存按钮 -->
+    <div class="fixed bottom-6 right-6">
+        <button onclick="edit()" 
+                class="flex items-center justify-center w-14 h-14 rounded-full bg-blue-500 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-900 text-white shadow-lg transition-colors">
+            <i class="material-icons">save</i>
+        </button>
+    </div>
+</div>
+{%endblock%}
+
+{%block js%}
+<script>
+async function edit(){
+    var setting={};
+    function gen(x,keys,val){
+        if(keys.length==0)return;
+        var key=keys[0];
+        keys.shift();
+        if(keys.length==0)x[key]=val;
+        else{
+            if(!x[key])x[key]={};
+            gen(x[key],keys,val)
+        };
+    }
+    for(var x of document.querySelectorAll("[key]")){
+        var val=x.value;
+        if(x.type=="number")val=Number(x.value);
+        if(x.type=="checkbox")val=x.checked;
+        if(x.getAttribute("isarray"))val=val.split(",");
+        gen(setting,x.getAttribute("key").split('.'),val);
+    }
+    console.log(setting);
+    for(var [key,val] of Object.entries(JSON.parse(V("setting_data"))))
+        if(setting[key]==val)delete setting[key];
+    startloading();
+    var res=await postjson(`/admin/setting`,setting);
+    endloading();
+    notice(res.data);
+}
+
+// 快捷键保存
+document.addEventListener("keydown", (e)=>{
+    if ((window.navigator.platform.match("Mac") ? e.metaKey : e.ctrlKey) && e.keyCode == 83) {
+        e.preventDefault();
+        edit();
+    }
+}, false);
+</script>
+{%endblock%}

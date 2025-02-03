@@ -1,0 +1,714 @@
+{%set title = "节点状态"%}
+{%extends "./base.html"%}
+
+{%block content%}
+<style>
+/* 基础图标样式 */
+.material-icons {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
+    line-height: 1;
+}
+
+/* 主标题图标 - 用于卡片标题 */
+.card-title .material-icons,
+h2 .material-icons {
+    width: 24px;
+    height: 24px;
+    font-size: 24px;
+}
+
+/* 次级标题图标 - 用于区块标题 */
+h3 .material-icons,
+.section-title .material-icons {
+    width: 22px;
+    height: 22px;
+    font-size: 22px;
+}
+
+/* 普通图标 - 用于数据展示 */
+.data-icon .material-icons {
+    width: 18px;
+    height: 18px;
+    font-size: 18px;
+}
+
+/* 小图标 - 用于辅助信息 */
+.material-icons.text-sm {
+    width: 16px;
+    height: 16px;
+    font-size: 16px;
+}
+
+/* 操作图标 - 用于按钮和交互 */
+.action-icon .material-icons {
+    width: 20px;
+    height: 20px;
+    font-size: 20px;
+}
+
+.offline {
+    color: #94a3b8;
+}
+/* 进度条样式 */
+.progress-bar {
+    height: 0.25rem;
+    width: 100%;
+    background-color: rgba(55, 65, 81, 0.5);
+    border-radius: 9999px;
+    overflow: hidden;
+}
+.progress-bar-fill {
+    height: 100%;
+    width: 100%;
+    border-radius: 9999px;
+    transform-origin: left;
+    transform: scaleX(var(--progress-scale, 0));
+    transition: transform 1.3s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
+}
+.progress-bar-fill-cpu {
+    background-color: rgba(59, 130, 246, 0.7);
+}
+.progress-bar-fill-mem {
+    background-color: rgba(168, 85, 247, 0.7);
+}
+.progress-bar-fill-swap {
+    background-color: rgba(139, 92, 246, 0.7);
+}
+
+/* 图表容器样式 */
+.chart-container {
+    height: 300px;
+    width: 100%;
+}
+</style>
+
+<!-- 预加载 Material Icons 字体 -->
+<link rel="preload" href="https://fonts.googleapis.com/icon?family=Material+Icons" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons"></noscript>
+
+<!-- 数据存储区域 -->
+<script>
+// 页面加载完成后初始化
+document.addEventListener('DOMContentLoaded', () => {
+    try {
+        const nodeData = JSON.parse(document.getElementById('preprocessed-data').value);
+        updateTrafficDisplay(nodeData);
+        
+        const progressBar = document.getElementById('traffic-progress-bar');
+        if (progressBar) {
+            const ratio = calculateTrafficUsageRatio(
+                validateTrafficValue(nodeData.traffic_used),
+                validateTrafficValue(nodeData.traffic_limit)
+            );
+            progressBar.style.transform = `scaleX(${ratio})`;
+        }
+    } catch (e) {
+        console.error('Error initializing traffic display:', e);
+    }
+});
+</script>
+
+<textarea id='traffic_data' class="hidden">{{traffic|dump}}</textarea>
+<textarea id='load_m_data' class="hidden">{{load_m|dump}}</textarea>
+<textarea id='load_h_data' class="hidden">{{load_h|dump}}</textarea>
+<textarea id='node-data' class="hidden">{{node|dump|safe}}</textarea>
+<textarea id="preprocessed-data" style="display: none;">{{preProcessedData|safe}}</textarea>
+
+<div class="space-y-4">
+    <!-- 节点信息卡片 -->
+    <div class="bg-white/5 backdrop-blur-sm rounded-lg border border-gray-700/50 overflow-hidden">
+        <div class="px-4 py-3 flex justify-between items-center border-b border-gray-700/50">
+            <div class="flex-1 flex items-center justify-between mr-4">
+                <!-- 左侧主机信息 -->
+                <div class="flex items-center gap-3">
+                    <i class="material-icons text-blue-500/70">dns</i>
+                    <h2 class="text-lg font-medium text-gray-200 truncate">{{node.name}}</h2>
+                    <span class="text-sm text-gray-400">(主机名: <span id="system-hostname"></span>)</span>
+                </div>
+            </div>
+            
+            <!-- 操作按钮区域 -->
+            <div class="flex items-center space-x-1 action-icon">
+                <button id="host" class="p-2 text-gray-400 hover:text-gray-200 hover:bg-white/5 rounded-md transition-colors">
+                    <i class="material-icons">info_outline</i>
+                </button>
+                {%if admin%}
+                <a href="/admin/servers/{{sid}}/" class="p-2 text-gray-400 hover:text-gray-200 hover:bg-white/5 rounded-md transition-colors">
+                    <i class="material-icons">edit</i>
+                </a>
+                <button onclick="webssh('{{sid}}')" class="p-2 text-gray-400 hover:text-gray-200 hover:bg-white/5 rounded-md transition-colors" title="web ssh">
+                    <i class="material-icons">open_in_browser</i>
+                </button>
+                {%endif%}
+            </div>
+        </div>
+    </div>
+
+    <!-- 系统状态区域 - 左右布局 2:3 -->
+    <div class="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        <!-- 系统状况和网络流量卡片 - 占2格 -->
+        <div class="col-span-1 lg:col-span-2 bg-white/5 backdrop-blur-sm rounded-lg border border-gray-700/50 overflow-hidden">
+            <div class="px-4 py-3 border-b border-gray-700/50">
+                <div class="flex items-center gap-2 section-title">
+                    <i class="material-icons text-blue-500/70">memory</i>
+                    <h3 class="text-lg font-medium text-gray-200">系统状况</h3>
+                    <span id="system-os" class="text-sm text-gray-400"></span>
+                </div>
+            </div>
+            <div class="p-4">
+                <div class="space-y-4">
+                    <!-- CPU -->
+                    <div class="space-y-2">
+                        <div class="flex items-center gap-3">
+                            <div class="flex-1">
+                                <div class="flex justify-between">
+                                    <div class="flex items-center gap-1 text-gray-400 data-icon">
+                                        <i class="material-icons">memory</i>
+                                        <span class="text-sm">CPU</span>
+                                        <span id="system-cpu-cores" class="text-sm text-gray-400"></span>
+                                    </div>
+                                    <span id="CPU" class="text-sm text-gray-200">{{(100*node.stat.cpu.multi).toFixed(2)}}%</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            {%for usage in node.stat.cpu.single%}
+                            <div class="progress-bar">
+                                <div id="CPU{{loop.index}}_progress" 
+                                     class="progress-bar-fill progress-bar-fill-cpu"
+                                     data-width="{{usage*100}}"></div>
+                            </div>
+                            {%endfor%}
+                        </div>
+                    </div>
+
+                    <!-- Memory -->
+                    <div class="space-y-2" id="MEM_item">
+                        <div class="flex items-center gap-3">
+                            <div class="flex-1">
+                                <div class="flex justify-between">
+                                    <div class="flex items-center gap-1 text-gray-400 data-icon">
+                                        <i class="material-icons">straighten</i>
+                                        <span class="text-sm">内存</span>
+                                        <span id="mem-total" class="text-sm text-gray-400"></span>
+                                    </div>
+                                    <span id="MEM" class="text-sm text-gray-200">{{(100*node.stat.mem.mem).toFixed(2)}}%</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="progress-bar">
+                                <div id="MEM_progress" 
+                                     class="progress-bar-fill progress-bar-fill-mem"
+                                     data-width="{{node.stat.mem.mem*100}}"></div>
+                            </div>
+                            <div class="progress-bar">
+                                <div id="SWAP_progress" 
+                                     class="progress-bar-fill progress-bar-fill-swap"
+                                     data-width="{{node.stat.mem.swap*100}}"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Network Traffic -->
+                    <div class="pt-2 border-t border-gray-700/50">
+                        <div class="flex items-center gap-2 mb-2">
+                            <i class="material-icons text-blue-500/70">network_check</i>
+                            <h3 class="text-lg font-medium text-gray-200">网络流量</h3>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <i class="material-icons text-gray-400 text-sm" style="width:16px;height:16px;font-size:16px;">speed</i>
+                                    <span class="text-sm text-gray-400">实时带宽</span>
+                                </div>
+                                <div class="flex items-center gap-4">
+                                    <div class="flex items-center gap-1">
+                                        <i class="material-icons text-green-500/70 text-sm" style="width:16px;height:16px;font-size:16px;">arrow_downward</i>
+                                        <span id="NET_IN" class="text-base font-medium text-gray-200"></span>
+                                    </div>
+                                    <div class="flex items-center gap-1">
+                                        <i class="material-icons text-blue-500/70 text-sm" style="width:16px;height:16px;font-size:16px;">arrow_upward</i>
+                                        <span id="NET_OUT" class="text-base font-medium text-gray-200"></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <i class="material-icons text-gray-400 text-sm">data_usage</i>
+                                    <span class="text-sm text-gray-400">总流量</span>
+                                </div>
+                                
+                                <div class="flex items-center gap-4">
+                                    <div class="flex items-center gap-1">
+                                        <i class="material-icons text-green-500/70 text-sm" style="width:16px;height:16px;font-size:16px;">arrow_downward</i>
+                                        <span id="NET_IN_TOTAL" class="text-sm text-gray-200">{{strB(node.stat.net.total.in)}}</span>
+                                    </div>
+                                    <div class="flex items-center gap-1">
+                                        <i class="material-icons text-blue-500/70 text-sm" style="width:16px;height:16px;font-size:16px;">arrow_upward</i>
+                                        <span id="NET_OUT_TOTAL" class="text-sm text-gray-200">{{strB(node.stat.net.total.out)}}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- 月度流量统计 -->
+                            <div class="pt-2 border-t border-gray-700/50">
+                                <div class="flex flex-wrap items-center justify-between gap-4">
+                                    <div class="flex items-center gap-2">
+                                        <i class="material-icons text-blue-500/70">data_usage</i>
+                                        <span class="text-sm text-gray-200">月度流量</span>
+                                        <span class="text-xs text-gray-400">({{node.traffic_reset_day|default(1)}}日重置)</span>
+                                    </div>
+                                    
+                                    <!-- 流量使用进度条 -->
+                                    <div class="w-full">
+                                        <div class="progress-bar">
+                                            <div class="progress-bar-fill bg-blue-500/70" id="traffic-progress-bar"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- 流量信息 - 自适应布局 -->
+                                    <div class="w-full flex flex-wrap justify-center">
+                                        <div class="flex-1 flex items-center justify-center gap-1 min-w-[100px] max-w-[180px]">
+                                            <i class="material-icons text-green-500/70 text-sm" style="width:16px;height:16px;font-size:16px;">data_usage</i>
+                                            <span class="text-gray-400 text-sm">已用:</span>
+                                            <span class="text-white text-sm" id="traffic-used">0.00 B</span>
+                                        </div>
+                                        <div class="flex-1 flex items-center justify-center gap-1 min-w-[100px] max-w-[180px]">
+                                            <i class="material-icons text-yellow-500/70 text-sm" style="width:16px;height:16px;font-size:16px;">data_usage</i>
+                                            <span class="text-gray-400 text-sm">剩余:</span>
+                                            <span class="text-white text-sm" id="traffic-remaining">0.00 B</span>
+                                        </div>
+                                        <div class="flex-1 flex items-center justify-center gap-1 min-w-[100px] max-w-[180px]">
+                                            <i class="material-icons text-blue-500/70 text-sm" style="width:16px;height:16px;font-size:16px;">data_usage</i>
+                                            <span class="text-gray-400 text-sm">总量:</span>
+                                            <span class="text-white text-sm" id="traffic-limit">0.00 B</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 负载详情卡片 - 占3格 -->
+        <div class="col-span-1 lg:col-span-3 bg-white/5 backdrop-blur-sm rounded-lg border border-gray-700/50 overflow-hidden">
+            <div class="px-4 py-3 border-b border-gray-700/50">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <i class="material-icons text-blue-500/70">speed</i>
+                        <h3 class="text-lg font-medium text-gray-200">负载详情</h3>
+                    </div>
+                    <div class="flex bg-slate-800/50 rounded-lg overflow-hidden">
+                        <button data-tab="load-10m" class="tab-button px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700/50 border-r border-slate-700/50 transition-colors">
+                            实时(1分钟)
+                        </button>
+                        <button data-tab="load-ms" class="tab-button px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700/50 border-r border-slate-700/50 transition-colors">
+                            过去60分钟
+                        </button>
+                        <button data-tab="load-hs" class="tab-button px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700/50 transition-colors">
+                            过去24小时
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="p-4">
+                <div id="load-10m" class="tab-content">
+                    <div id="load-10m-chart" class="chart-container"></div>
+                </div>
+                <div id="load-ms" class="tab-content hidden">
+                    <div id="load-m" class="chart-container"></div>
+                </div>
+                <div id="load-hs" class="tab-content hidden">
+                    <div id="load-h" class="chart-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 网络详情区域 - 单列布局 -->
+    <div class="space-y-4">
+        <!-- 带宽监控面板 -->
+        <div class="bg-white/5 backdrop-blur-sm rounded-lg border border-gray-700/50 overflow-hidden">
+            <div class="px-4 py-3 border-b border-gray-700/50">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <i class="material-icons text-blue-500/70">network_check</i>
+                        <h3 class="text-lg font-medium text-gray-200">带宽监控</h3>
+                    </div>
+                    <div class="flex bg-slate-800/50 rounded-lg overflow-hidden">
+                        <button data-tab="bandwidth-realtime" class="tab-button px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700/50 border-r border-slate-700/50 transition-colors">
+                            实时(3分钟)
+                        </button>
+                        <button data-tab="load-m-bws" class="tab-button px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700/50 border-r border-slate-700/50 transition-colors">
+                            过去60分钟
+                        </button>
+                        <button data-tab="load-h-bws" class="tab-button px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700/50 transition-colors">
+                            过去24小时
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="p-4">
+                <div id="bandwidth-realtime" class="tab-content">
+                    <div id="bandwidth-realtime-chart" class="chart-container"></div>
+                </div>
+                <div id="load-m-bws" class="tab-content hidden">
+                    <div id="load-m-bw" class="chart-container"></div>
+                </div>
+                <div id="load-h-bws" class="tab-content hidden">
+                    <div id="load-h-bw" class="chart-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 流量统计面板 -->
+        <div class="bg-white/5 backdrop-blur-sm rounded-lg border border-gray-700/50 overflow-hidden">
+            <div class="px-4 py-3 border-b border-gray-700/50">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <i class="material-icons text-blue-500/70">data_usage</i>
+                        <h3 class="text-lg font-medium text-gray-200">流量统计</h3>
+                    </div>
+                    <div class="flex items-center gap-6">
+                        <div class="hidden md:flex space-x-6 text-sm text-slate-400">
+                            <span id='hs_tot'></span>
+                            <span id='ds_tot'></span>
+                            <span id='ms_tot'></span>
+                        </div>
+                        <div class="flex bg-slate-800/50 rounded-lg overflow-hidden">
+                            <button data-tab="traffic-hs" class="tab-button px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700/50 border-r border-slate-700/50 transition-colors">
+                                过去24小时
+                            </button>
+                            <button data-tab="traffic-ds" class="tab-button px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700/50 border-r border-slate-700/50 transition-colors">
+                                过去31天
+                            </button>
+                            <button data-tab="traffic-ms" class="tab-button px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700/50 transition-colors">
+                                过去12个月
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="p-4">
+                <div id="traffic-ds" class="tab-content hidden">
+                    <div id="ds" class="chart-container"></div>
+                </div>
+                <div id="traffic-ms" class="tab-content hidden">
+                    <div id="ms" class="chart-container"></div>
+                </div>
+                <div id="traffic-hs" class="tab-content">
+                    <div id="hs" class="chart-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Network Devices Table -->
+    <div class="bg-white/5 backdrop-blur-sm rounded-lg border border-gray-700/50 overflow-hidden">
+        <div class="px-4 py-3 border-b border-gray-700/50">
+            <div class="flex items-center gap-2">
+                <i class="material-icons text-blue-500/70">router</i>
+                <h3 class="text-lg font-medium text-gray-200">网络设备</h3>
+            </div>
+        </div>
+        <div class="p-4">
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="border-b border-gray-700/50">
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">设备</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">下行</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">上行</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">总下行</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">总上行</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-700/50">
+                        {%for device,net in node.stat.net.devices%}
+                        <tr class="hover:bg-white/5">
+                            <td class="px-6 py-3 text-sm text-gray-200">{{device}}</td>
+                            <td class="px-6 py-3 text-sm text-gray-200" id="net_{{device}}_delta_in"></td>
+                            <td class="px-6 py-3 text-sm text-gray-200" id="net_{{device}}_delta_out"></td>
+                            <td class="px-6 py-3 text-sm text-gray-200" id="net_{{device}}_total_in">{{strB(net.total.in)}}</td>
+                            <td class="px-6 py-3 text-sm text-gray-200" id="net_{{device}}_total_out">{{strB(net.total.out)}}</td>
+                        </tr>
+                        {%endfor%}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{%endblock%}
+
+{%block js%}
+<script src="https://lf26-cdn-tos.bytecdntp.com/cdn/expire-1-M/apexcharts/3.33.0/apexcharts.min.js"></script>
+<script src="/js/traffic-utils.js"></script>
+<script>
+// 初始化数据
+const initialData = JSON.parse(document.getElementById('node-data').value || '{}');
+const trafficUsed = initialData.traffic_used || 0;
+const trafficLimit = initialData.traffic_limit || 0;
+
+document.addEventListener('DOMContentLoaded', () => {
+    // 获取并解析节点数据
+    const nodeDataElement = document.getElementById('node-data');
+    let nodeData = null;
+    
+    if (nodeDataElement) {
+        try {
+            nodeData = JSON.parse(nodeDataElement.value);
+            console.log('Node data loaded:', nodeData);
+            
+            // 更新流量显示
+            updateTrafficDisplay(nodeData);
+            
+            // 更新进度条
+            const progressBar = document.getElementById('traffic-progress-bar');
+            if (progressBar && nodeData) {
+                const ratio = calculateTrafficUsageRatio(
+                    validateTrafficValue(nodeData.traffic_used),
+                    validateTrafficValue(nodeData.traffic_limit)
+                );
+                progressBar.style.transform = `scaleX(${ratio})`;
+            }
+        } catch (e) {
+            console.error('Error parsing node data:', e);
+        }
+    }
+});
+
+// 字节格式化函数
+function strB(bytes) {
+    if (bytes === 0 || !bytes) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+    const i = Math.floor(Math.log(Math.abs(bytes)) / Math.log(k));
+    return (bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i];
+}
+
+// 暗色主题配置
+const darkTheme = {
+    mode: 'dark',
+    background: 'transparent',
+    foreColor: '#94a3b8'
+};
+
+// 基础图表配置
+const baseChartOptions = {
+    chart: {
+        type: 'line',
+        height: 300,
+        fontFamily: 'inherit',
+        background: 'transparent',
+        animations: {
+            enabled: true,
+            easing: 'easeinout',
+            speed: 800,
+            dynamicAnimation: {
+                enabled: true,
+                speed: 350
+            }
+        },
+        toolbar: {
+            show: true,
+            offsetX: -5,
+            offsetY: 5,
+            tools: {
+                download: true,
+                selection: true,
+                zoom: true,
+                zoomin: true,
+                zoomout: true,
+                pan: true,
+                reset: true
+            }
+        },
+        zoom: {
+            enabled: true
+        }
+    },
+    stroke: {
+        curve: 'smooth',
+        width: 2,
+        lineCap: 'round',
+        dashArray: 0
+    },
+    grid: {
+        show: true,
+        borderColor: 'rgba(148, 163, 184, 0.1)',
+        strokeDashArray: 4,
+        padding: {
+            top: 5,
+            right: 5,
+            bottom: 5,
+            left: 5
+        }
+    },
+    colors: ['#3b82f6', '#6366f1', '#8b5cf6'],
+    dataLabels: {
+        enabled: false
+    },
+    markers: {
+        size: 0,
+        hover: {
+            size: 5,
+            sizeOffset: 3
+        }
+    },
+    tooltip: {
+        theme: 'dark',
+        marker: {
+            show: true
+        },
+        x: {
+            show: true
+        }
+    },
+    legend: {
+        position: 'top',
+        horizontalAlign: 'right',
+        offsetY: -5,
+        labels: {
+            colors: '#94a3b8'
+        },
+        itemMargin: {
+            horizontal: 10
+        }
+    }
+};
+
+// 选项卡切换功能
+document.addEventListener('DOMContentLoaded', () => {
+    // 初始化进度条
+    document.querySelectorAll('.progress-bar-fill').forEach(bar => {
+        const width = bar.getAttribute('data-width');
+        bar.style.setProperty('--progress-width', `${width}%`);
+    });
+
+    // 初始化选项卡状态
+    document.querySelectorAll('.bg-white\\/5').forEach(panel => {
+        const tabs = panel.querySelectorAll('.tab-button');
+        const contents = panel.querySelectorAll('.tab-content');
+        
+        // 特殊处理流量统计面板
+        if (panel.querySelector('[data-tab="traffic-hs"]')) {
+            // 激活24小时标签
+            const hourlyTab = panel.querySelector('[data-tab="traffic-hs"]');
+            if (hourlyTab) {
+                tabs.forEach(tab => {
+                    tab.classList.toggle('bg-slate-700/50', tab === hourlyTab);
+                    tab.classList.toggle('text-white', tab === hourlyTab);
+                });
+            }
+        } else {
+            // 其他面板默认激活第一个选项卡
+            if (tabs.length > 0) {
+                tabs[0].classList.add('bg-slate-700/50', 'text-white');
+            }
+        }
+        
+        // 默认显示第一个内容，隐藏其他内容
+        contents.forEach((content, index) => {
+            content.classList.toggle('hidden', index !== 0);
+        });
+    });
+
+    // 选项卡点击事件
+    document.querySelectorAll('.tab-button').forEach(tab => {
+        tab.addEventListener('click', () => {
+            const panel = tab.closest('.bg-white\\/5');
+            const tabs = panel.querySelectorAll('.tab-button');
+            const contents = panel.querySelectorAll('.tab-content');
+            
+            // 更新选项卡样式
+            tabs.forEach(t => {
+                t.classList.toggle('bg-slate-700/50', t === tab);
+                t.classList.toggle('text-white', t === tab);
+            });
+
+            // 显示对应内容
+            contents.forEach(content => {
+                content.classList.toggle('hidden', content.id !== tab.dataset.tab);
+            });
+        });
+    });
+});
+
+// 时间格式化函数
+function formatDate(timestamp) {
+    if (!timestamp) return '未校准';
+    const date = new Date(timestamp * 1000);
+    return date.toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+// 流量格式化函数
+function formatTraffic(bytes) {
+    if (!bytes) return '0 B';
+    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    let value = bytes;
+    let unitIndex = 0;
+    
+    while (value >= 1024 && unitIndex < units.length - 1) {
+        value /= 1024;
+        unitIndex++;
+    }
+    
+    return `${value.toFixed(2)} ${units[unitIndex]}`;
+}
+
+// 计算流量使用比例
+function calculateTrafficUsageRatio(used, limit) {
+    if (!limit || limit <= 0) return 0;
+    const ratio = used / limit;
+    return Math.min(Math.max(ratio, 0), 1); // 确保比例在0-1之间
+}
+
+// 格式化百分比
+function formatPercentage(used, limit) {
+    if (!limit || limit <= 0) return '0%';
+    return ((used / limit * 100) || 0).toFixed(1) + '%';
+}
+
+// 格式化时间戳
+function formatTimestamp(timestamp) {
+    if (!timestamp) return '未校准';
+    const date = new Date(timestamp * 1000);
+    return date.toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    // 更新流量使用进度条
+    const progressBar = document.getElementById('traffic-progress-bar');
+    if (progressBar) {
+        const used = {{node.traffic_used|default(0)}};
+        const limit = {{node.traffic_limit|default(0)}};
+        const ratio = limit > 0 ? Math.min(used / limit, 1) : 0;
+        progressBar.style.transform = `scaleX(${ratio})`;
+    }
+});
+</script>
+<script src="/js/stat.js"></script>
+<script src="/js/load.js"></script>
+<script src="/js/traffic.js"></script>
+{%include "./webssh.html"%}
+{%endblock%}

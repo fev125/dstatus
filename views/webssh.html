@@ -1,0 +1,170 @@
+<!-- WebSSH Dialog -->
+<div id="webSSHdialog" class="hidden fixed inset-0 z-50 overflow-y-auto">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <!-- Dialog Backdrop -->
+        <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity"></div>
+        
+        <!-- Dialog Content -->
+        <div class="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-[95vw] max-h-[95vh]">
+            <!-- Dialog Header -->
+            <div class="px-6 py-4 border-b dark:border-gray-700">
+                <h3 id="webSSHdialogT" class="text-lg font-medium text-gray-900 dark:text-white">{{node.name}}</h3>
+            </div>
+            
+            <!-- Dialog Body -->
+            <div id="webSSHdialogC" class="p-6">
+                <div id="terminal"></div>
+            </div>
+            
+            <!-- Dialog Footer -->
+            <div class="px-6 py-4 border-t dark:border-gray-700 flex items-center justify-between">
+                <!-- Scripts Dropdown -->
+                <div class="relative">
+                    <button id="scriptsDropdownButton" 
+                            class="px-4 py-2 bg-blue-gray-600 text-white rounded hover:bg-blue-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-gray-500">
+                        脚本片段
+                    </button>
+                    <div id="ssh-scripts" 
+                         class="hidden absolute left-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 z-10">
+                        {%for script in db.ssh_scripts.all()%}
+                        <button onclick="ssh_script('{{script.id}}')"
+                                class="block w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                            {{script.name}}
+                        </button>
+                        {%endfor%}
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="flex space-x-2">
+                    <button onclick="connect()" 
+                            class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        连接
+                    </button>
+                    <button onclick="dispose()" 
+                            class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500">
+                        关闭
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Terminal Dependencies -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@4.13.0/css/xterm.css">
+<script src="https://cdn.jsdelivr.net/npm/xterm@4.13.0/lib/xterm.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.5.0/lib/xterm-addon-fit.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xterm-addon-web-links@0.4.0/lib/xterm-addon-web-links.js"></script>
+
+<script>
+// Scripts Menu Toggle
+document.getElementById('scriptsDropdownButton').addEventListener('click', function() {
+    document.getElementById('ssh-scripts').classList.toggle('hidden');
+});
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(event) {
+    if (!event.target.closest('#scriptsDropdownButton')) {
+        document.getElementById('ssh-scripts').classList.add('hidden');
+    }
+});
+
+async function ssh_script(id) {
+    var res = await postjson("/admin/ssh_scripts/get", {id});
+    console.log(res);
+    socket.send(res.data.content);
+}
+
+var term = null, socket = null, now_sid = "";
+
+function resize() {
+    term.FitAddon.fit();
+}
+
+function showDialog() {
+    document.getElementById('webSSHdialog').classList.remove('hidden');
+}
+
+function hideDialog() {
+    document.getElementById('webSSHdialog').classList.add('hidden');
+}
+
+function connect(sid = now_sid) {
+    var path = `/admin/servers/${sid}/ws-ssh/`;
+    if (socket && socket.readyState == 1) return;
+    startloading();
+    term.FitAddon.fit();
+    socket = new WebSocket(window.location.origin.replace('http', 'ws') + path + JSON.stringify({
+        cols: term.cols,
+        rows: term.rows,
+    }));
+    socket.addEventListener('open', (e) => {
+        endloading();
+        term.focus();
+    });
+    socket.addEventListener('message', (e) => { term.write(e.data.toString("utf-8")); });
+    socket.addEventListener('close', (ev) => { });
+    socket.addEventListener('error', (ev) => { });
+}
+
+function dispose() {
+    socket.close();
+    hideDialog();
+}
+
+async function webssh(sid) {
+    if (term) {
+        showDialog();
+        term.focus();
+        connect(sid);
+        return;
+    }
+
+    var H = window.screen.availHeight * 0.95,
+        W = document.body.clientWidth * 0.95,
+        TH = H - 48 - 68 - 52,
+        TW = W - 48;
+
+    const dialog = document.getElementById('webSSHdialog');
+    const dialogContent = document.getElementById('webSSHdialogC');
+    const terminal = document.getElementById('terminal');
+
+    dialog.style.height = H + 'px';
+    dialog.style.width = W + 'px';
+    dialogContent.style.height = (H - 52) + 'px';
+    dialogContent.style.width = W + 'px';
+    terminal.style.height = TH + 'px';
+    terminal.style.width = TW + 'px';
+
+    term = new Terminal({
+        cols: Math.floor(TW / 8),
+        rows: Math.floor(TH / 8),
+        cursorBlink: true,
+        cursorStyle: "underline",
+        scrollback: 1000,
+    });
+
+    showDialog();
+    term.open(terminal);
+    term.FitAddon = new FitAddon.FitAddon();
+    term.loadAddon(term.FitAddon);
+    term.WebLinksAddon = new WebLinksAddon.WebLinksAddon();
+    term.loadAddon(term.WebLinksAddon);
+
+    term.onData(data => {
+        if (socket.readyState != 1) {
+            connect(sid);
+            return;
+        }
+        try {
+            socket.send(data);
+        } catch (e) {
+            term.write('\r\nConnection lost, trying to connect again!\r\n');
+            connect(sid);
+        }
+    });
+
+    connect(sid);
+}
+</script>

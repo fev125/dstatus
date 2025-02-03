@@ -1,0 +1,242 @@
+{%set title = "脚本片段"%}
+{%set admin = true%}
+{%extends "../base.html"%}
+
+{%block content%}
+<div class="max-w-7xl mx-auto">
+    <!-- 脚本列表卡片 -->
+    <div class="bg-slate-900/80 backdrop-blur rounded-lg border border-slate-800/50">
+        <!-- 卡片标题 -->
+        <div class="flex items-center justify-between p-4 border-b border-slate-800/50">
+            <div class="flex items-center gap-3">
+                <i class="material-icons text-blue-500">code</i>
+                <div>
+                    <h3 class="text-lg font-medium text-white">脚本片段</h3>
+                    <p class="text-sm text-slate-400">管理 SSH 脚本片段</p>
+                </div>
+            </div>
+            <!-- 添加按钮 -->
+            <button onclick="toggleAddSection()"
+                    class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 rounded-md transition-colors">
+                <i class="material-icons text-[18px]">add</i>
+                <span>新增脚本</span>
+            </button>
+        </div>
+
+        <!-- 脚本列表 -->
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-slate-800/50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-sm font-medium text-slate-200">名称</th>
+                        <th class="px-4 py-3 text-right text-sm font-medium text-slate-200">操作</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/50">
+                    {%for script in ssh_scripts%}
+                    <tr class="hover:bg-slate-800/30">
+                        <td class="px-4 py-3 text-sm text-slate-200">{{script.name}}</td>
+                        <td class="px-4 py-3 text-right">
+                            <button class="inline-flex items-center justify-center w-8 h-8 text-slate-400 hover:text-blue-500 transition-colors"
+                                    mdui-dialog="{target:'#edit_script_dialog'}" 
+                                    onclick="editScript('{{script.id}}')">
+                                <i class="material-icons">edit</i>
+                            </button>
+                            <button class="inline-flex items-center justify-center w-8 h-8 text-slate-400 hover:text-red-500 transition-colors"
+                                    onclick="DelScript('{{script.id}}')">
+                                <i class="material-icons">delete</i>
+                            </button>
+                        </td>
+                    </tr>
+                    {%endfor%}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 添加脚本区域 -->
+        <div id="addScriptSection" class="hidden border-t border-slate-800/50">
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-slate-400 mb-2">脚本名称</label>
+                    <input type="text" 
+                           id="add_script_name"
+                           placeholder="输入脚本名称，建议使用 [分类]名称 格式"
+                           class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-slate-400 mb-2">脚本内容</label>
+                    <textarea id="add_script_content"
+                             rows="10"
+                             placeholder="#!/bin/bash&#10;#&#10;# 名称: 在此输入脚本名称&#10;# 描述: 在此输入脚本描述&#10;# 变量: 在此列出脚本变量&#10;#   - VAR1: 变量1描述&#10;#   - VAR2: 变量2描述&#10;#&#10;# 使用示例:&#10;# VAR1=value1 VAR2=value2 ./script.sh"
+                             class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"></textarea>
+                </div>
+                <div class="flex items-center justify-end gap-3">
+                    <button onclick="handleCancelAdd()"
+                            class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-300 hover:text-white bg-slate-800/50 hover:bg-slate-700/50 rounded-md transition-colors">
+                        <span>取消</span>
+                    </button>
+                    <button onclick="handleInsertTemplate()"
+                            class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-300 hover:text-white bg-slate-800/50 hover:bg-slate-700/50 rounded-md transition-colors">
+                        <i class="material-icons text-[18px]">content_paste</i>
+                        <span>插入模板</span>
+                    </button>
+                    <button onclick="AddScript()"
+                            class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-500 hover:bg-green-600 rounded-md transition-colors">
+                        <i class="material-icons text-[18px]">save</i>
+                        <span>保存</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑脚本对话框 -->
+<div class="mdui-dialog" id="edit_script_dialog">
+    <div class="p-6 bg-slate-900 rounded-lg">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-lg font-medium text-white">编辑脚本片段</h3>
+        </div>
+        <input type="text" id="edit_script_id" hidden>
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-slate-400 mb-2">名称</label>
+                <input type="text" 
+                       id="edit_script_name"
+                       class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-slate-400 mb-2">内容</label>
+                <textarea id="edit_script_content"
+                          rows="10"
+                          class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono"></textarea>
+            </div>
+        </div>
+        <div class="flex justify-end mt-6">
+            <button onclick="EditScript()"
+                    class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-500 hover:bg-green-600 rounded-md transition-colors">
+                <span>确认修改</span>
+                <i class="material-icons text-[18px]">done_all</i>
+            </button>
+        </div>
+    </div>
+</div>
+{%endblock%}
+
+{%block js%}
+<script>
+// 基础模板
+const SCRIPT_TEMPLATE = `#!/bin/bash
+#
+# 名称: 
+# 描述: 
+# 变量: 
+#   - VAR1: 变量1描述
+#   - VAR2: 变量2描述
+#
+# 使用示例:
+# VAR1=value1 VAR2=value2 ./script.sh
+
+# 脚本内容开始
+`;
+
+// 切换添加区域显示状态
+function toggleAddSection() {
+    const addSection = document.getElementById('addScriptSection');
+    const isHidden = addSection.classList.contains('hidden');
+    
+    if (isHidden) {
+        addSection.classList.remove('hidden');
+        document.getElementById('add_script_name').focus();
+    } else {
+        handleCancelAdd();
+    }
+}
+
+// 取消添加
+function handleCancelAdd() {
+    const name = document.getElementById('add_script_name').value;
+    const content = document.getElementById('add_script_content').value;
+    
+    if (name.trim() || content.trim()) {
+        if (confirm('确定要取消吗？已输入的内容将会丢失。')) {
+            clearAddForm();
+        }
+    } else {
+        clearAddForm();
+    }
+}
+
+// 插入模板
+function handleInsertTemplate() {
+    const contentArea = document.getElementById('add_script_content');
+    contentArea.value = SCRIPT_TEMPLATE;
+    contentArea.focus();
+}
+
+// 清空表单
+function clearAddForm() {
+    document.getElementById('add_script_name').value = '';
+    document.getElementById('add_script_content').value = '';
+    document.getElementById('addScriptSection').classList.add('hidden');
+}
+
+async function AddScript(){
+    const name = V("add_script_name");
+    const content = V('add_script_content');
+    
+    if (!name.trim()) {
+        notice('请输入脚本名称');
+        return;
+    }
+    
+    if (!content.trim()) {
+        notice('请输入脚本内容');
+        return;
+    }
+    
+    startloading();
+    var res = await postjson(`/admin/ssh_scripts/add`,{
+        name,
+        content,
+    });
+    endloading();
+    
+    if(res.status){
+        notice("添加成功");
+        clearAddForm();
+        refreshPage();
+    } else {
+        notice(res.data || '添加失败');
+    }
+};
+
+async function DelScript(id){
+    if(!confirm("确认删除?"))return;
+    startloading();
+    var res=await postjson(`/admin/ssh_scripts/del`,{id});
+    endloading();
+    notice(res.data);
+    if(res.status)refreshPage();
+};
+
+async function editScript(id){
+    E('edit_script_id').value=id;
+    var res=await postjson("/admin/ssh_scripts/get",{id});
+    E('edit_script_name').value=res.data.name;
+    E('edit_script_content').value=res.data.content;
+}
+
+async function EditScript(){
+    startloading();
+    var res=await postjson(`/admin/ssh_scripts/upd`,{
+        id:V('edit_script_id'),
+        name:V('edit_script_name'),
+        content:V('edit_script_content'),
+    });
+    endloading();
+    notice(res.data);
+    if(res.status)refreshPage();
+}
+</script>
+{%endblock%}

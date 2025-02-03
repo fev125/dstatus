@@ -1,0 +1,102 @@
+<!-- 顶部导航栏 -->
+<nav class="fixed top-0 left-0 right-0 z-40 bg-slate-900/90 backdrop-blur shadow-md border-b border-slate-800/50">
+    <div class="max-w-7xl mx-auto px-4">
+        <div class="flex items-center justify-between h-16">
+            <!-- 左侧 Logo 和标题 -->
+            <div class="flex items-center">
+                <a href="/" class="flex items-center group">
+                    <svg class="w-8 h-8 text-blue-500 group-hover:text-blue-400 transition-colors" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M21 12c0 1.47-.42 2.85-1.15 4.04l1.68 1.68c.94-1.69 1.47-3.63 1.47-5.72 0-3.13-1.23-5.98-3.24-8.09l-1.42 1.42C19.37 7.05 21 9.37 21 12zm-4 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C18.62 14.91 19 13.5 19 12c0-2.8-1.12-5.34-2.93-7.19l-1.4 1.4C16.08 7.79 17 9.79 17 12zm-8-1H7v2h2v-2zm8.16-7.88l-1.42 1.42C14.28 3.14 12.72 2 11 2c-1.72 0-3.28 1.14-3.74 2.54L5.84 3.12C6.76 1.27 8.72 0 11 0c2.28 0 4.24 1.27 5.16 3.12zM11 4c1.11 0 2 .89 2 2v4h-4V6c0-1.11.89-2 2-2zm8.32 14.88C18.76 20.73 16.8 22 14.52 22c-2.28 0-4.24-1.27-5.16-3.12l1.42-1.42c.46 1.4 2.02 2.54 3.74 2.54 1.72 0 3.28-1.14 3.74-2.54l1.06 1.42zM14 18H6c-1.1 0-2-.9-2-2V6c0-.55.23-1.05.59-1.41L6 6v10h8v2z"/>
+                    </svg>
+                    <span class="text-xl font-medium text-white group-hover:text-blue-400 transition-colors ml-2">
+                        {{setting.site.name}}
+                    </span>
+                </a>
+            </div>
+
+            <!-- 右侧按钮组 -->
+            <div class="flex items-center space-x-3">
+                <a href="/" class="flex items-center px-4 py-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-800 transition-all relative group {%if title=='节点状态'%}text-blue-400 bg-slate-800{%endif%}">
+                    <i class="material-icons text-[20px] mr-2">dashboard</i>
+                    <span class="hidden md:inline text-base">节点状态</span>
+                    {%if title=='节点状态'%}
+                    <div class="absolute bottom-0 left-0 w-full h-0.5 bg-blue-500 rounded-full"></div>
+                    {%endif%}
+                </a>
+                {%if admin%}
+                <a href="/admin/servers" class="flex items-center px-4 py-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-800 transition-all relative group {%if title=='管理服务器'%}text-blue-400 bg-slate-800{%endif%}">
+                    <i class="material-icons text-[20px] mr-2">dns</i>
+                    <span class="hidden md:inline text-base">服务器管理</span>
+                    {%if title=='管理服务器'%}
+                    <div class="absolute bottom-0 left-0 w-full h-0.5 bg-blue-500 rounded-full"></div>
+                    {%endif%}
+                </a>
+
+                <a href="/admin/setting" class="flex items-center gap-2 px-4 py-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-800 transition-all" title="系统设置">
+                    <i class="material-icons text-[20px]">settings</i>
+                    <span class="hidden md:inline text-base">设置</span>
+                </a>
+                <div class="w-px h-5 bg-slate-700/50 mx-2"></div>
+                <a href="/logout" class="flex items-center gap-2 px-4 py-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-800 transition-all" title="退出登录">
+                    <i class="material-icons text-[20px]">logout</i>
+                    <span class="hidden md:inline text-base">退出</span>
+                </a>
+                {%else%}
+                <a href="/login" class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-slate-300 hover:text-white hover:bg-slate-800 transition-all" title="管理员登录">
+                    <i class="material-icons md-16">admin_panel_settings</i>
+                    <span class="hidden md:inline text-sm">登录</span>
+                </a>
+                {%endif%}
+                
+                <div class="w-px h-4 bg-slate-700/50 mx-2"></div>
+                
+                <!-- 主题切换按钮 -->
+                <button class="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-slate-300 hover:text-white hover:bg-slate-800 transition-all" onclick="toggleTheme()" title="切换主题">
+                    <i class="material-icons md-16">dark_mode</i>
+                    <span class="hidden md:inline text-sm">主题</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- 为导航栏预留空间 -->
+<div class="h-14"></div>
+
+<style type="text/tailwindcss">
+    @layer components {
+        .material-icons { 
+            display: block;
+            line-height: 1;
+            font-style: normal;
+            letter-spacing: normal;
+            text-transform: none;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -webkit-font-smoothing: antialiased;
+        }
+        .material-icons.md-16 { 
+            font-size: 16px;
+            line-height: 1;
+        }
+    }
+</style>
+
+{%block js%}
+<script>
+const theme = {
+    dark: localStorage.getItem('theme') !== 'light',  // 直接从 localStorage 读取当前状态
+    toggle() {
+        this.dark = !this.dark;
+        localStorage.setItem('theme', this.dark ? 'dark' : 'light');
+        document.documentElement.classList.toggle('dark');
+    }
+};
+
+// 主题切换函数
+function toggleTheme() {
+    theme.toggle();
+}
+</script>
+{%endblock%}
