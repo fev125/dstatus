@@ -1,13 +1,31 @@
+version: '3.8'
+
 services:
   web:
     build: .
+    container_name: dstatus
     ports:
-      - "${WEB_PORT:-5555}:5555"      # Web 管理界面端口
-      - "${CONTROL_PORT:-9999}:9999"   # 默认被控端通信端口
+      - "127.0.0.1:${WEB_PORT:-5555}:5555"      # Web 管理界面端口
+      - "${CONTROL_PORT:-9999}:9999"   # 被控端通信端口
     volumes:
-      - ./database:/app/database
-      - ./logs:/app/logs
+      - dstatus-data:/app/database
+      - dstatus-logs:/app/logs
     environment:
       - NODE_ENV=production
-      - CONTROL_PORT=${CONTROL_PORT:-9999}  # 传递给应用
-    restart: always
+      - CONTROL_PORT=${CONTROL_PORT:-9999}
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:5555', res => res.statusCode === 200 ? process.exit(0) : process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 128M
+
+volumes:
+  dstatus-data:
+  dstatus-logs:
