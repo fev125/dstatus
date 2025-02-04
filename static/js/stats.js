@@ -498,7 +498,7 @@ const DragDropManager = {
 
     // 初始化 Tab 拖拽区域
     initTabDropZones() {
-        const tabContainer = document.querySelector('.tabs-wrapper .tab-container');
+        const tabContainer = document.querySelector('.bg-white\\/5 .flex.flex-wrap.items-center');
         if (!tabContainer) {
             console.warn('找不到 tab 容器，尝试延迟初始化');
             setTimeout(() => this.initTabDropZones(), 500);
