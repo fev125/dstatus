@@ -129,7 +129,7 @@ svr.get("/get-neko-status",async(req,res)=>{
     res.sendFile(path);
 })
 
-svr.put("/:sid", (req, res) => {
+svr.put("/api/server/:sid", (req, res) => {
     const { sid } = req.params;
     const { group_id } = req.body;
     

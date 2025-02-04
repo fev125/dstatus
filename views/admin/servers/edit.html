@@ -39,7 +39,7 @@
             <!-- 基本信息设置 -->
             <div class="space-y-4">
                 <h4 class="text-base font-medium text-slate-200">基本信息</h4>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     <!-- 服务器名称 -->
                     <div>
                         <label class="block text-sm font-medium text-slate-400 mb-2">服务器名称</label>
@@ -59,13 +59,22 @@
                             {% endfor %}
                         </select>
                     </div>
+                    <!-- 到期时间 -->
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">到期时间</label>
+                        <input type="date" 
+                               id="edit_expire_time"
+                               value="{{server.expire_time|formatDate}}"
+                               class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <p class="mt-1 text-xs text-slate-500">留空表示永久有效</p>
+                    </div>
                 </div>
             </div>
 
             <!-- SSH连接设置 -->
             <div class="space-y-4">
                 <h4 class="text-base font-medium text-slate-200">SSH 设置</h4>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     <!-- SSH连接参数：主机、端口、用户名 -->
                     <div>
                         <label class="block text-sm font-medium text-slate-400 mb-2">域名/IP</label>
@@ -95,7 +104,7 @@
                                value="{{server.data.ssh.password}}"
                                class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                     </div>
-                    <div>
+                    <div class="md:col-span-2 lg:col-span-3 xl:col-span-4">
                         <label class="block text-sm font-medium text-slate-400 mb-2">私钥 (可选)</label>
                         <input type="text" 
                                id="edit_ssh_pri"
@@ -105,41 +114,10 @@
                 </div>
             </div>
 
-            <!-- API设置 -->
-            <div class="space-y-4">
-                <h4 class="text-base font-medium text-slate-200">API 设置</h4>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <div>
-                        <label class="block text-sm font-medium text-slate-400 mb-2">通讯密钥</label>
-                        <input type="text" 
-                               id="edit_api_key"
-                               value="{{server.data.api.key}}"
-                               class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-slate-400 mb-2">API端口</label>
-                        <input type="number" 
-                               id="edit_api_port"
-                               value="{{server.data.api.port}}"
-                               min="1"
-                               max="65535"
-                               class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-slate-400 mb-2">网络设备</label>
-                        <input type="text" 
-                               id="edit_device"
-                               value="{{server.data.device}}"
-                               class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                               placeholder="例如: eth0">
-                    </div>
-                </div>
-            </div>
-
             <!-- 流量设置 -->
             <div class="space-y-4">
                 <h4 class="text-base font-medium text-slate-200">流量设置</h4>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     <!-- 每月流量限制 -->
                     <div>
                         <label class="block text-sm font-medium text-slate-400 mb-2">每月流量限制 (GB)</label>
@@ -195,6 +173,66 @@
                     </div>
                 </div>
             </div>
+
+            <!-- API设置 -->
+            <div class="space-y-4">
+                <h4 class="text-base font-medium text-slate-200">API 设置</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">通讯密钥</label>
+                        <input type="text" 
+                               id="edit_api_key"
+                               value="{{server.data.api.key}}"
+                               class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">API端口</label>
+                        <input type="number" 
+                               id="edit_api_port"
+                               value="{{server.data.api.port}}"
+                               min="1"
+                               max="65535"
+                               class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">网络设备</label>
+                        <input type="text" 
+                               id="edit_device"
+                               value="{{server.data.device}}"
+                               class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                               placeholder="例如: eth0">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 探针管理 -->
+            <div class="space-y-4">
+                <h4 class="text-base font-medium text-slate-200">探针管理</h4>
+                <div class="flex items-center gap-3">
+                    <button onclick="init()" 
+                            class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 rounded-md transition-colors">
+                        <i class="material-icons text-[18px]">download</i>
+                        <span>安装探针</span>
+                    </button>
+                    <button onclick="update()" 
+                            class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-green-500 hover:bg-green-600 rounded-md transition-colors">
+                        <i class="material-icons text-[18px]">system_update</i>
+                        <span>更新探针</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 安装进度弹窗 -->
+<div id="install-progress-modal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+    <div class="bg-slate-900 rounded-lg p-6 max-w-md w-full mx-4 border border-slate-800/50">
+        <div class="text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mx-auto mb-4"></div>
+            <h3 class="text-lg font-medium text-white mb-2">系统安装中</h3>
+            <p id="install-status" class="text-sm text-slate-400 mb-4">正在安装系统组件...</p>
+            <div class="text-xs text-slate-500">安装过程可能需要几分钟，请耐心等待</div>
         </div>
     </div>
 </div>
@@ -226,6 +264,9 @@ function initForm(server) {
     document.getElementById('edit_name').value = server.name;
     document.getElementById('edit_status').value = server.status;
     document.getElementById('edit_top').value = server.top;
+    if (server.expire_time) {
+        document.getElementById('edit_expire_time').value = timestampToDate(server.expire_time);
+    }
 
     // SSH设置
     document.getElementById('edit_ssh_host').value = server.data.ssh.host;
@@ -250,75 +291,49 @@ function initForm(server) {
 // 编辑服务器
 async function edit() {
     try {
-        // 数据验证
-        const name = document.getElementById('edit_name').value.trim();
-        const host = document.getElementById('edit_ssh_host').value.trim();
-        
-        if (!name || !host) {
-            showToast('服务器名称和SSH主机地址不能为空', 'error');
-            return;
-        }
-
-        // 获取表单数据
-        const formData = {
-            sid: document.getElementById('sid').value,
-            name: name,
-            status: document.getElementById('edit_status').value,
-            top: document.getElementById('edit_top').value,
+        startloading();
+        const expireTime = document.getElementById('edit_expire_time').value ?
+            Math.floor(new Date(document.getElementById('edit_expire_time').value + ' 23:59:59').getTime() / 1000) :
+            null;
+            
+        const data = {
+            sid: V('sid'),
+            name: V('edit_name'),
+            status: V('edit_status'),
+            top: V('edit_top'),
+            expire_time: expireTime,
             data: {
                 ssh: {
-                    host: host,
-                    port: parseInt(document.getElementById('edit_ssh_port').value) || 22,
-                    username: document.getElementById('edit_ssh_username').value.trim() || 'root',
-                    password: document.getElementById('edit_ssh_password').value,
-                    pri: document.getElementById('edit_ssh_pri').value
+                    host: V('edit_ssh_host'),
+                    port: parseInt(V('edit_ssh_port')) || 22,
+                    username: V('edit_ssh_username'),
+                    password: V('edit_ssh_password'),
+                    pri: V('edit_ssh_pri')
                 },
-                device: document.getElementById('edit_device').value.trim(),
                 api: {
-                    key: document.getElementById('edit_api_key').value.trim(),
-                    port: parseInt(document.getElementById('edit_api_port').value) || 8080
-                }
-            }
-        };
-
-        // 处理流量相关数据
-        const trafficLimit = parseFloat(document.getElementById('edit_traffic_limit').value) || 0;
-        const trafficCalibrationValue = parseFloat(document.getElementById('edit_traffic_calibration_value').value) || 0;
-
-        // 添加流量相关数据
-        Object.assign(formData, {
-            traffic_limit: gbToBytes(trafficLimit),
-            traffic_reset_day: parseInt(document.getElementById('edit_traffic_reset_day').value) || 1,
-            traffic_alert_percent: parseInt(document.getElementById('edit_traffic_alert_percent').value) || 80,
-            traffic_calibration_date: dateStringToTimestamp(document.getElementById('edit_traffic_calibration_date').value),
-            traffic_calibration_value: gbToBytes(trafficCalibrationValue)
-        });
-
-        console.log('提交的数据:', formData);
-
-        // 发送请求
-        const response = await fetch(`/admin/servers/${formData.sid}/edit`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
+                    key: V('edit_api_key'),
+                    port: parseInt(V('edit_api_port')) || 8080
+                },
+                device: V('edit_device')
             },
-            body: JSON.stringify(formData)
-        });
-
-        const result = await response.json();
+            traffic_limit: GBToBytes(V('edit_traffic_limit')),
+            traffic_reset_day: parseInt(V('edit_traffic_reset_day')) || 1,
+            traffic_alert_percent: parseInt(V('edit_traffic_alert_percent')) || 80,
+            traffic_calibration_date: dateStringToTimestamp(V('edit_traffic_calibration_date')),
+            traffic_calibration_value: GBToBytes(V('edit_traffic_calibration_value'))
+        };
         
-        if (result.status) {
-            showToast('保存成功', 'success');
-            // 延迟跳转
-            setTimeout(() => {
-                window.location.href = '/admin/servers/';
-            }, 1000);
+        const res = await postjson('/admin/servers/' + V('sid') + '/edit', data);
+        if (res.status) {
+            notice('保存成功');
+            setTimeout(() => location.href = '/admin/servers', 1000);
         } else {
-            showToast(result.msg || '保存失败', 'error');
+            notice(res.data || '保存失败');
         }
     } catch (error) {
-        console.error('保存失败:', error);
-        showToast('保存失败: ' + error.message, 'error');
+        notice('操作失败');
+    } finally {
+        endloading();
     }
 }
 
@@ -367,6 +382,86 @@ function showToast(message, type = 'info') {
         toast.classList.add('opacity-0', 'transition-opacity');
         setTimeout(() => toast.remove(), 300);
     }, 3000);
+}
+</script>
+
+<script>
+// 添加弹窗控制函数
+function showInstallModal(title = '系统安装中', status = '正在安装系统组件...') {
+    const modal = document.getElementById('install-progress-modal');
+    if (modal) {
+        modal.querySelector('h3').textContent = title;
+        document.getElementById('install-status').textContent = status;
+        modal.classList.remove('hidden');
+    }
+}
+
+function hideInstallModal() {
+    const modal = document.getElementById('install-progress-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+function updateInstallStatus(status) {
+    const statusElement = document.getElementById('install-status');
+    if (statusElement) {
+        statusElement.textContent = status;
+    }
+}
+
+// 修改现有的 init 函数
+async function init() {
+    if (!confirm('确认重新安装探针？这可能需要几分钟时间。')) {
+        return;
+    }
+    
+    showInstallModal('重新安装探针', '正在安装系统组件...');
+    try {
+        const sid = V('sid');
+        const res = await postjson(`/admin/servers/${sid}/init`);
+        
+        if (res.status) {
+            notice('安装成功！', 'success');
+            setTimeout(() => {
+                hideInstallModal();
+            }, 1000);
+        } else {
+            throw new Error(res.data || '安装失败');
+        }
+    } catch (error) {
+        console.error('安装失败:', error);
+        notice(error.message || '安装失败', 'error');
+    } finally {
+        hideInstallModal();
+    }
+}
+
+// 修改现有的 update 函数
+async function update() {
+    if (!confirm('确认更新探针？这可能需要几分钟时间。')) {
+        return;
+    }
+    
+    showInstallModal('更新探针', '正在更新系统...');
+    try {
+        const sid = V('sid');
+        const res = await postjson(`/admin/servers/${sid}/update`);
+        
+        if (res.status) {
+            notice('更新成功！', 'success');
+            setTimeout(() => {
+                hideInstallModal();
+            }, 1000);
+        } else {
+            throw new Error(res.data || '更新失败');
+        }
+    } catch (error) {
+        console.error('更新失败:', error);
+        notice(error.message || '更新失败', 'error');
+    } finally {
+        hideInstallModal();
+    }
 }
 </script>
 {%endblock%}

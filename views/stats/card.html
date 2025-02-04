@@ -8,282 +8,410 @@
     </a>
 </div>
 
-<!-- 仪表盘区域 -->
-<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mx-4 mt-4">
-    <!-- 节点情况卡片 -->
-    <div class="dashboard-card bg-white/5 backdrop-blur-sm rounded-lg border border-gray-700/50 p-4">
-        <div class="flex items-center gap-2 mb-4">
-            <i class="material-icons text-gray-400">hub</i>
-            <h2 class="text-lg font-medium text-gray-200">节点情况</h2>
+<!-- 主容器 -->
+<div class="max-w-8xl mx-auto px-4 w-full">
+    <!-- 仪表盘区域 -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+        <!-- 节点情况卡片 -->
+        <div class="dashboard-card bg-white/5 backdrop-blur-sm rounded-lg border border-gray-700/50 p-4">
+            <div class="flex items-center gap-2 mb-4">
+                <i class="material-icons text-gray-400">hub</i>
+                <h2 class="text-lg font-medium text-gray-200">节点情况</h2>
+            </div>
+            <div class="grid grid-cols-3 gap-4">
+                <div class="text-center">
+                    <div class="text-2xl font-semibold text-gray-200" id="total-nodes">0</div>
+                    <div class="text-sm text-gray-400">总节点</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-semibold text-green-500" id="online-nodes">0</div>
+                    <div class="text-sm text-gray-400">在线节点</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-semibold text-red-500" id="offline-nodes">0</div>
+                    <div class="text-sm text-gray-400">离线节点</div>
+                </div>
+            </div>
         </div>
-        <div class="grid grid-cols-3 gap-4">
-            <div class="text-center">
-                <div class="text-2xl font-semibold text-gray-200" id="total-nodes">0</div>
-                <div class="text-sm text-gray-400">总节点</div>
+
+        <!-- 网络情况卡片 -->
+        <div class="dashboard-card bg-white/5 backdrop-blur-sm rounded-lg border border-gray-700/50 p-4">
+            <div class="flex items-center gap-2 mb-4">
+                <i class="material-icons text-gray-400">network_check</i>
+                <h2 class="text-lg font-medium text-gray-200">网络情况</h2>
             </div>
-            <div class="text-center">
-                <div class="text-2xl font-semibold text-green-500" id="online-nodes">0</div>
-                <div class="text-sm text-gray-400">在线节点</div>
-            </div>
-            <div class="text-center">
-                <div class="text-2xl font-semibold text-red-500" id="offline-nodes">0</div>
-                <div class="text-sm text-gray-400">离线节点</div>
+            <div class="space-y-4">
+                <!-- 实时带宽 -->
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <i class="material-icons text-gray-400">speed</i>
+                        <span class="text-sm text-gray-400">实时带宽</span>
+                    </div>
+                    <div class="flex items-center gap-6">
+                        <div class="flex items-center gap-1.5">
+                            <i class="material-icons text-green-500/70 text-sm">arrow_downward</i>
+                            <span class="text-xl font-medium text-gray-200" id="current-download-speed">0.00 bps</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <i class="material-icons text-blue-500/70 text-sm">arrow_upward</i>
+                            <span class="text-xl font-medium text-gray-200" id="current-upload-speed">0.00 bps</span>
+                        </div>
+                    </div>
+                </div>
+                <!-- 总流量 -->
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <i class="material-icons text-gray-400">data_usage</i>
+                        <span class="text-sm text-gray-400">总流量</span>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <div class="flex items-center gap-1.5">
+                            <i class="material-icons text-green-500/70 text-sm">arrow_downward</i>
+                            <span class="text-sm text-gray-200" id="total-download">0.00 B</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <i class="material-icons text-blue-500/70 text-sm">arrow_upward</i>
+                            <span class="text-sm text-gray-200" id="total-upload">0.00 B</span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- 网络情况卡片 -->
-    <div class="dashboard-card bg-white/5 backdrop-blur-sm rounded-lg border border-gray-700/50 p-4">
-        <div class="flex items-center gap-2 mb-4">
-            <i class="material-icons text-gray-400">network_check</i>
-            <h2 class="text-lg font-medium text-gray-200">网络情况</h2>
-        </div>
-        <div class="space-y-4">
-            <!-- 总流量 -->
-            <div class="flex items-center justify-between">
+    <!-- 排序工具栏 -->
+    <div class="sort-toolbar bg-white/5 backdrop-blur-sm rounded-lg border border-gray-700/50 mt-4">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 gap-4">
+            <div class="flex items-center gap-4 w-full sm:w-auto">
+                <div class="text-gray-400 whitespace-nowrap">排序方式:</div>
+                <div class="flex flex-wrap sm:flex-nowrap gap-2 w-full sm:w-auto">
+                    <button class="sort-btn px-3 py-1.5 rounded-full text-sm text-gray-400 hover:text-gray-200 hover:bg-white/5 transition-colors" data-sort="cpu">
+                        <span>CPU</span>
+                        <i class="material-icons md-14">unfold_more</i>
+                    </button>
+                    <button class="sort-btn px-3 py-1.5 rounded-full text-sm text-gray-400 hover:text-gray-200 hover:bg-white/5 transition-colors" data-sort="memory">
+                        <span>内存</span>
+                        <i class="material-icons md-14">unfold_more</i>
+                    </button>
+                    <button class="sort-btn px-3 py-1.5 rounded-full text-sm text-gray-400 hover:text-gray-200 hover:bg-white/5 transition-colors" data-sort="total_traffic">
+                        <span>总流量</span>
+                        <i class="material-icons md-14">unfold_more</i>
+                    </button>
+                    <button class="sort-btn px-3 py-1.5 rounded-full text-sm text-gray-400 hover:text-gray-200 hover:bg-white/5 transition-colors" data-sort="upload">
+                        <span>上传</span>
+                        <i class="material-icons md-14">unfold_more</i>
+                    </button>
+                    <button class="sort-btn px-3 py-1.5 rounded-full text-sm text-gray-400 hover:text-gray-200 hover:bg-white/5 transition-colors" data-sort="download">
+                        <span>下载</span>
+                        <i class="material-icons md-14">unfold_more</i>
+                    </button>
+                    <button class="sort-btn px-3 py-1.5 rounded-full text-sm text-gray-400 hover:text-gray-200 hover:bg-white/5 transition-colors" data-sort="expiration">
+                        <span>到期时间</span>
+                        <i class="material-icons md-14">unfold_more</i>
+                    </button>
+                </div>
+            </div>
+            <div class="flex flex-wrap sm:flex-nowrap items-center gap-4 w-full sm:w-auto">
                 <div class="flex items-center gap-2">
-                    <i class="material-icons text-gray-400">data_usage</i>
-                    <span class="text-sm text-gray-400">总流量</span>
+                    <input type="checkbox" id="realtime-sort" class="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-500">
+                    <label for="realtime-sort" class="text-sm text-gray-300">实时排序</label>
                 </div>
-                <div class="flex items-center gap-4">
-                    <div class="flex items-center gap-1">
-                        <i class="material-icons text-green-500/70 text-sm">arrow_downward</i>
-                        <span class="text-sm text-gray-200" id="total-download">0.00 B</span>
-                    </div>
-                    <div class="flex items-center gap-1">
-                        <i class="material-icons text-blue-500/70 text-sm">arrow_upward</i>
-                        <span class="text-sm text-gray-200" id="total-upload">0.00 B</span>
-                    </div>
-                </div>
-            </div>
-            <!-- 实时带宽 -->
-            <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
-                    <i class="material-icons text-gray-400">speed</i>
-                    <span class="text-sm text-gray-400">实时带宽</span>
+                    <input type="checkbox" id="show-sensitive" class="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-500">
+                    <label for="show-sensitive" class="text-sm text-gray-300">隐藏敏感信息</label>
                 </div>
-                <div class="flex items-center gap-4">
-                    <div class="flex items-center gap-1">
-                        <i class="material-icons text-green-500/70 text-sm">arrow_downward</i>
-                        <span class="text-sm text-gray-200" id="current-download">0.00 bps</span>
-                    </div>
-                    <div class="flex items-center gap-1">
-                        <i class="material-icons text-blue-500/70 text-sm">arrow_upward</i>
-                        <span class="text-sm text-gray-200" id="current-upload">0.00 bps</span>
-                    </div>
+                <div class="flex items-center gap-2">
+                    <input type="checkbox" id="hide-offline" class="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-500">
+                    <label for="hide-offline" class="text-sm text-gray-300">隐藏离线节点</label>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-<!-- 排序工具栏 -->
-<div class="sort-toolbar bg-white/5 backdrop-blur-sm rounded-lg border border-gray-700/50 mx-4 mt-4">
-    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 gap-4">
-        <div class="flex items-center gap-4 w-full sm:w-auto">
-            <div class="text-gray-400 whitespace-nowrap">排序方式:</div>
-            <div class="flex flex-wrap sm:flex-nowrap gap-2 w-full sm:w-auto">
-                <button class="sort-btn px-3 py-1.5 rounded-full text-sm text-gray-400 hover:text-gray-200 hover:bg-white/5 transition-colors" data-sort="cpu">
-                    <span>CPU</span>
-                    <i class="material-icons md-14">unfold_more</i>
-                </button>
-                <button class="sort-btn px-3 py-1.5 rounded-full text-sm text-gray-400 hover:text-gray-200 hover:bg-white/5 transition-colors" data-sort="memory">
-                    <span>内存</span>
-                    <i class="material-icons md-14">unfold_more</i>
-                </button>
-                <button class="sort-btn px-3 py-1.5 rounded-full text-sm text-gray-400 hover:text-gray-200 hover:bg-white/5 transition-colors" data-sort="total_traffic">
-                    <span>总流量</span>
-                    <i class="material-icons md-14">unfold_more</i>
-                </button>
-                <button class="sort-btn px-3 py-1.5 rounded-full text-sm text-gray-400 hover:text-gray-200 hover:bg-white/5 transition-colors" data-sort="upload">
-                    <span>上传</span>
-                    <i class="material-icons md-14">unfold_more</i>
-                </button>
-                <button class="sort-btn px-3 py-1.5 rounded-full text-sm text-gray-400 hover:text-gray-200 hover:bg-white/5 transition-colors" data-sort="download">
-                    <span>下载</span>
-                    <i class="material-icons md-14">unfold_more</i>
-                </button>
-                <button class="sort-btn px-3 py-1.5 rounded-full text-sm text-gray-400 hover:text-gray-200 hover:bg-white/5 transition-colors" data-sort="expiration">
-                    <span>到期时间</span>
-                    <i class="material-icons md-14">unfold_more</i>
-                </button>
-            </div>
-        </div>
-        <div class="flex flex-wrap sm:flex-nowrap items-center gap-4 w-full sm:w-auto">
-            <div class="flex items-center gap-2">
-                <input type="checkbox" id="realtime-sort" class="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-500">
-                <label for="realtime-sort" class="text-sm text-gray-300">实时排序</label>
-            </div>
-            <div class="flex items-center gap-2">
-                <input type="checkbox" id="show-sensitive" class="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-500">
-                <label for="show-sensitive" class="text-sm text-gray-300">隐藏敏感信息</label>
-            </div>
-            <div class="flex items-center gap-2">
-                <input type="checkbox" id="hide-offline" class="w-4 h-4 rounded border-gray-600 bg-gray-700 text-blue-500">
-                <label for="hide-offline" class="text-sm text-gray-300">隐藏离线节点</label>
-            </div>
+    <!-- Tab导航栏容器 -->
+    <div class="bg-white/5 backdrop-blur-sm rounded-lg border border-gray-700/50 mt-4">
+        <div class="flex flex-wrap items-center p-4 gap-2">
+            <!-- 全部节点Tab -->
+            <button class="tab-btn inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-400 border border-transparent rounded-lg transition-all duration-200 ease-in-out transform hover:scale-[1.02] active:scale-[0.98] hover:text-white hover:bg-slate-700/40 hover:border-slate-600" 
+                    data-group="all">
+                <i class="material-icons text-[18px]">dns</i>
+                <span>全部节点</span>
+                <span class="inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium bg-slate-700/50 text-gray-200 rounded-full transition-colors duration-200" id="all-nodes-count-tab">0/0</span>
+            </button>
+            
+            <!-- 分组Tabs -->
+            {% for group in groups %}
+            <button class="tab-btn inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-400 border border-transparent rounded-lg transition-all duration-200 ease-in-out transform hover:scale-[1.02] active:scale-[0.98] hover:text-white hover:bg-slate-700/40 hover:border-slate-600" 
+                    data-group="{{group.id}}">
+                <i class="material-icons text-[18px]">folder</i>
+                <span>{{group.name}}</span>
+                <span class="inline-flex items-center justify-center px-2 py-0.5 text-xs font-medium bg-slate-800/50 text-gray-400 rounded-full transition-colors duration-200" 
+                      id="group-{{group.id}}-count-tab">{{group.server_count}}</span>
+            </button>
+            {% endfor %}
         </div>
     </div>
-</div>
 
-<!-- 分组卡片布局 -->
-<div class="space-y-6 p-4" id="groups-container">
-    {% if admin %}
-    <!-- 新增分组按钮 -->
-    <div class="flex justify-end mb-4 add-group-btn-container">
-        <button id="add-group-btn" class="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
-            <i class="material-icons">add</i>
-            <span>新增分组</span>
-        </button>
-    </div>
-    {% endif %}
-    
-    {% for group in groups %}
-    <div class="group-container" data-group-id="{{group.id}}">
-        <!-- 分组标题栏 -->
-        <div class="flex items-center justify-between p-4 bg-white/5 backdrop-blur-sm rounded-lg border border-gray-700/50 mb-4 {% if admin %}group-handle cursor-move{% endif %}">
-            <div class="flex items-center gap-2">
-                {% if admin %}<i class="material-icons text-gray-400">drag_indicator</i>{% endif %}
-                <i class="material-icons text-gray-400">folder</i>
-                <h2 class="text-lg font-medium text-white group-name" data-group-id="{{group.id}}">{{group.name}}</h2>
-                <span class="text-sm text-gray-400" id="group-{{group.id}}-count">({{group.server_count}})</span>
-            </div>
-            {% if admin %}
-            <div class="flex items-center gap-2">
-                <button class="edit-group-btn p-2 text-gray-400 hover:text-gray-200 hover:bg-white/5 rounded-md transition-colors" data-group-id="{{group.id}}">
-                    <i class="material-icons">edit</i>
-                </button>
-            </div>
-            {% endif %}
-        </div>
-
-        <!-- 服务器卡片网格 -->
-        <div id="card-grid-{{group.id}}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {%for sid, node in stats%}
-            {% if node.group_id == group.id %}
-            <div class="server-card bg-white/5 backdrop-blur-sm rounded-lg overflow-hidden border border-gray-700/50 {%if node.stat==0%}opacity-60{%endif%}" 
-                 data-group="{{group.id}}" 
-                 data-sid="{{sid}}" 
-                 data-top="{{node.top}}">
-                <div class="p-4">
-                    <!-- 服务器名称和操作按钮 -->
-                    <div class="server-card-handle flex items-center justify-between mb-4 cursor-move group">
-                        <div class="flex items-center gap-2">
-                            <i class="material-icons md-16 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">drag_indicator</i>
-                            <i class="material-icons md-16 text-gray-400">dns</i>
+    <!-- 分组内容区域 -->
+    <div class="mt-4" id="groups-container">
+        <!-- 全部节点视图 -->
+        <div class="group-view transition-all duration-300 ease-in-out" data-group="all">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {%for sid, node in stats%}
+                <!-- 服务器卡片 -->
+                <div class="server-card bg-white/5 backdrop-blur-sm rounded-lg overflow-hidden border border-gray-700/50 {%if node.stat==0%}opacity-60{%endif%}" 
+                     data-group="all" 
+                     data-sid="{{sid}}" 
+                     data-top="{{node.top}}">
+                    <div class="p-4">
+                        <!-- 服务器名称和操作按钮 -->
+                        <div class="server-card-handle flex items-center justify-between mb-4 cursor-move group">
                             <div class="flex items-center gap-2">
-                                <h3 class="server-name font-medium text-gray-200 {%if node.stat==0%}text-gray-400{%endif%}" title="{{node.name}}">
-                                    <a href="/stats/{{sid}}/" class="hover:text-primary-400">{{node.name}}</a>
-                                </h3>
-                                <!-- 状态信息 -->
-                                <div class="flex items-center gap-1" id="{{sid}}_status_container">
-                                    <div class="w-2.5 h-2.5 rounded-full {% if node.stat and node.stat != 0 and node.stat != -1 %}bg-green-500{% else %}bg-red-500{% endif %}" id="{{sid}}_status_indicator" title="{% if node.stat and node.stat != 0 and node.stat != -1 %}在线{% else %}离线{% endif %}"></div>
+                                <i class="material-icons md-16 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">drag_indicator</i>
+                                <i class="material-icons md-16 text-gray-400">dns</i>
+                                <div class="flex items-center gap-2">
+                                    <h3 class="server-name font-medium text-gray-200 {%if node.stat==0%}text-gray-400{%endif%}" title="{{node.name}}">
+                                        <a href="/stats/{{sid}}/" class="hover:text-primary-400">{{node.name}}</a>
+                                    </h3>
+                                    <!-- 状态信息 -->
+                                    <div class="flex items-center gap-1" id="{{sid}}_status_container">
+                                        <div class="w-2.5 h-2.5 rounded-full {% if node.stat and node.stat != 0 and node.stat != -1 %}bg-green-500{% else %}bg-red-500{% endif %}" id="{{sid}}_status_indicator" title="{% if node.stat and node.stat != 0 and node.stat != -1 %}在线{% else %}离线{% endif %}"></div>
+                                    </div>
                                 </div>
                             </div>
+                            <div class="flex gap-2">
+                                <button class="text-gray-400 hover:text-gray-200" id="{{sid}}_host">
+                                    <i class="material-icons md-16">info_outline</i>
+                                </button>
+                                {%if admin%}
+                                <a class="text-gray-400 hover:text-gray-200" href="/admin/servers/{{sid}}/">
+                                    <i class="material-icons md-16">edit</i>
+                                </a>
+                                {%endif%}
+                            </div>
                         </div>
-                        <div class="flex gap-2">
-                            <button class="text-gray-400 hover:text-gray-200" id="{{sid}}_host">
-                                <i class="material-icons md-16">info_outline</i>
-                            </button>
-                            {%if admin%}
-                            <a class="text-gray-400 hover:text-gray-200" href="/admin/servers/{{sid}}/">
-                                <i class="material-icons md-16">edit</i>
-                            </a>
-                            {%endif%}
+                        
+                        <!-- 系统信息 -->
+                        <div class="space-y-4">
+                            <!-- CPU和内存使用率 -->
+                            <div class="grid grid-cols-2 gap-4">
+                                <!-- CPU 使用率 -->
+                                <div>
+                                    <div class="flex justify-between items-center">
+                                        <div class="flex items-center gap-1 text-gray-400">
+                                            <i class="material-icons md-16">memory</i>
+                                            <span class="text-sm">CPU</span>
+                                        </div>
+                                        <span id="{{sid}}_CPU" class="text-sm text-gray-200 {%if node.stat==0%}text-gray-400{%endif%}" 
+                                              data-cpu="{{(node.stat.cpu.multi * 100)|float|round(2) if node.stat and node.stat.cpu else 0}}">
+                                            {{node.cpu}}%
+                                        </span>
+                                    </div>
+                                    <div class="h-1 bg-gray-700/50 rounded-full overflow-hidden mt-1">
+                                        <div id="{{sid}}_CPU_progress" class="h-full bg-blue-500/70 rounded-full transition-all duration-300" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                                
+                                <!-- 内存使用率 -->
+                                <div>
+                                    <div class="flex justify-between items-center">
+                                        <div class="flex items-center gap-1 text-gray-400">
+                                            <i class="material-icons md-16">dns</i>
+                                            <span class="text-sm">内存</span>
+                                        </div>
+                                        <span id="{{sid}}_MEM" class="text-sm text-gray-200 {%if node.stat==0%}text-gray-400{%endif%}" 
+                                              data-memory="{{((node.stat.mem.virtual.used / node.stat.mem.virtual.total) * 100)|float|round(2) if node.stat and node.stat.mem.virtual else 0}}">
+                                            {{node.memory}}%
+                                        </span>
+                                    </div>
+                                    <div class="h-1 bg-gray-700/50 rounded-full overflow-hidden mt-1">
+                                        <div id="{{sid}}_MEM_progress" class="h-full bg-purple-500/70 rounded-full transition-all duration-300" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 网络流量 -->
+                            <div class="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                    <div class="flex items-center gap-2 text-gray-400">
+                                        <i class="material-icons md-14">arrow_downward</i>
+                                        <span id="{{sid}}_NET_IN" class="{%if node.stat==0%}text-gray-400{%endif%}">NaN</span>
+                                    </div>
+                                    <div class="flex items-center gap-1 text-xs text-gray-500 mt-1">
+                                        <i class="material-icons md-14">cloud_download</i>
+                                        <span id="{{sid}}_NET_IN_TOTAL" class="{%if node.stat==0%}text-gray-400{%endif%}">NaN</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-2 text-gray-400">
+                                        <i class="material-icons md-14">arrow_upward</i>
+                                        <span id="{{sid}}_NET_OUT" class="{%if node.stat==0%}text-gray-400{%endif%}">NaN</span>
+                                    </div>
+                                    <div class="flex items-center gap-1 text-xs text-gray-500 mt-1">
+                                        <i class="material-icons md-14">cloud_upload</i>
+                                        <span id="{{sid}}_NET_OUT_TOTAL" class="{%if node.stat==0%}text-gray-400{%endif%}">NaN</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 到期时间 -->
+                            <div class="flex items-center gap-1 text-sm text-gray-400">
+                                <i class="material-icons md-14">access_time</i>
+                                <span>到期时间：</span>
+                                <span id="{{sid}}_EXPIRE_TIME" class="text-gray-200 {%if node.stat==0%}text-gray-400{%endif%}" 
+                                      data-expire="{{node.expire_time|default(0)}}">
+                                    {{node.expire}}
+                                </span>
+                            </div>
                         </div>
                     </div>
                     
-                    <!-- 系统信息 -->
-                    <div class="space-y-4">
-                        <!-- CPU和内存使用率 -->
-                        <div class="grid grid-cols-2 gap-4">
-                            <!-- CPU 使用率 -->
-                            <div>
-                                <div class="flex justify-between items-center">
-                                    <div class="flex items-center gap-1 text-gray-400">
-                                        <i class="material-icons md-16">memory</i>
-                                        <span class="text-sm">CPU</span>
-                                    </div>
-                                    <span id="{{sid}}_CPU" class="text-sm text-gray-200 {%if node.stat==0%}text-gray-400{%endif%}" 
-                                          data-cpu="{{(node.stat.cpu.multi * 100)|float|round(2) if node.stat and node.stat.cpu else 0}}">
-                                        {{node.cpu}}%
-                                    </span>
-                                </div>
-                                <div class="h-1 bg-gray-700/50 rounded-full overflow-hidden mt-1">
-                                    <div id="{{sid}}_CPU_progress" class="h-full bg-blue-500/70 rounded-full transition-all duration-300" style="width: 0%"></div>
-                                </div>
-                            </div>
-                            
-                            <!-- 内存使用率 -->
-                            <div>
-                                <div class="flex justify-between items-center">
-                                    <div class="flex items-center gap-1 text-gray-400">
-                                        <i class="material-icons md-16">dns</i>
-                                        <span class="text-sm">内存</span>
-                                    </div>
-                                    <span id="{{sid}}_MEM" class="text-sm text-gray-200 {%if node.stat==0%}text-gray-400{%endif%}" 
-                                          data-memory="{{((node.stat.mem.virtual.used / node.stat.mem.virtual.total) * 100)|float|round(2) if node.stat and node.stat.mem.virtual else 0}}">
-                                        {{node.memory}}%
-                                    </span>
-                                </div>
-                                <div class="h-1 bg-gray-700/50 rounded-full overflow-hidden mt-1">
-                                    <div id="{{sid}}_MEM_progress" class="h-full bg-purple-500/70 rounded-full transition-all duration-300" style="width: 0%"></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 网络流量 -->
-                        <div class="grid grid-cols-2 gap-4 text-sm">
-                            <div>
-                                <div class="flex items-center gap-2 text-gray-400">
-                                    <i class="material-icons md-14">arrow_downward</i>
-                                    <span id="{{sid}}_NET_IN" class="{%if node.stat==0%}text-gray-400{%endif%}">NaN</span>
-                                </div>
-                                <div class="flex items-center gap-1 text-xs text-gray-500 mt-1">
-                                    <i class="material-icons md-14">cloud_download</i>
-                                    <span id="{{sid}}_NET_IN_TOTAL" class="{%if node.stat==0%}text-gray-400{%endif%}">NaN</span>
-                                </div>
-                            </div>
-                            <div>
-                                <div class="flex items-center gap-2 text-gray-400">
-                                    <i class="material-icons md-14">arrow_upward</i>
-                                    <span id="{{sid}}_NET_OUT" class="{%if node.stat==0%}text-gray-400{%endif%}">NaN</span>
-                                </div>
-                                <div class="flex items-center gap-1 text-xs text-gray-500 mt-1">
-                                    <i class="material-icons md-14">cloud_upload</i>
-                                    <span id="{{sid}}_NET_OUT_TOTAL" class="{%if node.stat==0%}text-gray-400{%endif%}">NaN</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 到期时间 -->
-                        <div class="flex items-center gap-1 text-sm text-gray-400">
-                            <i class="material-icons md-14">access_time</i>
-                            <span>到期时间：</span>
-                            <span id="{{sid}}_EXPIRE_TIME" class="text-gray-200 {%if node.stat==0%}text-gray-400{%endif%}" 
-                                  data-expire="{{node.expire_time|default(0)}}">
-                                {{node.expire}}
-                            </span>
-                        </div>
+                    <!-- 操作按钮 -->
+                    <div class="flex border-t border-gray-700/50">
+                        <a href="/stats/{{sid}}" class="flex-1 px-4 py-3 text-center text-sm text-gray-400 hover:text-gray-200 hover:bg-white/5 transition-colors">
+                            详细信息
+                        </a>
                     </div>
                 </div>
-                
-                <!-- 操作按钮 -->
-                <div class="flex border-t border-gray-700/50">
-                    <a href="/stats/{{sid}}" class="flex-1 px-4 py-3 text-center text-sm text-gray-400 hover:text-gray-200 hover:bg-white/5 transition-colors">
-                        详细信息
-                    </a>
-                </div>
+                {% endfor %}
             </div>
-            {% endif %}
-            {%endfor%}
         </div>
+        
+        <!-- 分组视图 -->
+        {% for group in groups %}
+        <div class="group-view hidden transition-all duration-300 ease-in-out opacity-0" data-group="{{group.id}}">
+            <div id="card-grid-{{group.id}}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {%for sid, node in stats%}
+                {% if node.group_id == group.id %}
+                <div class="server-card bg-white/5 backdrop-blur-sm rounded-lg overflow-hidden border border-gray-700/50 {%if node.stat==0%}opacity-60{%endif%}" 
+                     data-group="{{group.id}}" 
+                     data-sid="{{sid}}" 
+                     data-top="{{node.top}}">
+                    <div class="p-4">
+                        <!-- 服务器名称和操作按钮 -->
+                        <div class="server-card-handle flex items-center justify-between mb-4 cursor-move group">
+                            <div class="flex items-center gap-2">
+                                <i class="material-icons md-16 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">drag_indicator</i>
+                                <i class="material-icons md-16 text-gray-400">dns</i>
+                                <div class="flex items-center gap-2">
+                                    <h3 class="server-name font-medium text-gray-200 {%if node.stat==0%}text-gray-400{%endif%}" title="{{node.name}}">
+                                        <a href="/stats/{{sid}}/" class="hover:text-primary-400">{{node.name}}</a>
+                                    </h3>
+                                    <!-- 状态信息 -->
+                                    <div class="flex items-center gap-1" id="{{sid}}_status_container">
+                                        <div class="w-2.5 h-2.5 rounded-full {% if node.stat and node.stat != 0 and node.stat != -1 %}bg-green-500{% else %}bg-red-500{% endif %}" id="{{sid}}_status_indicator" title="{% if node.stat and node.stat != 0 and node.stat != -1 %}在线{% else %}离线{% endif %}"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                                <button class="text-gray-400 hover:text-gray-200" id="{{sid}}_host">
+                                    <i class="material-icons md-16">info_outline</i>
+                                </button>
+                                {%if admin%}
+                                <a class="text-gray-400 hover:text-gray-200" href="/admin/servers/{{sid}}/">
+                                    <i class="material-icons md-16">edit</i>
+                                </a>
+                                {%endif%}
+                            </div>
+                        </div>
+                        
+                        <!-- 系统信息 -->
+                        <div class="space-y-4">
+                            <!-- CPU和内存使用率 -->
+                            <div class="grid grid-cols-2 gap-4">
+                                <!-- CPU 使用率 -->
+                                <div>
+                                    <div class="flex justify-between items-center">
+                                        <div class="flex items-center gap-1 text-gray-400">
+                                            <i class="material-icons md-16">memory</i>
+                                            <span class="text-sm">CPU</span>
+                                        </div>
+                                        <span id="{{sid}}_CPU" class="text-sm text-gray-200 {%if node.stat==0%}text-gray-400{%endif%}" 
+                                              data-cpu="{{(node.stat.cpu.multi * 100)|float|round(2) if node.stat and node.stat.cpu else 0}}">
+                                            {{node.cpu}}%
+                                        </span>
+                                    </div>
+                                    <div class="h-1 bg-gray-700/50 rounded-full overflow-hidden mt-1">
+                                        <div id="{{sid}}_CPU_progress" class="h-full bg-blue-500/70 rounded-full transition-all duration-300" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                                
+                                <!-- 内存使用率 -->
+                                <div>
+                                    <div class="flex justify-between items-center">
+                                        <div class="flex items-center gap-1 text-gray-400">
+                                            <i class="material-icons md-16">dns</i>
+                                            <span class="text-sm">内存</span>
+                                        </div>
+                                        <span id="{{sid}}_MEM" class="text-sm text-gray-200 {%if node.stat==0%}text-gray-400{%endif%}" 
+                                              data-memory="{{((node.stat.mem.virtual.used / node.stat.mem.virtual.total) * 100)|float|round(2) if node.stat and node.stat.mem.virtual else 0}}">
+                                            {{node.memory}}%
+                                        </span>
+                                    </div>
+                                    <div class="h-1 bg-gray-700/50 rounded-full overflow-hidden mt-1">
+                                        <div id="{{sid}}_MEM_progress" class="h-full bg-purple-500/70 rounded-full transition-all duration-300" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 网络流量 -->
+                            <div class="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                    <div class="flex items-center gap-2 text-gray-400">
+                                        <i class="material-icons md-14">arrow_downward</i>
+                                        <span id="{{sid}}_NET_IN" class="{%if node.stat==0%}text-gray-400{%endif%}">NaN</span>
+                                    </div>
+                                    <div class="flex items-center gap-1 text-xs text-gray-500 mt-1">
+                                        <i class="material-icons md-14">cloud_download</i>
+                                        <span id="{{sid}}_NET_IN_TOTAL" class="{%if node.stat==0%}text-gray-400{%endif%}">NaN</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-2 text-gray-400">
+                                        <i class="material-icons md-14">arrow_upward</i>
+                                        <span id="{{sid}}_NET_OUT" class="{%if node.stat==0%}text-gray-400{%endif%}">NaN</span>
+                                    </div>
+                                    <div class="flex items-center gap-1 text-xs text-gray-500 mt-1">
+                                        <i class="material-icons md-14">cloud_upload</i>
+                                        <span id="{{sid}}_NET_OUT_TOTAL" class="{%if node.stat==0%}text-gray-400{%endif%}">NaN</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 到期时间 -->
+                            <div class="flex items-center gap-1 text-sm text-gray-400">
+                                <i class="material-icons md-14">access_time</i>
+                                <span>到期时间：</span>
+                                <span id="{{sid}}_EXPIRE_TIME" class="text-gray-200 {%if node.stat==0%}text-gray-400{%endif%}" 
+                                      data-expire="{{node.expire_time|default(0)}}">
+                                    {{node.expire}}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 操作按钮 -->
+                    <div class="flex border-t border-gray-700/50">
+                        <a href="/stats/{{sid}}" class="flex-1 px-4 py-3 text-center text-sm text-gray-400 hover:text-gray-200 hover:bg-white/5 transition-colors">
+                            详细信息
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
     </div>
-    {% endfor %}
 </div>
 {%endblock%}
 
 {%block js%}
+<style>
+.tab-btn.active {
+    @apply text-white bg-slate-700/60 border-primary-500;
+}
+</style>
 <script src="/js/sort.js"></script>
 <script src="/js/stats.js"></script>
 {%endblock%}

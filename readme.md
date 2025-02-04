@@ -150,8 +150,7 @@ docker-compose ps
 
 3. 访问管理面板
 - 打开浏览器访问 `http://your-ip:5555`
-- 默认管理员账号: `admin`
-- 默认管理员密码: `admin`
+- 默认管理员密码: `nekonekostatus`
 - 首次登录后请立即修改密码
 
 ### 目录说明

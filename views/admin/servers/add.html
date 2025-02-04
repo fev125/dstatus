@@ -2,18 +2,6 @@
 {%set admin = true%}
 {% extends "../../base.html" %}
 
-{# 
-  新增服务器页面
-  功能：
-  1. 基本信息设置：服务器名称和状态
-  2. SSH设置：连接参数配置
-  3. API设置：通讯密钥
-  4. 流量设置：
-     - 月流量限制：设置服务器每月可用流量上限（GB）
-     - 流量重置日：每月重置流量的日期（1-28）
-     - 流量警告阈值：达到该百分比时发出警告（默认80%）
-#}
-
 {% block content %}
 <div class="max-w-7xl mx-auto">
     <!-- 新增服务器卡片 -->
@@ -40,7 +28,6 @@
             <!-- 基本信息 -->
             <div class="space-y-4">
                 <h4 class="text-base font-medium text-slate-200">基本信息</h4>
-                <p class="text-sm text-slate-400">请填写服务器的基本配置信息</p>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label class="block text-sm font-medium text-slate-400 mb-2">服务器名称</label>
@@ -56,6 +43,12 @@
                             <option value="0">不可用</option>
                             <option value="2">对外隐藏</option>
                         </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">到期时间</label>
+                        <input type="date" 
+                               id="add_expire_time"
+                               class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                     </div>
                 </div>
             </div>
@@ -93,7 +86,7 @@
                     <div>
                         <label class="block text-sm font-medium text-slate-400 mb-2">私钥 (可选)</label>
                         <input type="text" 
-                               id="add_ssh_pri"
+                               id="add_ssh_privateKey"
                                class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                     </div>
                 </div>
@@ -108,15 +101,16 @@
                         <input type="number" 
                                id="add_traffic_limit"
                                placeholder="0 表示不限制"
+                               min="0"
                                class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-slate-400 mb-2">流量重置日</label>
                         <input type="number" 
                                id="add_traffic_reset_day"
-                               placeholder="1-28"
+                               placeholder="1-31"
                                min="1"
-                               max="28"
+                               max="31"
                                value="1"
                                class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                     </div>
@@ -131,81 +125,176 @@
                                class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                     </div>
                 </div>
+
+                <!-- 流量校准设置 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">流量校准日期</label>
+                        <input type="date" 
+                               id="add_traffic_calibration_date"
+                               class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">校准时已用流量 (GB)</label>
+                        <input type="number" 
+                               id="add_traffic_calibration_value"
+                               step="0.01"
+                               min="0"
+                               placeholder="0"
+                               class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                </div>
             </div>
+
+            <!-- API设置 -->
+            <div class="space-y-4">
+                <h4 class="text-base font-medium text-slate-200">API 设置</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">通讯密钥</label>
+                        <input type="text" 
+                               id="add_api_key"
+                               value="{{uuid.v4()}}"
+                               class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">通讯端口</label>
+                        <input type="number" 
+                               id="add_api_port"
+                               value="9999"
+                               class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">指定网卡</label>
+                        <input type="text" 
+                               id="add_device"
+                               placeholder="eth0"
+                               class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 安装进度弹窗 -->
+<div id="install-progress-modal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+    <div class="bg-slate-900 rounded-lg p-6 max-w-md w-full mx-4 border border-slate-800/50">
+        <div class="text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mx-auto mb-4"></div>
+            <h3 class="text-lg font-medium text-white mb-2">系统安装中</h3>
+            <p id="install-status" class="text-sm text-slate-400 mb-4">正在安装系统组件...</p>
+            <div class="text-xs text-slate-500">安装过程可能需要几分钟，请耐心等待</div>
         </div>
     </div>
 </div>
 {%endblock%}
 
 {%block js%}
-<!-- 引入流量转换工具 -->
-<script src="/static/js/traffic-format.js"></script>
 <script>
-// 数据验证函数
-function validateTrafficInput(value, min = 0, max = Infinity) {
-    const num = parseFloat(value);
-    if (isNaN(num) || num < min || num > max) {
-        return min;
+// 添加弹窗控制函数
+function showInstallModal(title = '系统安装中', status = '正在安装系统组件...') {
+    const modal = document.getElementById('install-progress-modal');
+    if (modal) {
+        modal.querySelector('h3').textContent = title;
+        document.getElementById('install-status').textContent = status;
+        modal.classList.remove('hidden');
     }
-    return num;
 }
 
-// 流量单位转换函数 (GB to Bytes)
-function gbToBytes(gb) {
-    // 使用字符串计算避免大数精度问题
-    const gbValue = validateTrafficInput(gb);
-    const bytesStr = (gbValue * 1024 * 1024 * 1024).toString();
-    return bytesStr;
+function hideInstallModal() {
+    const modal = document.getElementById('install-progress-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
 }
 
-async function add(){
-    // 验证流量设置
-    const trafficLimit = validateTrafficInput($("#add_traffic_limit").val(), 0);
-    const trafficResetDay = validateTrafficInput($("#add_traffic_reset_day").val(), 1, 28);
-    const trafficAlertPercent = validateTrafficInput($("#add_traffic_alert_percent").val(), 1, 100);
+function updateInstallStatus(status) {
+    const statusElement = document.getElementById('install-status');
+    if (statusElement) {
+        statusElement.textContent = status;
+    }
+}
 
-    const serverData = {
-        ssh: {
-            host: $("#add_ssh_host").val(),
-            port: $("#add_ssh_port").val() || 22,
-            username: $("#add_ssh_username").val() || "root",
-            password: $("#add_ssh_password").val(),
-            privateKey: $("#add_ssh_pri").val()
-        },
-        device: $("#add_device").val(),
-        api: {
-            mode: false,
-            key: $("#add_api_key").val(),
-            port: 0
+// 修改现有的 add 函数
+async function add() {
+    try {
+        // 基本验证
+        const name = V('add_name');
+        if (!name) {
+            notice('请输入服务器名称', 'error');
+            return;
         }
-    };
 
-    let data = {
-        name: $("#add_name").val(),
-        status: $("#server_status").val(),
-        data: serverData,
-        group_id: $("#add_group_id").val(),
-        traffic_limit: gbToBytes(trafficLimit),
-        traffic_reset_day: trafficResetDay,
-        traffic_alert_percent: trafficAlertPercent
-    };
+        const sshHost = V('add_ssh_host');
+        if (!sshHost) {
+            notice('请输入服务器地址', 'error');
+            return;
+        }
 
-    // 验证必填字段
-    if (!data.name || !serverData.ssh.host) {
-        alert("请填写必要信息");
-        return;
-    }
+        startloading();
+        
+        // 使用已生成的 API key 作为服务器 ID
+        const sid = V('add_api_key');
+        const status = parseInt(E('server_status').value);
+        
+        // 处理到期时间
+        const expireTime = V('add_expire_time') ? 
+            Math.floor(new Date(V('add_expire_time') + ' 23:59:59').getTime() / 1000) : 
+            null;
+        
+        const data = {
+            ssh: {
+                host: V('add_ssh_host'),
+                port: V('add_ssh_port') || 22,
+                username: V('add_ssh_username') || 'root',
+                password: V('add_ssh_password'),
+                privateKey: V('add_ssh_privateKey'),
+            },
+            api: {
+                mode: true,
+                key: sid,
+                port: parseInt(V('add_api_port')) || 9999,
+            },
+            device: V('add_device') || 'eth0'
+        };
 
-    let res = await fetch("/admin/servers/add", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify(data)
-    });
-    
-    if (res.ok) {
-        location.href = "/admin/servers";
-    } else {
-        alert("添加失败，请检查输入");
+        // 添加流量相关数据
+        const trafficLimit = parseInt(V('add_traffic_limit')) || 0;
+        const trafficResetDay = parseInt(V('add_traffic_reset_day')) || 1;
+        const trafficAlertPercent = parseInt(V('add_traffic_alert_percent')) || 80;
+
+        // 处理流量校准数据
+        const calibrationDate = V('add_traffic_calibration_date');
+        const calibrationValue = parseFloat(V('add_traffic_calibration_value')) || 0;
+        const calibrationTime = calibrationDate ? 
+            Math.floor(new Date(calibrationDate + ' 00:00:00').getTime() / 1000) : 
+            null;
+
+        const res = await postjson('/admin/servers/add', {
+            sid,
+            name,
+            data,
+            status,
+            expire_time: expireTime,
+            traffic_limit: trafficLimit ? trafficLimit * 1024 * 1024 * 1024 : 0,
+            traffic_reset_day: trafficResetDay,
+            traffic_alert_percent: trafficAlertPercent,
+            traffic_calibration_date: calibrationTime,
+            traffic_calibration_value: calibrationValue ? calibrationValue * 1024 * 1024 * 1024 : 0
+        });
+        
+        if (res.status) {
+            // 添加成功后自动开始安装
+            await handleInstallation(res.data);
+        } else {
+            notice(res.msg || '添加失败', 'error');
+        }
+    } catch (error) {
+        console.error('添加服务器失败:', error);
+        notice(error.message || '添加服务器失败', 'error');
+    } finally {
+        endloading();
     }
 }
 </script>

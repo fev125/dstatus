@@ -47,3 +47,69 @@ html{
 body{
     background-color: rgba(255, 255, 255, 0.6);;
 }
+
+/* 拖拽相关样式 */
+.droppable-container {
+    position: relative;
+}
+
+.tab-btn[data-group]:not([data-group="all"]) {
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+/* 拖拽目标样式 */
+.tab-btn.drag-target {
+    background-color: rgba(71, 91, 202, 0.1);
+}
+
+/* 拖拽悬停样式 */
+.tab-btn.drag-over {
+    background-color: rgba(71, 91, 202, 0.2);
+    transform: scale(1.02);
+}
+
+/* 拖拽提示边框 */
+.tab-btn[data-group]:not([data-group="all"]):before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border: 2px dashed transparent;
+    border-radius: inherit;
+    pointer-events: none;
+    transition: all 0.2s ease;
+}
+
+.tab-btn.drag-over:before {
+    border-color: #475bca;
+}
+
+/* 服务器卡片拖拽样式 */
+.server-card {
+    cursor: move;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.server-card.dragging {
+    opacity: 0.7;
+    transform: scale(1.02);
+    cursor: grabbing;
+}
+
+.server-card.updating {
+    opacity: 0.5;
+    pointer-events: none;
+}
+
+/* 分组容器样式 */
+.group-view .grid {
+    min-height: 100px;
+    transition: background-color 0.2s ease;
+}
+
+.group-view .grid.drag-over {
+    background-color: rgba(71, 91, 202, 0.1);
+}
