@@ -132,7 +132,7 @@
     <div class="bg-white/5 backdrop-blur-sm rounded-lg border border-gray-700/50 mt-4">
         <div class="flex flex-wrap items-center p-4 gap-2">
             <!-- 全部节点Tab -->
-            <button class="tab-btn inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-400 border border-transparent rounded-lg transition-all duration-200 ease-in-out transform hover:scale-[1.02] active:scale-[0.98] hover:text-white hover:bg-slate-700/40 hover:border-slate-600" 
+            <button class="tab-btn px-3 py-1.5 rounded-full text-sm font-medium text-slate-400 border border-transparent rounded-lg transition-all duration-200 ease-in-out transform hover:scale-[1.02] active:scale-[0.98] hover:text-white hover:bg-slate-700/40 hover:border-slate-600" 
                     data-group="all">
                 <i class="material-icons text-[18px]">dns</i>
                 <span>全部节点</span>
@@ -141,7 +141,7 @@
             
             <!-- 分组Tabs -->
             {% for group in groups %}
-            <button class="tab-btn inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-400 border border-transparent rounded-lg transition-all duration-200 ease-in-out transform hover:scale-[1.02] active:scale-[0.98] hover:text-white hover:bg-slate-700/40 hover:border-slate-600" 
+            <button class="tab-btn px-3 py-1.5 rounded-full text-sm font-medium text-slate-400 border border-transparent rounded-lg transition-all duration-200 ease-in-out transform hover:scale-[1.02] active:scale-[0.98] hover:text-white hover:bg-slate-700/40 hover:border-slate-600" 
                     data-group="{{group.id}}">
                 <i class="material-icons text-[18px]">folder</i>
                 <span>{{group.name}}</span>
@@ -149,6 +149,20 @@
                       id="group-{{group.id}}-count-tab">{{group.server_count}}</span>
             </button>
             {% endfor %}
+            
+            <!-- 添加新增节点和分组管理按钮 -->
+            <div class="flex items-center gap-2 ml-auto">
+                <a href="/admin/servers/add" 
+                   class="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-full transition-colors">
+                    <i class="material-icons text-[18px]">add</i>
+                    <span>新增节点</span>
+                </a>
+                <a href="/admin/groups" 
+                   class="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-300 hover:text-white hover:bg-white/5 rounded-full transition-colors">
+                    <i class="material-icons text-[18px]">folder</i>
+                    <span>分组管理</span>
+                </a>
+            </div>
         </div>
     </div>
 

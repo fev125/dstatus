@@ -64,7 +64,6 @@ const NodeStatus = {
 
 // 默认排序配置
 const SortConfig = {
-    defaultType: 'total_traffic',  // 默认按总流量排序
     defaultDirection: 'desc',      // 默认降序
     directions: {
         // 定义每个排序类型的首次点击方向
@@ -222,14 +221,14 @@ const StatsController = {
             // 触发更新完成事件
             document.dispatchEvent(new Event('statsUpdateComplete'));
             
-            // 确保应用当前排序（包括首次加载）
-            const activeTab = document.querySelector('.tab-btn.active');
-            if (activeTab) {
-                // 如果已有激活的标签页，应用当前排序
-                applyCurrentSort();
-            } else {
-                // 首次加载，应用默认排序
-                applySort(SortConfig.defaultType, SortConfig.defaultDirection);
+            // 只在实时排序开启时应用排序
+            if (document.getElementById('realtime-sort')?.checked) {
+                const currentSortBtn = document.querySelector('.sort-btn.active');
+                if (currentSortBtn) {
+                    const type = currentSortBtn.dataset.sort;
+                    const direction = currentSortBtn.dataset.direction || 'desc';
+                    applySort(type, direction);
+                }
             }
             
             this.lastUpdateTime = Date.now();
@@ -275,7 +274,7 @@ const StatsController = {
                 
                 // 更新节点数据
                 this.updateCardData(serverCard, node, status);
-                updated = true;
+                    updated = true;
             });
 
             // 更新网络统计（只统计在线节点）
@@ -289,16 +288,6 @@ const StatsController = {
         
         // 更新仪表盘网络数据
         this.updateDashboardNetwork(totalNetStats);
-        
-        // 如果有更新且开启了实时排序，应用排序
-        if (updated && document.getElementById('realtime-sort')?.checked) {
-            const currentSortBtn = document.querySelector('.sort-btn.active');
-            if (currentSortBtn) {
-                const type = currentSortBtn.dataset.sort;
-                const direction = currentSortBtn.dataset.direction || 'desc';
-                applySort(type, direction);
-            }
-        }
     },
     
     // 更新仪表盘网络数据
@@ -311,9 +300,9 @@ const StatsController = {
         }
         if (currentUploadSpeed) {
             currentUploadSpeed.textContent = strbps(netStats.uploadSpeed * 8);
-        }
-        
-        // 更新总流量
+                }
+
+                // 更新总流量
         const totalDownload = document.getElementById('total-download');
         const totalUpload = document.getElementById('total-upload');
         if (totalDownload) {
@@ -434,275 +423,27 @@ const StatsController = {
     }
 };
 
-// 拖拽管理器
-const DragDropManager = {
-    // 状态管理
-    state: {
-        isDragging: false,
-        currentCard: null,
-        sourceGroup: null,
-        targetGroup: null,
-        isUpdating: false
-    },
-
-    // 初始化
-    init() {
-        // 确保 DOM 完全加载
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => this.initDragDrop());
-        } else {
-            this.initDragDrop();
-        }
-    },
-
-    // 初始化拖拽功能
-    initDragDrop() {
-        try {
-            this.initCardContainers();
-            this.initTabDropZones();
-        } catch (error) {
-            console.error('初始化拖拽功能失败:', error);
-            // 延迟重试
-            setTimeout(() => this.initDragDrop(), 500);
-        }
-    },
-
-    // 初始化卡片容器
-    initCardContainers() {
-        const groupViews = document.querySelectorAll('.group-view');
-        groupViews.forEach(view => {
-            if (view.dataset.group === 'all') return;
-            
-            const cardGrid = view.querySelector('.grid');
-            if (cardGrid) {
-                this.initSortable(cardGrid);
-            }
-        });
-    },
-
-    // 初始化 Sortable
-    initSortable(element) {
-        new Sortable(element, {
-            group: {
-                name: 'server-cards',
-                pull: (to, from, dragEl) => this.canDrag(dragEl),
-                put: (to, from, dragEl) => this.canDrop(to, dragEl)
-            },
-            animation: 150,
-            ghostClass: 'opacity-50',
-            dragClass: 'shadow-lg',
-            onStart: (evt) => this.handleDragStart(evt),
-            onEnd: (evt) => this.handleDragEnd(evt)
-        });
-    },
-
-    // 初始化 Tab 拖拽区域
-    initTabDropZones() {
-        const tabContainer = document.querySelector('.bg-white\\/5 .flex.flex-wrap.items-center');
-        if (!tabContainer) {
-            console.warn('找不到 tab 容器，尝试延迟初始化');
-            setTimeout(() => this.initTabDropZones(), 500);
-            return;
-        }
-
-        // 添加可视化提示
-        tabContainer.classList.add('droppable-container');
-        this.initTabEvents(tabContainer);
-    },
-
-    // 初始化 Tab 事件
-    initTabEvents(container) {
-        const handlers = {
-            dragenter: (e) => {
-                e.preventDefault();
-                const tab = e.target.closest('.tab-btn');
-                if (tab && tab.dataset.group !== 'all') {
-                    tab.classList.add('drag-target');
-                }
-            },
-            dragover: (e) => {
-                e.preventDefault();
-                const tab = e.target.closest('.tab-btn');
-                if (tab?.dataset.group === 'all') return;
-
-                this.clearTabEffects();
-                tab?.classList.add('drag-over');
-            },
-            dragleave: (e) => {
-                const tab = e.target.closest('.tab-btn');
-                if (tab) {
-                    tab.classList.remove('drag-over', 'drag-target');
-                }
-            },
-            drop: async (e) => {
-                e.preventDefault();
-                this.clearTabEffects();
-
-                const card = this.state.currentCard;
-                const tab = e.target.closest('.tab-btn');
-                
-                if (!card || !tab || tab.dataset.group === 'all') return;
-
-                try {
-                    await this.updateCardGroup(card, tab.dataset.group);
-                    // 添加成功反馈
-                    this.showSuccess(`已移动到 ${tab.textContent.trim().split('(')[0].trim()} 分组`);
-                    tab.click();
-                } catch (error) {
-                    this.showError('移动失败，请重试');
-                }
-            }
-        };
-
-        Object.entries(handlers).forEach(([event, handler]) => {
-            container.addEventListener(event, handler.bind(this));
-        });
-    },
-
-    // 拖拽判断
-    canDrag(element) {
-        if (!element) return false;
-        const isOffline = element.classList.contains('opacity-60');
-        const isHidden = element.style.display === 'none';
-        return !isOffline && !isHidden;
-    },
-
-    // 放置判断
-    canDrop(to, element) {
-        if (!to || !element) return false;
-        const targetGroup = to.el.closest('.group-view')?.dataset.group;
-        return targetGroup && targetGroup !== 'all';
-    },
-
-    // 处理拖拽开始
-    handleDragStart(evt) {
-        const card = evt.item;
-        this.state.isDragging = true;
-        this.state.currentCard = card;
-        this.state.sourceGroup = card.closest('.group-view')?.dataset.group;
-        card.classList.add('dragging');
-    },
-
-    // 处理拖拽结束
-    async handleDragEnd(evt) {
-        const card = evt.item;
-        this.state.isDragging = false;
-        card.classList.remove('dragging');
-        
-        if (!evt.to) return;
-
-        const targetGroup = evt.to.closest('.group-view')?.dataset.group;
-        if (targetGroup === 'all') {
-            evt.from.appendChild(card);
-            return;
-        }
-
-        await this.updateCardGroup(card, targetGroup, evt.from);
-    },
-
-    // 清除所有拖拽效果
-    clearTabEffects() {
-        document.querySelectorAll('.tab-btn').forEach(tab => {
-            tab.classList.remove('drag-over', 'drag-target');
-        });
-    },
-
-    // 更新卡片分组
-    async updateCardGroup(card, newGroupId, sourceContainer = null) {
-        if (this.state.isUpdating) return;
-        this.state.isUpdating = true;
-        card.classList.add('updating');
-
-        try {
-            const success = await this.updateServerGroup(card.dataset.sid, newGroupId);
-            if (!success && sourceContainer) {
-                sourceContainer.appendChild(card);
-            }
-            await StatsController.update();
-        } catch (error) {
-            if (sourceContainer) {
-                sourceContainer.appendChild(card);
-            }
-            this.showError('更新分组失败');
-        } finally {
-            card.classList.remove('updating');
-            this.state.isUpdating = false;
-        }
-    },
-
-    // 更新服务器分组
-    async updateServerGroup(serverId, newGroupId) {
-        try {
-            const response = await fetch(`/api/server/${serverId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    group_id: newGroupId
-                })
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
-            const result = await response.json();
-            return result.success;
-        } catch (error) {
-            console.error('更新服务器分组失败:', error);
-            this.showError(error.message);
-            return false;
-        }
-    },
-
-    // 显示错误
-    showError(message) {
-        if (typeof notice === 'function') {
-            notice(message);
-        } else {
-            console.error(message);
-        }
-    },
-
-    // 显示成功提示
-    showSuccess(message) {
-        if (typeof notice === 'function') {
-            notice(message);
-        } else {
-            console.log(message);
-        }
-    }
-};
-
 // 修改 DOMContentLoaded 事件监听器
 document.addEventListener('DOMContentLoaded', () => {
     // 1. 初始化排序按钮
     initSortButtons();
     
-    // 2. 设置默认排序按钮状态并高亮
-    const defaultSortBtn = document.querySelector(`[data-sort="${SortConfig.defaultType}"]`);
-    if (defaultSortBtn) {
-        // 激活默认排序按钮
-        defaultSortBtn.click();  // 直接触发点击事件来激活排序
-    }
-    
-    // 3. 初始化标签页
+    // 2. 初始化标签页
     initTabs();
     
-    // 4. 激活默认标签页
+    // 3. 激活默认标签页
     const defaultTab = document.querySelector('.tab-btn[data-group="all"]');
     if (defaultTab) {
         defaultTab.click();
     }
     
-    // 5. 初始化拖拽功能
+    // 4. 初始化拖拽功能
     DragDropManager.init();
     
-    // 6. 初始更新
+    // 5. 初始更新
     StatsController.update();
     
-    // 7. 设置定时更新
+    // 6. 设置定时更新
     setInterval(() => {
         StatsController.update();
     }, StatsController.MIN_UPDATE_INTERVAL);
@@ -783,14 +524,7 @@ function applySort(type, direction) {
 
     // 排序函数
     const sortFn = (a, b) => {
-        // 1. 首先按在线状态排序
-        const isOfflineA = a.classList.contains('opacity-60');
-        const isOfflineB = b.classList.contains('opacity-60');
-        if (isOfflineA !== isOfflineB) {
-            return isOfflineA ? 1 : -1;  // 离线节点排后面
-        }
-
-        // 2. 然后按指定条件排序
+        // 直接按指定条件排序，移除在线状态判断
         let valueA, valueB;
         
         switch (type) {
@@ -821,7 +555,7 @@ function applySort(type, direction) {
             default:
                 return 0;
         }
-
+        
         if (isNaN(valueA)) valueA = direction === 'asc' ? Infinity : -Infinity;
         if (isNaN(valueB)) valueB = direction === 'asc' ? Infinity : -Infinity;
 
@@ -878,8 +612,9 @@ function initSortButtons() {
             btn.classList.add('active');
             btn.querySelector('i').textContent = direction === 'asc' ? 'expand_less' : 'expand_more';
             
-            // 执行排序
+            // 点击时总是执行一次排序，不管实时排序是否开启
             applySort(type, direction);
         });
     });
 }
+

@@ -292,46 +292,62 @@ function initForm(server) {
 async function edit() {
     try {
         startloading();
-        const expireTime = document.getElementById('edit_expire_time').value ?
-            Math.floor(new Date(document.getElementById('edit_expire_time').value + ' 23:59:59').getTime() / 1000) :
-            null;
-            
-        const data = {
-            sid: V('sid'),
-            name: V('edit_name'),
-            status: V('edit_status'),
-            top: V('edit_top'),
-            expire_time: expireTime,
-            data: {
-                ssh: {
-                    host: V('edit_ssh_host'),
-                    port: parseInt(V('edit_ssh_port')) || 22,
-                    username: V('edit_ssh_username'),
-                    password: V('edit_ssh_password'),
-                    pri: V('edit_ssh_pri')
-                },
-                api: {
-                    key: V('edit_api_key'),
-                    port: parseInt(V('edit_api_port')) || 8080
-                },
-                device: V('edit_device')
+        
+        // 基础数据验证
+        const name = V('edit_name');
+        if (!name) {
+            notice('服务器名称不能为空', 'error');
+            return;
+        }
+
+        // 构造服务器配置数据
+        const serverData = {
+            ssh: {
+                host: V('edit_ssh_host'),
+                port: parseInt(V('edit_ssh_port')) || 22,
+                username: V('edit_ssh_username'),
+                password: V('edit_ssh_password'),
+                pri: V('edit_ssh_pri')
             },
-            traffic_limit: GBToBytes(V('edit_traffic_limit')),
+            api: {
+                key: V('edit_api_key'),
+                port: parseInt(V('edit_api_port')) || 8080
+            },
+            device: V('edit_device')
+        };
+
+        // 构造请求数据
+        const requestData = {
+            name,
+            data: JSON.stringify(serverData),  // 确保 data 是字符串
+            status: parseInt(V('edit_status')),
+            top: parseInt(V('edit_top')) || 0,
+            expire_time: V('edit_expire_time') ? 
+                Math.floor(new Date(V('edit_expire_time') + ' 23:59:59').getTime() / 1000) : 
+                null,
+            traffic_limit: gbToBytes(V('edit_traffic_limit')),
             traffic_reset_day: parseInt(V('edit_traffic_reset_day')) || 1,
             traffic_alert_percent: parseInt(V('edit_traffic_alert_percent')) || 80,
-            traffic_calibration_date: dateStringToTimestamp(V('edit_traffic_calibration_date')),
-            traffic_calibration_value: GBToBytes(V('edit_traffic_calibration_value'))
+            traffic_calibration_date: V('edit_traffic_calibration_date') ? 
+                Math.floor(new Date(V('edit_traffic_calibration_date')).getTime() / 1000) : 
+                null,
+            traffic_calibration_value: gbToBytes(V('edit_traffic_calibration_value'))
         };
+
+        console.log('提交的数据:', requestData);  // 调试日志
         
-        const res = await postjson('/admin/servers/' + V('sid') + '/edit', data);
+        const sid = V('sid');
+        const res = await postjson(`/admin/servers/${sid}/edit`, requestData);
+        
         if (res.status) {
-            notice('保存成功');
+            notice('保存成功', 'success');
             setTimeout(() => location.href = '/admin/servers', 1000);
         } else {
-            notice(res.data || '保存失败');
+            notice(res.data || '保存失败', 'error');
         }
     } catch (error) {
-        notice('操作失败');
+        console.error('保存失败:', error);
+        notice('保存失败: ' + (error.message || '未知错误'), 'error');
     } finally {
         endloading();
     }
@@ -344,25 +360,21 @@ async function del() {
     }
 
     try {
-        const sid = document.getElementById('sid').value;
-        const response = await fetch(`/admin/servers/${sid}/delete`, {
-            method: 'POST'
-        });
-
-        const result = await response.json();
+        startloading();
+        const sid = V('sid');
+        const res = await postjson(`/admin/servers/${sid}/del`);
         
-        if (result.status) {
-            showToast('删除成功', 'success');
-            // 延迟跳转
-            setTimeout(() => {
-                window.location.href = '/admin/servers/';
-            }, 1000);
+        if (res.status) {
+            notice('删除成功', 'success');
+            setTimeout(() => location.href = '/admin/servers', 1000);
         } else {
-            showToast(result.msg || '删除失败', 'error');
+            notice(res.data || '删除失败', 'error');
         }
     } catch (error) {
         console.error('删除失败:', error);
-        showToast('删除失败: ' + error.message, 'error');
+        notice('删除失败: ' + (error.message || '未知错误'), 'error');
+    } finally {
+        endloading();
     }
 }
 
