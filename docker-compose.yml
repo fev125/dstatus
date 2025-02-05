@@ -1,30 +1,17 @@
-version: '3.8'
+version: '3'
 
 services:
   web:
-    build: .
+    build: .  # 使用本地代码构建
     container_name: dstatus
     ports:
-      - "127.0.0.1:${WEB_PORT:-5555}:5555"      # Web 管理界面端口
-      - "${CONTROL_PORT:-9999}:9999"   # 被控端通信端口
+      - "0.0.0.0:${WEB_PORT:-5555}:5555"      # Web 管理界面端口
     volumes:
       - dstatus-data:/app/database
       - dstatus-logs:/app/logs
     environment:
       - NODE_ENV=production
-      - CONTROL_PORT=${CONTROL_PORT:-9999}
-    healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:5555', res => res.statusCode === 200 ? process.exit(0) : process.exit(1))"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-        reservations:
-          memory: 128M
+    restart: unless-stopped  # 添加自动重启策略
 
 volumes:
   dstatus-data:
