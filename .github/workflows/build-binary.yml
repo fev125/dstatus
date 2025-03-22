@@ -1,0 +1,85 @@
+name: Build and Release Binary
+
+on:
+  push:
+    branches: [ "main" ]
+    tags: [ 'v*.*.*' ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+      
+      - name: Install dependencies
+        run: |
+          cd neko-status
+          go mod tidy
+          go mod download
+      
+      - name: Build binaries
+        run: |
+          cd neko-status
+          chmod +x build-simple.sh
+          ./build-simple.sh
+          
+      - name: Package binaries
+        run: |
+          cd neko-status
+          mkdir -p release
+          
+          # 创建发布包
+          tar -czf release/neko-status_linux_amd64.tar.gz -C build neko-status_linux_amd64
+          tar -czf release/neko-status_linux_arm64.tar.gz -C build neko-status_linux_arm64
+          tar -czf release/neko-status_linux_arm7.tar.gz -C build neko-status_linux_arm7
+          tar -czf release/neko-status_linux_386.tar.gz -C build neko-status_linux_386
+          tar -czf release/neko-status_darwin_amd64.tar.gz -C build neko-status_darwin_amd64
+          tar -czf release/neko-status_darwin_arm64.tar.gz -C build neko-status_darwin_arm64
+          tar -czf release/neko-status_linux_universal.tar.gz -C build neko-status_linux_universal
+          tar -czf release/neko-status_darwin_universal.tar.gz -C build neko-status_darwin_universal
+          tar -czf release/neko-status_universal.tar.gz -C build neko-status_universal
+          
+          # 复制通用版本到静态目录
+          cp build/neko-status_linux_universal ../static/neko-status
+      
+      - name: Generate SHA256 checksums
+        run: |
+          cd neko-status/release
+          sha256sum *.tar.gz > SHA256SUMS
+      
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            neko-status/release/*.tar.gz
+            neko-status/release/SHA256SUMS
+          draft: false
+          prerelease: false
+          
+      - name: Update latest binary for master
+        if: github.ref == 'refs/heads/main'
+        run: |
+          mkdir -p latest
+          cp neko-status/build/neko-status_linux_universal latest/neko-status
+          cp neko-status/build/neko-status_darwin_universal latest/neko-status_darwin
+          cp neko-status/build/neko-status_darwin_arm64 latest/neko-status_darwin_arm64
+          
+      - name: Upload latest binaries as artifacts
+        if: github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v3
+        with:
+          name: neko-status-latest
+          path: latest/
+          retention-days: 7 

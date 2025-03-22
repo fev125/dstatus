@@ -1,0 +1,69 @@
+name: Deploy Binaries to Pages
+
+on:
+  workflow_run:
+    workflows: ["Build and Release Binary"]
+    types:
+      - completed
+    branches:
+      - main
+  workflow_dispatch:
+
+# 设置GITHUB_TOKEN的权限
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 允许一个并发部署
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  # 发布作业
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      
+      - name: Download neko-status artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: neko-status-latest
+          path: download
+      
+      - name: Setup Pages
+        uses: actions/configure-pages@v3
+      
+      - name: Prepare public directory
+        run: |
+          mkdir -p public
+          cp download/neko-status public/
+          cp download/neko-status_darwin public/
+          cp download/neko-status_darwin_arm64 public/
+          
+          # 创建版本信息文件
+          echo "$(date +%Y-%m-%d_%H:%M:%S)" > public/version.txt
+          
+          # 确保文件可执行
+          chmod +x public/neko-status
+          chmod +x public/neko-status_darwin
+          chmod +x public/neko-status_darwin_arm64
+          
+          # 列出文件
+          ls -la public/
+      
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v1
+        with:
+          path: 'public'
+      
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v1 
