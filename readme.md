@@ -27,6 +27,18 @@ DStatus是一个现代化的服务器状态监控系统，提供简洁美观的U
 
 ### 方法一：Docker 部署（推荐）
 
+#### 准备工作
+
+在部署前，首先创建必要的数据目录：
+
+```bash
+# 创建项目目录
+mkdir -p dstatus && cd dstatus
+
+# 创建数据持久化目录
+mkdir -p data database logs
+```
+
 #### 快速启动（使用 host 网络）
 
 ```bash
@@ -57,6 +69,15 @@ docker run -d \
 ```
 
 #### 使用 Docker Compose
+
+准备工作：
+```bash
+# 创建项目目录
+mkdir -p dstatus && cd dstatus
+
+# 创建数据持久化目录
+mkdir -p data database logs
+```
 
 创建 `docker-compose.yml` 文件：
 ```yaml
@@ -123,6 +144,9 @@ node nekonekostatus.js
 ## 🔄 更新版本
 
 ```bash
+# 确保数据目录存在
+mkdir -p data database logs
+
 # 更新 Docker 版本（建议先备份数据）
 (docker stop dstatus || true) && \
 (docker rm dstatus || true) && \
@@ -190,6 +214,10 @@ docker run -d \
   ```
 
 ### 数据安全
+- 确保必要的数据目录已正确创建：
+  ```bash
+  mkdir -p data database logs
+  ```
 - 定期备份数据库目录
   ```bash
   # 备份数据目录
