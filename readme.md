@@ -57,10 +57,10 @@ mkdir -p data database logs
 首先创建必要的目录并设置正确权限：
 
 ```bash
-# 创建所有必要的子目录
-mkdir -p data/backups data/logs data/temp database logs
-# 设置正确的权限
-chmod -R 777 data database logs
+# 创建数据目录
+mkdir -p data
+# 设置正确的权限（确保Docker有读写权限）
+chmod -R 777 data
 ```
 
 复制粘贴以下命令到终端中运行：
@@ -74,9 +74,6 @@ docker run -d \
   -e TZ=Asia/Shanghai \
   -e NODE_ENV=production \
   -v $(pwd)/data:/app/data \
-  -v $(pwd)/data/backups:/app/data/backups \
-  -v $(pwd)/data/logs:/app/data/logs \
-  -v $(pwd)/data/temp:/app/data/temp \
   ghcr.io/fev125/dstatus:latest
 ```
 
@@ -92,16 +89,13 @@ docker run -d \
 >   -e TZ=Asia/Shanghai \
 >   -e NODE_ENV=production \
 >   -v $(pwd)/data:/app/data \
->   -v $(pwd)/data/backups:/app/data/backups \
->   -v $(pwd)/data/logs:/app/data/logs \
->   -v $(pwd)/data/temp:/app/data/temp \
 >   ghcr.io/fev125/dstatus:latest
 > ```
 >
 > **方案2: 重新设置目录权限**
 > ```bash
-> sudo chown -R $(id -u):$(id -g) data database logs
-> chmod -R 777 data database logs
+> sudo chown -R $(id -u):$(id -g) data
+> chmod -R 777 data
 > ```
 
 #### 第4步: 访问Web界面
@@ -122,10 +116,10 @@ docker run -d \
 确保创建必要的目录并设置正确权限：
 
 ```bash
-# 创建所有必要的子目录
-mkdir -p data/backups data/logs data/temp database logs
+# 创建数据目录
+mkdir -p data
 # 设置正确的权限
-chmod -R 777 data database logs
+chmod -R 777 data
 ```
 
 在dstatus目录中，创建一个名为`docker-compose.yml`的文件，将以下内容复制粘贴进去：
@@ -141,11 +135,6 @@ services:
       - "5555:5555"  # Web界面端口，可以修改为其他端口
     volumes:
       - ./data:/app/data  # 数据库持久化
-      - ./data/backups:/app/data/backups  # 备份目录
-      - ./data/logs:/app/data/logs  # 日志目录
-      - ./data/temp:/app/data/temp  # 临时文件目录
-      - ./database:/app/database
-      - ./logs:/app/logs
     # 如果遇到权限问题，取消下面一行的注释，并替换为你的用户ID和组ID
     # user: "1000:1000"  # 使用 id -u 和 id -g 命令获取ID
     environment:
@@ -231,25 +220,24 @@ cp -r data data_backup_$(date +%Y%m%d)
 确保数据目录和权限正确：
 
 ```bash
-# 确保所有必要的子目录存在
-mkdir -p data/backups data/logs data/temp database logs
-# 设置正确的权限
-chmod -R 777 data database logs
+# 确保数据目录存在并有正确权限
+mkdir -p data
+chmod -R 777 data
 ```
 
 然后执行更新命令：
 
 ```bash
 # 自动停止旧容器、拉取新镜像并启动新容器
-docker stop dstatus && docker rm dstatus && docker pull ghcr.io/fev125/dstatus:latest && docker run -d --name dstatus -p 5555:5555 --restart unless-stopped -e TZ=Asia/Shanghai -v $(pwd)/data:/app/data -v $(pwd)/data/backups:/app/data/backups -v $(pwd)/data/logs:/app/data/logs -v $(pwd)/data/temp:/app/data/temp ghcr.io/fev125/dstatus:latest
+docker stop dstatus && docker rm dstatus && docker pull ghcr.io/fev125/dstatus:latest && docker run -d --name dstatus -p 5555:5555 --restart unless-stopped -e TZ=Asia/Shanghai -v $(pwd)/data:/app/data ghcr.io/fev125/dstatus:latest
 ```
 
 ## ❓ 常见问题解答
 
 ### 问：启动时报错 "EACCES: permission denied, mkdir '/app/data/backups'" 怎么办？
 答：这是权限问题导致的，有以下解决方法：
-1. 确保已创建所有必要的子目录：`mkdir -p data/backups data/logs data/temp`
-2. 设置目录权限：`chmod -R 777 data database logs`
+1. 确保已创建data目录：`mkdir -p data`
+2. 设置目录权限：`chmod -R 777 data`
 3. 使用当前用户权限运行容器：添加 `--user $(id -u):$(id -g)` 参数
 4. 如果使用Docker Compose，在配置中添加 `user: "1000:1000"` (使用实际的用户ID和组ID)
 
@@ -301,11 +289,12 @@ cp -r ./data ./data_backup_$(date +%Y%m%d)
   ```
 
 ### 数据安全
-- 确保必要的数据目录已正确创建：
+- 确保数据目录已正确创建：
   ```bash
-  mkdir -p data database logs
+  mkdir -p data
+  chmod -R 777 data
   ```
-- 定期备份数据库目录
+- 定期备份数据目录
   ```bash
   # 备份数据目录
   cp -r ./data ./data_backup_$(date +%Y%m%d)
