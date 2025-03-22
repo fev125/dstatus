@@ -27,7 +27,24 @@ DStatus是一个现代化的服务器状态监控系统，提供简洁美观的U
 
 无论您是技术专家还是新手，都可以轻松部署DStatus监控系统。
 
-### 方法一：Docker一键部署（推荐 ✅）
+### 方法一：一键安装脚本（Linux系统专用 ✅）
+
+只需一条命令即可完成安装：
+
+```bash
+# 下载并运行安装脚本
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/fev125/dstatus/main/dstatu.sh)"
+```
+
+安装脚本提供以下功能：
+1. 安装Docker环境
+2. 安装DStatus服务
+3. 更新DStatus
+4. 卸载DStatus
+
+![安装脚本示意图]() <!-- 可添加脚本运行截图 -->
+
+### 方法二：Docker一键部署（跨平台）
 
 #### 第1步: 安装Docker
 
