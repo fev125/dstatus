@@ -1,6 +1,6 @@
-# DStatus - 服务器状态监控面板
+# DStatus - 服务器状态监控系统
 
-DStatus 是一个轻量级的服务器状态监控面板，专为个人和小型团队设计。它提供了实时的服务器状态监控、历史数据记录和可视化展示功能，帮助您随时掌握服务器的运行状况。
+DStatus是一个现代化的服务器状态监控系统，提供简洁美观的UI界面和强大的监控功能。
 
 ## 📋 功能特点
 
@@ -38,6 +38,7 @@ docker run -d \
   -e TZ=Asia/Shanghai \
   -e NODE_ENV=production \
   -e PORT=5555 \
+  -v $(pwd)/data:/app/data \
   ghcr.io/fev125/dstatus:latest
 ```
 
@@ -51,6 +52,7 @@ docker run -d \
   --restart unless-stopped \
   -e TZ=Asia/Shanghai \
   -e NODE_ENV=production \
+  -v $(pwd)/data:/app/data \
   ghcr.io/fev125/dstatus:latest
 ```
 
@@ -67,6 +69,7 @@ services:
     ports:
       - "0.0.0.0:5555:5555"  # Web 管理界面端口
     volumes:
+      - ./data:/app/data  # 数据库持久化
       - ./database:/app/database
       - ./logs:/app/logs
     environment:
@@ -80,6 +83,11 @@ services:
 ```bash
 docker-compose up -d
 ```
+
+> **⚠️ 数据持久化说明**
+> - `/app/data` 目录包含SQLite数据库文件，需要挂载到本地目录以保证数据持久化
+> - 如果不挂载此目录，容器重启后数据将丢失
+> - 建议定期备份 `data` 目录下的数据库文件
 
 ### 方法二：直接安装
 
@@ -126,8 +134,11 @@ docker run -d \
   -e TZ=Asia/Shanghai \
   -e NODE_ENV=production \
   -e PORT=5555 \
+  -v $(pwd)/data:/app/data \
   ghcr.io/fev125/dstatus:latest
 ```
+
+> **⚠️ 注意**：更新前请确保已备份数据库文件（`data`目录）
 
 ## 📝 使用指南
 
@@ -180,6 +191,16 @@ docker run -d \
 
 ### 数据安全
 - 定期备份数据库目录
+  ```bash
+  # 备份数据目录
+  cp -r ./data ./data_backup_$(date +%Y%m%d)
+  ```
+- 对于Docker部署，确保正确挂载`/app/data`目录以持久化数据
+- 可以配置定时任务自动备份数据库文件：
+  ```bash
+  # 添加每日备份任务到crontab
+  echo "0 2 * * * cd /path/to/dstatus && cp -r ./data ./data_backup_\$(date +\%Y\%m\%d)" >> /etc/crontab
+  ```
 - 对于重要数据，考虑使用外部存储或备份服务
 
 ## 🔧 常用命令
@@ -220,6 +241,7 @@ tail -f logs/app.log
 | NODE_ENV   | production     | 运行环境                   |
 | PORT       | 5555           | 服务端口                   |
 | DB_PATH    | /app/database  | 数据库存储路径             |
+| DATA_PATH  | /app/data      | 核心数据存储路径（SQLite数据库） |
 | LOG_LEVEL  | info           | 日志级别 (debug/info/warn/error) |
 | BOT_ENABLED| false          | 是否启用 Telegram Bot      |
 | BOT_TOKEN  | -              | Telegram Bot Token         |
@@ -274,3 +296,31 @@ GET /stats/:serverID/data
 ## 📜 许可证
 
 本项目采用 [MIT License](LICENSE) 开源协议。
+
+## neko-status 探针
+
+系统使用neko-status作为探针采集服务器数据。探针支持以下功能：
+
+- 超低资源占用
+- 支持多种架构：x86_64, ARM, MIPS等
+- 自动识别服务器网络接口
+- 安全的API通信
+
+### 自动构建
+
+我们通过GitHub Actions自动构建neko-status二进制文件：
+
+1. 每次推送到main分支会触发自动构建
+2. 发布版本标签(如v1.0.0)时会创建GitHub Release
+3. 最新版本会发布到GitHub Pages，可通过以下URL获取：
+   - Linux版本: https://fev125.github.io/dstatus/neko-status
+   - macOS Intel版本: https://fev125.github.io/dstatus/neko-status_darwin
+   - macOS M1/M2/M3版本: https://fev125.github.io/dstatus/neko-status_darwin_arm64
+
+### 设置探针下载地址
+
+在管理员设置页面中，您可以配置`neko_status_url`参数指向正确的下载地址。推荐使用GitHub Pages链接：
+
+```
+https://fev125.github.io/dstatus/neko-status
+```

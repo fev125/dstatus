@@ -6,3 +6,23 @@ node_modules/
 *.log
 .DS_Store
 dstatus/
+
+# Ignore database files
+data/db.db
+*.db
+
+# Ignore common binary files
+*.exe
+*.out
+*.o
+*.so
+*.dll
+
+# Ignore common logs
+*.log
+
+# Ignore cache and temporary files
+.DS_Store
+.cache/
+tmp/
+.tmp/
