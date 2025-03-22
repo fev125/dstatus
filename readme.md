@@ -54,6 +54,15 @@ mkdir -p data database logs
 
 #### 第3步: 启动DStatus
 
+首先创建必要的目录并设置正确权限：
+
+```bash
+# 创建所有必要的子目录
+mkdir -p data/backups data/logs data/temp database logs
+# 设置正确的权限
+chmod -R 777 data database logs
+```
+
 复制粘贴以下命令到终端中运行：
 
 ```bash
@@ -65,8 +74,35 @@ docker run -d \
   -e TZ=Asia/Shanghai \
   -e NODE_ENV=production \
   -v $(pwd)/data:/app/data \
+  -v $(pwd)/data/backups:/app/data/backups \
+  -v $(pwd)/data/logs:/app/data/logs \
+  -v $(pwd)/data/temp:/app/data/temp \
   ghcr.io/fev125/dstatus:latest
 ```
+
+> **⚠️ 注意**：如果遇到权限问题（如错误信息中出现EACCES: permission denied），可以尝试以下解决方案：
+> 
+> **方案1: 使用当前用户权限运行容器**
+> ```bash
+> docker run -d \
+>   --name dstatus \
+>   -p 5555:5555 \
+>   --user $(id -u):$(id -g) \
+>   --restart unless-stopped \
+>   -e TZ=Asia/Shanghai \
+>   -e NODE_ENV=production \
+>   -v $(pwd)/data:/app/data \
+>   -v $(pwd)/data/backups:/app/data/backups \
+>   -v $(pwd)/data/logs:/app/data/logs \
+>   -v $(pwd)/data/temp:/app/data/temp \
+>   ghcr.io/fev125/dstatus:latest
+> ```
+>
+> **方案2: 重新设置目录权限**
+> ```bash
+> sudo chown -R $(id -u):$(id -g) data database logs
+> chmod -R 777 data database logs
+> ```
 
 #### 第4步: 访问Web界面
 
@@ -83,6 +119,15 @@ docker run -d \
 
 #### 第1步: 创建配置文件
 
+确保创建必要的目录并设置正确权限：
+
+```bash
+# 创建所有必要的子目录
+mkdir -p data/backups data/logs data/temp database logs
+# 设置正确的权限
+chmod -R 777 data database logs
+```
+
 在dstatus目录中，创建一个名为`docker-compose.yml`的文件，将以下内容复制粘贴进去：
 
 ```yaml
@@ -96,8 +141,13 @@ services:
       - "5555:5555"  # Web界面端口，可以修改为其他端口
     volumes:
       - ./data:/app/data  # 数据库持久化
+      - ./data/backups:/app/data/backups  # 备份目录
+      - ./data/logs:/app/data/logs  # 日志目录
+      - ./data/temp:/app/data/temp  # 临时文件目录
       - ./database:/app/database
       - ./logs:/app/logs
+    # 如果遇到权限问题，取消下面一行的注释，并替换为你的用户ID和组ID
+    # user: "1000:1000"  # 使用 id -u 和 id -g 命令获取ID
     environment:
       - NODE_ENV=production
       - TZ=Asia/Shanghai
@@ -178,14 +228,30 @@ cp -r data data_backup_$(date +%Y%m%d)
 
 ### 第2步: 更新系统
 
-只需一条命令即可完成更新：
+确保数据目录和权限正确：
+
+```bash
+# 确保所有必要的子目录存在
+mkdir -p data/backups data/logs data/temp database logs
+# 设置正确的权限
+chmod -R 777 data database logs
+```
+
+然后执行更新命令：
 
 ```bash
 # 自动停止旧容器、拉取新镜像并启动新容器
-docker stop dstatus && docker rm dstatus && docker pull ghcr.io/fev125/dstatus:latest && docker run -d --name dstatus -p 5555:5555 --restart unless-stopped -e TZ=Asia/Shanghai -v $(pwd)/data:/app/data ghcr.io/fev125/dstatus:latest
+docker stop dstatus && docker rm dstatus && docker pull ghcr.io/fev125/dstatus:latest && docker run -d --name dstatus -p 5555:5555 --restart unless-stopped -e TZ=Asia/Shanghai -v $(pwd)/data:/app/data -v $(pwd)/data/backups:/app/data/backups -v $(pwd)/data/logs:/app/data/logs -v $(pwd)/data/temp:/app/data/temp ghcr.io/fev125/dstatus:latest
 ```
 
 ## ❓ 常见问题解答
+
+### 问：启动时报错 "EACCES: permission denied, mkdir '/app/data/backups'" 怎么办？
+答：这是权限问题导致的，有以下解决方法：
+1. 确保已创建所有必要的子目录：`mkdir -p data/backups data/logs data/temp`
+2. 设置目录权限：`chmod -R 777 data database logs`
+3. 使用当前用户权限运行容器：添加 `--user $(id -u):$(id -g)` 参数
+4. 如果使用Docker Compose，在配置中添加 `user: "1000:1000"` (使用实际的用户ID和组ID)
 
 ### 问：系统占用多少资源？
 答：DStatus本身非常轻量，Docker容器仅占用约50-100MB内存，CPU使用率极低。
