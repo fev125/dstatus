@@ -23,41 +23,41 @@ DStatus是一个现代化的服务器状态监控系统，提供简洁美观的U
 - 网络设备：各网络接口的详细数据
 - 硬盘使用详情：各分区的使用情况
 
-## 💻 安装方法
+## 💻 快速安装指南（傻瓜式教程）
 
-### 方法一：Docker 部署（推荐）
+无论您是技术专家还是新手，都可以轻松部署DStatus监控系统。
 
-#### 准备工作
+### 方法一：Docker一键部署（推荐 ✅）
 
-在部署前，首先创建必要的数据目录：
+#### 第1步: 安装Docker
+
+如果您还没有安装Docker，请先安装：
+
+- **Windows/Mac用户**：下载并安装 [Docker Desktop](https://www.docker.com/products/docker-desktop)
+- **Linux用户**：运行以下命令安装Docker
+  ```bash
+  curl -fsSL https://get.docker.com | sh
+  ```
+
+#### 第2步: 创建工作目录
+
+打开终端或命令提示符，输入以下命令：
 
 ```bash
-# 创建项目目录
-mkdir -p dstatus && cd dstatus
-
-# 创建数据持久化目录
+# 创建项目文件夹
+mkdir -p dstatus
+# 进入文件夹
+cd dstatus
+# 创建必要的数据存储文件夹
 mkdir -p data database logs
 ```
 
-#### 快速启动（使用 host 网络）
+#### 第3步: 启动DStatus
+
+复制粘贴以下命令到终端中运行：
 
 ```bash
-# 使用 host 网络模式，适合单机部署
-docker run -d \
-  --name dstatus \
-  --network host \
-  --restart unless-stopped \
-  -e TZ=Asia/Shanghai \
-  -e NODE_ENV=production \
-  -e PORT=5555 \
-  -v $(pwd)/data:/app/data \
-  ghcr.io/fev125/dstatus:latest
-```
-
-#### 端口映射模式
-
-```bash
-# 使用端口映射模式，适合多服务部署
+# 一键启动DStatus服务
 docker run -d \
   --name dstatus \
   -p 5555:5555 \
@@ -68,18 +68,23 @@ docker run -d \
   ghcr.io/fev125/dstatus:latest
 ```
 
-#### 使用 Docker Compose
+#### 第4步: 访问Web界面
 
-准备工作：
-```bash
-# 创建项目目录
-mkdir -p dstatus && cd dstatus
+- 打开浏览器，输入地址: `http://localhost:5555`
+- 如果在服务器上安装，则使用: `http://服务器IP:5555`
+- 默认密码: `dstatus`
+- **重要**：首次登录后立即修改默认密码！
 
-# 创建数据持久化目录
-mkdir -p data database logs
-```
+![登录界面示意图]() <!-- 可添加登录界面截图 -->
 
-创建 `docker-compose.yml` 文件：
+### 使用Docker Compose（简单配置版）
+
+如果您想要更灵活的配置，可以使用Docker Compose:
+
+#### 第1步: 创建配置文件
+
+在dstatus目录中，创建一个名为`docker-compose.yml`的文件，将以下内容复制粘贴进去：
+
 ```yaml
 version: '3.8'
 
@@ -88,7 +93,7 @@ services:
     image: ghcr.io/fev125/dstatus:latest
     container_name: dstatus
     ports:
-      - "0.0.0.0:5555:5555"  # Web 管理界面端口
+      - "5555:5555"  # Web界面端口，可以修改为其他端口
     volumes:
       - ./data:/app/data  # 数据库持久化
       - ./database:/app/database
@@ -96,96 +101,112 @@ services:
     environment:
       - NODE_ENV=production
       - TZ=Asia/Shanghai
-      - BOT_ENABLED=false  # 禁用 Telegram Bot，除非配置了 HTTPS
     restart: unless-stopped
 ```
 
-运行：
+#### 第2步: 启动服务
+
+在终端中，确保您在dstatus目录下，然后运行：
+
 ```bash
 docker-compose up -d
 ```
 
-> **⚠️ 数据持久化说明**
-> - `/app/data` 目录包含SQLite数据库文件，需要挂载到本地目录以保证数据持久化
-> - 如果不挂载此目录，容器重启后数据将丢失
-> - 建议定期备份 `data` 目录下的数据库文件
+#### 第3步: 访问Web界面
 
-### 方法二：直接安装
+与上面相同，打开浏览器访问 `http://localhost:5555` 或 `http://服务器IP:5555`
 
-#### 系统要求
-- Node.js 18+ (推荐 20+)
-- 支持：CentOS、Debian、Ubuntu 等主流 Linux 发行版
+## 📝 使用教程（新手友好版）
 
-#### 自动安装（仅限 CentOS 或 Debian/Ubuntu）
+### 登录系统
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/fev125/dstatus/main/install.sh | bash
-```
+![登录页面示意图]() <!-- 可添加登录界面截图 -->
 
-#### 手动安装
+1. 在浏览器中打开 `http://服务器IP:5555`
+2. 输入默认密码: `dstatus`
+3. 点击"登录"按钮
 
-```bash
-# 安装依赖
-apt update -y && apt-get install nodejs npm git build-essential -y
-# 或
-yum install epel-release -y && yum install centos-release-scl git -y && yum install nodejs devtoolset-8-gcc* -y
+### 修改默认密码（重要！）
 
-# 克隆代码
-git clone https://github.com/fev125/dstatus.git
-cd dstatus
+![修改密码示意图]() <!-- 可添加修改密码界面截图 -->
 
-# 安装依赖
-npm install
+1. 登录成功后，点击右上角"设置"图标
+2. 选择"修改密码"选项
+3. 输入新密码并确认
+4. 点击"保存"按钮
 
-# 启动服务
-node nekonekostatus.js
-```
+### 添加要监控的服务器
 
-## 🔄 更新版本
+![添加服务器示意图]() <!-- 可添加添加服务器界面截图 -->
 
-```bash
-# 确保数据目录存在
-mkdir -p data database logs
-
-# 更新 Docker 版本（建议先备份数据）
-(docker stop dstatus || true) && \
-(docker rm dstatus || true) && \
-docker pull ghcr.io/fev125/dstatus:latest && \
-docker run -d \
-  --name dstatus \
-  --network host \
-  --restart unless-stopped \
-  -e TZ=Asia/Shanghai \
-  -e NODE_ENV=production \
-  -e PORT=5555 \
-  -v $(pwd)/data:/app/data \
-  ghcr.io/fev125/dstatus:latest
-```
-
-> **⚠️ 注意**：更新前请确保已备份数据库文件（`data`目录）
-
-## 📝 使用指南
-
-### 初始登录
-- 访问地址: `http://your-ip:5555`
-- 默认密码: `dstatus`
-- **重要**：首次登录后请立即修改默认密码
-
-### 添加服务器
-1. 登录后台，点击「添加服务器」按钮
-2. 填写服务器信息（名称、IP地址、SSH端口等）
-3. 输入SSH凭据（支持密码或密钥认证）
-4. 测试连接并保存
+1. 在主界面点击"添加服务器"按钮
+2. 填写服务器信息：
+   - 名称：给服务器起个容易记的名字
+   - 地址：服务器的IP地址
+   - 端口：通常是SSH的22端口
+   - 用户名：服务器的登录用户名
+   - 密码/密钥：对应的登录凭证
+3. 点击"测试连接"确认连接成功
+4. 点击"保存"按钮完成添加
 
 ### 查看监控数据
-- 系统概况：在首页查看所有已添加服务器的概览
-- 详细数据：点击任意服务器查看详细监控信息
-- 历史数据：查看历史负载、带宽等统计数据
 
-### Telegram Bot 配置
-1. 在 Telegram 中联系 @BotFather 创建一个新的 bot
-2. 获取 bot token 并配置到系统中
-3. 开启通知功能并设置告警阈值
+![监控数据示意图]() <!-- 可添加监控界面截图 -->
+
+1. 在主界面可以看到所有服务器的基本状态
+2. 点击任意服务器卡片，进入详细监控页面
+3. 在详细页面可以查看：
+   - CPU使用率
+   - 内存占用
+   - 硬盘使用情况
+   - 网络流量
+   - 系统负载
+4. 点击页面上方的时间选项可以查看不同时间段的数据
+
+## 🔄 系统更新教程
+
+当有新版本发布时，您可以按照以下步骤更新系统：
+
+### 第1步: 备份数据（重要）
+
+```bash
+# 进入您的dstatus目录
+cd dstatus
+# 备份数据目录
+cp -r data data_backup_$(date +%Y%m%d)
+```
+
+### 第2步: 更新系统
+
+只需一条命令即可完成更新：
+
+```bash
+# 自动停止旧容器、拉取新镜像并启动新容器
+docker stop dstatus && docker rm dstatus && docker pull ghcr.io/fev125/dstatus:latest && docker run -d --name dstatus -p 5555:5555 --restart unless-stopped -e TZ=Asia/Shanghai -v $(pwd)/data:/app/data ghcr.io/fev125/dstatus:latest
+```
+
+## ❓ 常见问题解答
+
+### 问：系统占用多少资源？
+答：DStatus本身非常轻量，Docker容器仅占用约50-100MB内存，CPU使用率极低。
+
+### 问：如何查看系统日志？
+答：运行命令 `docker logs -f dstatus` 可以实时查看日志。
+
+### 问：我忘记了密码怎么办？
+答：您可以重置密码，执行：
+```bash
+docker exec -it dstatus node reset-password.js
+```
+
+### 问：如何更改Web界面端口？
+答：修改docker启动命令中的`-p 5555:5555`，将第一个5555改为您想要的端口，例如：`-p 8080:5555`
+
+### 问：如何备份所有数据？
+答：定期备份data目录即可：
+```bash
+cp -r ./data ./data_backup_$(date +%Y%m%d)
+```
 
 ## 🛡️ 安全建议
 
