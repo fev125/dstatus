@@ -103,12 +103,20 @@ svr.get('/login',(req,res)=>{
     else res.render('login',{});
 });
 svr.post('/login',(req,res)=>{
-    var {password}=req.body;
-    if(password==md5(db.setting.get("password"))){
+    var {password, originalPassword}=req.body;
+    const currentPassword = db.setting.get("password");
+    
+    if(password==md5(currentPassword)){
         var token=uuid.v4();
         admin_tokens.add(token);
         res.cookie("token",token);
-        res.json(pr(1,token));
+        
+        // 检查是否为默认密码
+        const isDefaultPassword = currentPassword === "dstatus" || originalPassword === "dstatus";
+        res.json(pr(1, {
+            token: token,
+            forceChangePassword: isDefaultPassword
+        }));
     }
     else res.json(pr(0,"密码错误"));
 });
@@ -450,5 +458,43 @@ svr.get('/', (req, res) => {
     } catch (error) {
         console.error('主页渲染错误:', error);
         res.status(500).send('服务器内部错误');
+    }
+});
+
+// 修改密码页面
+svr.get('/admin/change-password', (req, res) => {
+    if (!req.admin) {
+        return res.redirect('/login');
+    }
+    
+    // 检查当前密码是否为默认密码
+    const currentPassword = db.setting.get("password");
+    const isDefaultPassword = currentPassword === "dstatus";
+    
+    res.render('admin/change-password', {
+        forceChange: isDefaultPassword
+    });
+});
+
+// 处理修改密码请求
+svr.post('/admin/change-password', (req, res) => {
+    if (!req.admin) {
+        return res.json(pr(0, "未授权，请先登录"));
+    }
+    
+    try {
+        const { newPassword } = req.body;
+        
+        if (!newPassword) {
+            return res.json(pr(0, "请提供新密码"));
+        }
+        
+        // 更新密码
+        db.setting.set("password", newPassword);
+        
+        return res.json(pr(1, "密码修改成功"));
+    } catch (error) {
+        console.error('修改密码失败:', error);
+        return res.json(pr(0, "修改密码失败: " + error.message));
     }
 });

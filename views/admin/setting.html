@@ -42,10 +42,15 @@
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-slate-400 mb-2">管理密码</label>
-                        <input type="password" 
-                               value="{{setting.password}}" 
-                               key="password"
-                               class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <div class="relative">
+                            <input type="password" 
+                                   value="{{setting.password}}" 
+                                   key="password"
+                                   class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <span class="absolute inset-y-0 right-0 flex items-center pr-3 cursor-pointer toggle-password">
+                                <i class="material-icons text-slate-500">visibility</i>
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -449,75 +454,29 @@ async function edit(){
             }, 1000);
         } else {
             notice(res.msg || '保存失败', 'error');
+            spinner.classList.add('hidden');
         }
     } catch (error) {
         console.error('保存设置失败:', error);
-        notice('保存失败: ' + error.message, 'error');
-    } finally {
-        // 隐藏加载动画
+        notice('保存设置失败', 'error');
         spinner.classList.add('hidden');
     }
 }
 
-// 快捷键保存
-// Telegram 测试通知功能
-async function testTelegramNotification() {
-    const button = document.querySelector('button[onclick="testTelegramNotification()"]');
-    const originalContent = button.innerHTML;
-    
-    try {
-        // 显示加载状态
-        button.innerHTML = `<div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>`;
-        button.disabled = true;
-
-        const response = await fetch('/admin/test-telegram', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            }
+// 绑定密码显示/隐藏功能
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.toggle-password').forEach(toggle => {
+        toggle.addEventListener('click', function() {
+            const input = this.parentElement.querySelector('input');
+            const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+            input.setAttribute('type', type);
+            
+            // 切换图标
+            const icon = this.querySelector('i');
+            icon.textContent = type === 'password' ? 'visibility' : 'visibility_off';
         });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        console.log('[通知测试] 服务器响应:', data);
-        
-        // 修改判断条件，同时支持 code 和 status
-        if (data.code === 1 || data.status === 1) {
-            const successMsg = data.data || data.msg || '测试通知已发送，请检查 Telegram 是否收到消息';
-            notice(successMsg, 'success');
-        } else {
-            // 格式化错误信息
-            let errorMessage = data.msg || data.data || '发送测试通知失败';
-            
-            // 检查错误详情的位置
-            const details = data.details || (data.data && data.data.details);
-            if (details) {
-                const formattedDetails = typeof details === 'string' ? 
-                    details : 
-                    JSON.stringify(details, null, 2);
-                errorMessage = `${errorMessage}\n${formattedDetails}`;
-            }
-            
-            // 记录错误日志
-            console.error('[通知测试] 错误信息:', {
-                message: errorMessage,
-                response: data
-            });
-            
-            notice(errorMessage, 'error');
-        }
-    } catch (error) {
-        console.error('[通知测试] 发送失败:', error);
-        notice(`发送测试通知失败: ${error.message}`, 'error');
-    } finally {
-        // 恢复按钮状态
-        button.innerHTML = originalContent;
-        button.disabled = false;
-    }
-}
+    });
+});
 
 document.addEventListener("keydown", (e)=>{
     if ((window.navigator.platform.match("Mac") ? e.metaKey : e.ctrlKey) && e.keyCode == 83) {
