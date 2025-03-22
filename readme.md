@@ -33,7 +33,7 @@ DStatus是一个现代化的服务器状态监控系统，提供简洁美观的U
 
 ```bash
 # 下载并运行安装脚本
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/fev125/dstatus/main/dstatu.sh)"
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/fev125/dstatus/main/dstatus.sh)"
 ```
 
 安装脚本提供以下功能：
