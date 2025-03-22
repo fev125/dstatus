@@ -1,0 +1,97 @@
+<!-- 顶部导航栏 -->
+<nav class="fixed top-0 left-0 right-0 z-40">
+    <!-- 背景层 -->
+    <div class="absolute inset-0" style="padding-top: env(safe-area-inset-top);">
+        <div class="absolute inset-0 bg-slate-900/80 backdrop-blur-md" style="margin-top: calc(-1 * env(safe-area-inset-top));"></div>
+        <div class="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-slate-700/50 to-transparent"></div>
+    </div>
+    
+    <!-- 内容容器 -->
+    <div class="relative max-w-container mx-auto h-16">
+        <div class="flex items-center justify-between h-full px-6" style="padding-top: env(safe-area-inset-top);">
+            <!-- Logo区域 -->
+            <div class="flex items-center">
+                <a href="/" class="group flex items-center space-x-3">
+                    <!-- Logo图标 -->
+                    <div class="relative w-9 h-9 flex items-center justify-center">
+                        <svg class="w-7 h-7 text-blue-500 transition-transform duration-300 group-hover:scale-110" viewBox="0 0 24 24" fill="currentColor">
+<!-- 网络节点 -->
+<path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/>                        </svg>
+                        <div class="absolute inset-0 bg-blue-500/10 rounded-xl blur-sm transition-opacity duration-300 opacity-0 group-hover:opacity-100"></div>
+                    </div>
+                    <!-- 站点名称 -->
+                    <span class="text-lg font-medium bg-gradient-to-r from-gray-100 to-gray-300 bg-clip-text text-transparent">
+                        {{setting.site.name}}
+                    </span>
+                </a>
+            </div>
+
+            <!-- 导航按钮组 -->
+            <div class="flex items-center space-x-1">
+                <!-- 主导航按钮 -->
+                <a href="/" class="nav-link group {%if title=='节点状态'%}active{%endif%}">
+                    <div class="px-4 py-2 rounded-md flex items-center space-x-2">
+                        <i class="material-icons text-[20px] transition-colors">dashboard</i>
+                        <span class="hidden md:block text-sm font-medium">节点状态</span>
+                    </div>
+                </a>
+                
+                <!-- 视图切换按钮 -->
+                {%if title=='节点状态'%}
+                <a href="/?theme={%if theme=='list'%}card{%else%}list{%endif%}" class="nav-link group flex">
+                    <div class="px-4 py-2 rounded-md flex items-center space-x-2">
+                        <i class="material-icons text-[20px] transition-colors">{%if theme=='list'%}grid_view{%else%}list{%endif%}</i>
+                        <span class="hidden md:block text-sm font-medium">{%if theme=='list'%}卡片视图{%else%}列表视图{%endif%}</span>
+                    </div>
+                </a>
+                {%endif%}
+                
+                {%if admin%}
+                <a href="/admin/servers" class="nav-link group {%if title=='管理服务器'%}active{%endif%}">
+                    <div class="px-4 py-2 rounded-md flex items-center space-x-2">
+                        <i class="material-icons text-[20px] transition-colors">dns</i>
+                        <span class="hidden md:block text-sm font-medium">服务器管理</span>
+                    </div>
+                </a>
+                
+                <!-- 设置按钮 -->
+                <a href="/admin/setting" class="nav-link group">
+                    <div class="px-4 py-2 rounded-md flex items-center space-x-2">
+                        <i class="material-icons text-[20px] transition-colors">settings</i>
+                        <span class="hidden md:block text-sm font-medium">设置</span>
+                    </div>
+                </a>
+                
+                <!-- 分隔线 -->
+                <div class="w-px h-6 bg-gradient-to-b from-transparent via-slate-700/50 to-transparent mx-2"></div>
+                
+                <!-- 退出按钮 -->
+                <a href="/logout" class="nav-link group">
+                    <div class="px-4 py-2 rounded-md flex items-center space-x-2">
+                        <i class="material-icons text-[20px] transition-colors">logout</i>
+                        <span class="hidden md:block text-sm font-medium">退出</span>
+                    </div>
+                </a>
+                {%else%}
+                <a href="/login" class="nav-link group">
+                    <div class="px-4 py-2 rounded-md flex items-center space-x-2">
+                        <i class="material-icons text-[20px] transition-colors">login</i>
+                        <span class="hidden md:block text-sm font-medium">登录</span>
+                    </div>
+                </a>
+                {%endif%}
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- 为导航栏预留空间 -->
+<div class="h-16"></div>
+
+
+
+{%block js%}
+<script>
+// 移除主题切换相关代码
+</script>
+{%endblock%}

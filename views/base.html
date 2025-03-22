@@ -1,0 +1,370 @@
+{%set Title=setting.site.name%}
+<!DOCTYPE html>
+<html lang="zh" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, minimal-ui">
+    <meta name="is-admin" content="{{admin|default(false)}}">
+    
+    <!-- PWA 支持 -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="节点状态">
+    <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)">
+    <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: light)">
+    
+    <!-- 使用 SVG 图标 -->
+    <link rel="icon" type="image/svg+xml" href="/icons/icon.svg">
+    <link rel="apple-touch-icon" type="image/svg+xml" href="/icons/icon.svg">
+    <link rel="mask-icon" href="/icons/icon.svg" color="#3b82f6">
+    
+    <!-- PWA manifest -->
+    <link rel="manifest" href="/manifest.json">
+    
+    <title>{{Title}} - NekoNekoStatus</title>
+    <link rel="shortcut icon" href="/img/logo.svg">
+    
+    <!-- Material Icons 字体预加载 -->
+    <link rel="preload" href="https://fonts.gstatic.com/s/materialicons/v140/flUhRq6tzZclQEJ-Vdg-IuiaDsNc.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="https://fonts.googleapis.com/icon?family=Material+Icons" as="style">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <!-- 编译后的 Tailwind CSS -->
+    <link rel="stylesheet" href="/css/style.min.css">
+    <link rel="stylesheet" href="/css/style.css">
+    
+
+    <style>
+        /* 设置系统字体栈 */
+        :root {
+            --font-family-sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial, sans-serif;
+        }
+        
+        body {
+            font-family: var(--font-family-sans);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        /* Material Icons 基础样式 */
+        .material-icons {
+            font-family: 'Material Icons';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 20px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            vertical-align: middle;
+            width: 1em;
+            height: 1em;
+            overflow: hidden;
+            white-space: nowrap;
+            direction: ltr;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            text-rendering: optimizeLegibility;
+            /* 添加占位背景和隐藏内容 */
+            background: rgba(148, 163, 184, 0.1);
+            border-radius: 4px;
+            transition: all 0.2s;
+            color: transparent;
+            position: relative;
+        }
+
+        /* 字体加载完成后显示图标 */
+        .fonts-loaded .material-icons {
+            background: transparent;
+            color: currentColor;
+        }
+
+        /* 加载中的占位效果 */
+        .material-icons::before {
+            content: '';
+            position: absolute;
+            inset: 2px;
+            background: rgba(148, 163, 184, 0.1);
+            border-radius: 2px;
+            opacity: 1;
+            transition: opacity 0.2s;
+        }
+
+        .fonts-loaded .material-icons::before {
+            opacity: 0;
+        }
+
+        /* 图标尺寸类 */
+        .material-icons.text-sm {
+            font-size: 16px;
+            width: 16px;
+            height: 16px;
+        }
+
+        .material-icons.text-lg {
+            font-size: 24px;
+            width: 24px;
+            height: 24px;
+        }
+
+        /* 标题图标 */
+        h1 .material-icons,
+        h2 .material-icons,
+        .card-title .material-icons {
+            font-size: 24px;
+            width: 24px;
+            height: 24px;
+        }
+
+        /* 次级标题图标 */
+        h3 .material-icons,
+        .section-title .material-icons {
+            font-size: 22px;
+            width: 22px;
+            height: 22px;
+        }
+
+        /* 数据展示图标 */
+        .data-icon .material-icons {
+            font-size: 18px;
+            width: 18px;
+            height: 18px;
+        }
+
+        /* 操作图标 */
+        .action-icon .material-icons {
+            font-size: 20px;
+            width: 20px;
+            height: 20px;
+        }
+    </style>
+    <script>
+        // 检测字体加载
+        if ("fonts" in document) {
+            // 创建字体加载检测器
+            const materialIconsFont = new FontFace(
+                'Material Icons',
+                'url(https://fonts.gstatic.com/s/materialicons/v140/flUhRq6tzZclQEJ-Vdg-IuiaDsNc.woff2)',
+                { style: 'normal', weight: '400' }
+            );
+
+            // 加载字体
+            materialIconsFont.load().then(function(loadedFace) {
+                document.fonts.add(loadedFace);
+                document.documentElement.classList.add('fonts-loaded');
+            }).catch(function(error) {
+                console.warn('字体加载失败:', error);
+                // 降级处理：仍然添加类以显示图标
+                document.documentElement.classList.add('fonts-loaded');
+            });
+        } else {
+            // 降级方案：如果浏览器不支持 Font Loading API
+            document.documentElement.classList.add('fonts-loaded');
+        }
+    </script>
+    <!-- 预加载主题，避免闪烁 -->
+    <script>
+        // 在 HTML 解析前就执行主题初始化
+        (function() {
+            const isDark = localStorage.getItem('theme') !== 'light';
+            document.documentElement.classList.toggle('dark', isDark);
+        })();
+    </script>
+</head>
+<body class="min-h-screen bg-slate-900 text-slate-100">
+    <!-- Loading 指示器 -->
+    <div id='loading' class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 flex items-center justify-center">
+            <div class="loading"></div>
+        </div>
+    </div>
+
+    <!-- 顶部导航栏 -->
+    {%include 'appbar.html'%}
+
+    <!-- 为导航栏预留空间 -->
+    <div style="height: calc(0.1rem + env(safe-area-inset-top));"></div>
+
+    <!-- 主容器 -->
+    <div id='container' class="container mx-auto px-4 py-6 {%if fluid%}max-w-full{%endif%}">
+        {%block content%}{%endblock%}
+    </div>
+
+    <!-- 页脚 -->
+    {%include "./footer.html"%}
+
+
+    <script>
+        // 设置最小高度
+        var container = document.querySelector("#container");
+        container.style.minHeight = window.innerHeight - document.body.clientHeight + container.clientHeight + 'px';
+    </script>
+    {%block js%}
+    {%endblock%}
+
+    <!-- 移动端添加到主屏幕引导按钮 -->
+    <div id="pwa-install-button" class="hidden fixed bottom-4 right-4 sm:hidden z-50">
+        <button class="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-full shadow-lg backdrop-blur-sm bg-opacity-90 hover:bg-opacity-100 transition-all">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+            </svg>
+            <span class="text-sm">添加到主屏幕</span>
+        </button>
+    </div>
+
+    <!-- 添加到主屏幕的引导弹窗 -->
+    <div id="pwa-install-modal" class="hidden fixed inset-0 z-50">
+        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+        <div class="absolute left-4 right-4 bottom-4 p-4 bg-gray-900 rounded-lg border border-gray-700/50">
+            <div class="flex items-start space-x-4">
+                <div class="flex-shrink-0">
+                    <svg class="w-12 h-12 text-blue-500" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/>
+                    </svg>
+                </div>
+                <div class="flex-1">
+                    <h3 class="text-lg font-medium text-white mb-1">添加到主屏幕</h3>
+                    <p class="text-sm text-gray-300 mb-4">添加后可以快速访问节点状态</p>
+                    <div class="text-xs text-gray-400 space-y-2">
+                        <p>1. 点击浏览器底部分享按钮</p>
+                        <p>2. 选择"添加到主屏幕"</p>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-4 flex justify-end space-x-3">
+                <button onclick="dismissPWAGuide()" class="px-4 py-2 text-sm text-gray-400 hover:text-gray-300">稍后再说</button>
+                <button onclick="showAddToHomeScreen()" class="px-4 py-2 text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600">
+                    立即添加
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PWA 相关脚本 -->
+    <script>
+    // 检测是否为 iOS 设备
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+    // 检测是否已经安装 PWA
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        showPWAButton();
+    });
+
+    // 显示安装按钮
+    function showPWAButton() {
+        const pwaButton = document.getElementById('pwa-install-button');
+        if (pwaButton) {
+            // 检查是否已经显示过引导
+            const hasShownGuide = localStorage.getItem('pwa-guide-shown');
+            if (!hasShownGuide) {
+                pwaButton.classList.remove('hidden');
+                // 添加点击事件
+                pwaButton.addEventListener('click', showPWAInstallModal);
+            }
+        }
+    }
+
+    // 显示安装引导弹窗
+    function showPWAInstallModal() {
+        const modal = document.getElementById('pwa-install-modal');
+        if (modal) {
+            modal.classList.remove('hidden');
+        }
+    }
+
+    // 关闭引导弹窗
+    function dismissPWAGuide() {
+        const modal = document.getElementById('pwa-install-modal');
+        const button = document.getElementById('pwa-install-button');
+        if (modal) {
+            modal.classList.add('hidden');
+        }
+        if (button) {
+            button.classList.add('hidden');
+        }
+        // 记录已经显示过引导
+        localStorage.setItem('pwa-guide-shown', 'true');
+    }
+
+    // 显示添加到主屏幕的引导
+    function showAddToHomeScreen() {
+        if (deferredPrompt) {
+            // Android 设备
+            deferredPrompt.prompt();
+            deferredPrompt.userChoice.then((choiceResult) => {
+                if (choiceResult.outcome === 'accepted') {
+                    dismissPWAGuide();
+                }
+                deferredPrompt = null;
+            });
+        } else if (isIOS) {
+            // iOS 设备显示 Safari 添加到主屏幕的引导
+            const modal = document.getElementById('pwa-install-modal');
+            if (modal) {
+                modal.querySelector('.text-xs').innerHTML = `
+                    <p>1. 点击底部分享按钮 <svg class="inline-block w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M16 5l-1.42 1.42-1.59-1.59V16h-1.98V4.83L9.42 6.42 8 5l4-4 4 4zm4 5v11c0 1.1-.9 2-2 2H6c-1.11 0-2-.9-2-2V10c0-1.11.89-2 2-2h3v2H6v11h12V10h-3V8h3c1.1 0 2 .89 2 2z"/></svg></p>
+                    <p>2. 滚动并选择"添加到主屏幕" <svg class="inline-block w-5 h-5" viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></p>
+                `;
+            }
+        }
+    }
+
+    // 检查是否是从主屏幕启动
+    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+        // 已经安装为 PWA，不显示引导
+        localStorage.setItem('pwa-guide-shown', 'true');
+    } else {
+        // 延迟显示引导按钮
+        setTimeout(showPWAButton, 3000);
+    }
+    </script>
+
+    <script>
+    function notice(msg,type='info'){
+        var div=document.createElement('div');
+        div.className=`fixed top-4 right-4 px-4 py-2 rounded-lg shadow-lg z-50 transition-all duration-300 transform translate-x-full
+            ${type=='success'?'bg-green-500':type=='error'?'bg-red-500':'bg-blue-500'}`;
+        div.textContent=msg;
+        document.body.appendChild(div);
+        setTimeout(()=>div.classList.remove('translate-x-full'),100);
+        setTimeout(()=>{
+            div.classList.add('translate-x-full');
+            setTimeout(()=>div.remove(),300);
+        },3000);
+    }
+    function startloading(){
+        var div=document.createElement('div');
+        div.className='loading fixed top-0 right-0 p-4 z-50 flex items-center justify-center';
+        div.innerHTML=`<div class="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin"></div>`;
+        document.body.appendChild(div);
+    }
+    function endloading(){
+        document.querySelector('.loading')?.remove();
+    }
+    async function postjson(url,data){
+        startloading();
+        try{
+            var res=await fetch(url,{
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body:JSON.stringify(data)
+            });
+            return await res.json();
+        }catch(e){
+            notice(e.message,'error');
+            throw e;
+        }finally{
+            endloading();
+        }
+    }
+    function V(id){
+        return document.getElementById(id)?.value;
+    }
+    </script>
+</body>
+</html>

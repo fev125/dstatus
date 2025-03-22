@@ -1,0 +1,513 @@
+{% set title = "管理设置" %}
+{%set admin = true%}
+{% extends "../base.html" %}
+
+{%block content%}
+<!-- 引入侧边栏 -->
+{% include "admin/sidebar.html" %}
+
+<!-- 主内容区域 -->
+<div class="md:ml-64 p-4 pt-6 transition-all duration-300" style="padding-top: calc(1.5rem + env(safe-area-inset-top))">
+<div class="max-w-7xl mx-auto">
+    <textarea id="setting_data" class="hidden">{{setting|dump}}</textarea>
+    
+    <!-- 设置卡片 -->
+    <div class="bg-slate-900/80 backdrop-blur rounded-lg border border-slate-800/50">
+        <!-- 卡片标题 -->
+        <div class="flex items-center justify-between p-4 border-b border-slate-800/50">
+            <div class="flex items-center gap-3">
+                <i class="material-icons text-blue-500">settings</i>
+                <div>
+                    <h3 class="text-lg font-medium text-white">系统设置</h3>
+                    <p class="text-sm text-slate-400">System Settings</p>
+                </div>
+            </div>
+            <!-- 保存加载动画 -->
+            <div id="saveSpinner" class="hidden w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+
+        <!-- 卡片内容 -->
+        <div class="p-6 space-y-8">
+            <!-- 基础设置 -->
+            <div class="space-y-4">
+                <h4 class="text-base font-medium text-slate-200">基础设置</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">监听端口</label>
+                        <input type="number" 
+                               value="{{setting.listen}}" 
+                               key="listen"
+                               class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">管理密码</label>
+                        <input type="password" 
+                               value="{{setting.password}}" 
+                               key="password"
+                               class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 站点设置 -->
+            <div class="space-y-4">
+                <h4 class="text-base font-medium text-slate-200">站点设置</h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">站点名称</label>
+                        <input type="text" 
+                               value="{{setting.site.name}}" 
+                               key="site.name"
+                               class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">站点网址</label>
+                        <input type="text" 
+                               value="{{setting.site.url}}" 
+                               key="site.url"
+                               class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">默认主题</label>
+                        <select key="theme"
+                                class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="card" {%if setting.theme == "card"%}selected{%endif%}>卡片</option>
+                            <option value="list" {%if setting.theme == "list"%}selected{%endif%}>列表</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 客户端设置 -->
+            <div class="space-y-4">
+                <h4 class="text-base font-medium text-slate-200">客户端设置</h4>
+                <div>
+                    <label class="block text-sm font-medium text-slate-400 mb-2">neko-status 下载地址</label>
+                    <input type="text" 
+                           value="{{setting.neko_status_url}}" 
+                           key="neko_status_url"
+                           class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                </div>
+            </div>
+
+            <!-- Telegram 通知设置 -->
+            <div class="space-y-4">
+                <h4 class="text-base font-medium text-slate-200">Telegram 通知设置</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- 基本设置 -->
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">Bot Token</label>
+                        <input type="text" 
+                               value="{{setting.telegram.token}}" 
+                               key="telegram.token"
+                               class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">Chat ID 列表 (用,分割)</label>
+                        <input type="text" 
+                               value="{{setting.telegram.chatIds}}" 
+                               key="telegram.chatIds" 
+                               isarray=1
+                               class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    
+                    <!-- 连接方式选择 -->
+                    <div class="col-span-1 md:col-span-2 bg-slate-800/30 p-4 rounded-lg">
+                        <label class="block text-sm font-medium text-slate-300 mb-3">连接方式</label>
+                        <div class="flex flex-col md:flex-row gap-4">
+                            <!-- Webhook方式 -->
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="radio" 
+                                       name="telegramMode" 
+                                       value="webhook" 
+                                       {%if setting.telegram.webhook%}checked{%endif%} 
+                                       key="telegram.webhook"
+                                       class="form-radio h-4 w-4 text-blue-500 bg-slate-800 border-slate-600 focus:ring-blue-500">
+                                <div>
+                                    <span class="text-sm font-medium text-slate-200">Webhook方式</span>
+                                    <p class="text-xs text-slate-400">服务器接收推送通知，适合有公网IP的服务器</p>
+                                </div>
+                            </label>
+                            
+                            <!-- Polling方式 -->
+                            <label class="flex items-center space-x-3 cursor-pointer">
+                                <input type="radio" 
+                                       name="telegramMode" 
+                                       value="polling" 
+                                       {%if not setting.telegram.webhook%}checked{%endif%} 
+                                       key="telegram.polling"
+                                       class="form-radio h-4 w-4 text-blue-500 bg-slate-800 border-slate-600 focus:ring-blue-500">
+                                <div>
+                                    <span class="text-sm font-medium text-slate-200">Polling方式</span>
+                                    <p class="text-xs text-slate-400">服务器主动轮询消息，适合无公网IP的环境</p>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- API设置 -->
+                    <div class="col-span-1 md:col-span-2">
+                        <label class="block text-sm font-medium text-slate-400 mb-2">API基础URL (网络问题时修改)</label>
+                        <input type="text" 
+                               value="{%if setting.telegram.baseApiUrl%}{{setting.telegram.baseApiUrl}}{%else%}https://botapi.ipxxxx.com{%endif%}" 
+                               key="telegram.baseApiUrl"
+                               placeholder="https://botapi.ipxxxx.com"
+                               class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <p class="text-xs text-slate-500 mt-1">如果无法访问Telegram API，可以尝试使用镜像或代理地址</p>
+                    </div>
+                    
+                    <!-- 启用和测试 -->
+                    <div class="flex items-center justify-between col-span-1 md:col-span-2 bg-slate-800/30 p-4 rounded-lg">
+                        <div class="flex items-center space-x-3">
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" 
+                                       {%if setting.telegram.enabled%}checked{%endif%} 
+                                       key="telegram.enabled"
+                                       class="sr-only peer">
+                                <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                            </label>
+                            <span class="text-sm font-medium text-slate-300">启用通知</span>
+                        </div>
+                        <button onclick="testTelegramNotification()" 
+                                class="inline-flex items-center px-3 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-900 transition-colors duration-200">
+                            <i class="material-icons mr-2">notifications</i>
+                            测试通知
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 自动发现设置 -->
+            <div class="space-y-4">
+                <h4 class="text-base font-medium text-slate-200">自动发现设置</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="flex items-center justify-between col-span-1 md:col-span-2 bg-slate-800/30 p-4 rounded-lg">
+                        <div class="flex items-center space-x-3">
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" 
+                                       {%if setting.autodiscovery.enabled%}checked{%endif%} 
+                                       key="autodiscovery.enabled"
+                                       class="sr-only peer">
+                                <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                            </label>
+                            <span class="text-sm font-medium text-slate-400">启用自动发现功能</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">注册密钥</label>
+                        <div class="relative">
+                            <input type="text" 
+                                   value="{{setting.autodiscovery.registrationKey}}" 
+                                   key="autodiscovery.registrationKey"
+                                   class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <button type="button" 
+                                    onclick="generateRegistrationKey()" 
+                                    class="absolute right-2 top-1/2 -translate-y-1/2 text-xs px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded">
+                                生成
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">默认分组</label>
+                        <select key="autodiscovery.defaultGroup"
+                                class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            {% for group in groups %}
+                            <option value="{{group._id}}" {%if setting.autodiscovery.defaultGroup == group._id%}selected{%endif%}>{{group.name}}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" 
+                                   {%if setting.autodiscovery.requireKey%}checked{%endif%} 
+                                   key="autodiscovery.requireKey"
+                                   class="sr-only peer">
+                            <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                        </label>
+                        <span class="text-sm font-medium text-slate-400">要求注册密钥</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" 
+                                   {%if setting.autodiscovery.requireApproval%}checked{%endif%} 
+                                   key="autodiscovery.requireApproval"
+                                   class="sr-only peer">
+                            <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                        </label>
+                        <span class="text-sm font-medium text-slate-400">要求管理员审核</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 调试设置 -->
+            <div class="flex items-center space-x-2">
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" 
+                           {%if setting.debug%}checked{%endif%} 
+                           key="debug"
+                           class="sr-only peer">
+                    <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                </label>
+                <span class="text-sm font-medium text-slate-400">调试模式</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 数据库管理部分 -->
+    <div class="bg-slate-900/80 backdrop-blur rounded-lg border border-slate-800/50 mt-6">
+        <!-- 卡片标题 -->
+        <div class="flex items-center justify-between p-4 border-b border-slate-800/50">
+            <div class="flex items-center gap-3">
+                <i class="material-icons text-blue-500">storage</i>
+                <div>
+                    <h3 class="text-lg font-medium text-white">数据库管理</h3>
+                    <p class="text-sm text-slate-400">Database Management</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 卡片内容 -->
+        <div class="p-6 space-y-4">
+            <!-- 操作按钮 -->
+            <div class="flex items-center gap-4">
+                <button onclick="DatabaseManager.downloadBackup()" 
+                        class="inline-flex items-center px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-900">
+                    <i class="material-icons mr-2">download</i>
+                    下载数据库备份
+                </button>
+                
+                <button onclick="DatabaseManager.startRestore()" 
+                        class="inline-flex items-center px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 focus:ring-offset-slate-900">
+                    <i class="material-icons mr-2">restore</i>
+                    恢复数据库
+                </button>
+            </div>
+
+            <!-- 隐藏的文件输入 -->
+            <input type="file" 
+                   id="dbFileInput" 
+                   accept=".db" 
+                   class="hidden" 
+                   onchange="DatabaseManager.handleFileSelect(this)">
+        </div>
+    </div>
+
+    <!-- 恢复进度对话框 -->
+    <div id="restoreDialog" class="fixed inset-0 bg-black/50 hidden items-center justify-center backdrop-blur-sm z-50">
+        <div class="bg-slate-800 p-6 rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div id="restoreProgress" class="space-y-4">
+                <!-- 上传状态 -->
+                <div id="uploadState" class="hidden">
+                    <div class="flex items-center gap-3">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                        <span class="text-slate-200">正在上传数据库文件...</span>
+                    </div>
+                </div>
+
+                <!-- 恢复状态 -->
+                <div id="restoreState" class="hidden">
+                    <div class="flex items-center gap-3">
+                        <div class="animate-bounce text-yellow-500">
+                            <i class="material-icons">settings_backup_restore</i>
+                        </div>
+                        <span class="text-slate-200">正在恢复数据库...</span>
+                    </div>
+                </div>
+
+                <!-- 重启状态 -->
+                <div id="restartState" class="hidden">
+                    <div class="flex flex-col gap-3">
+                        <div class="flex items-center gap-3">
+                            <div class="animate-spin text-green-500">
+                                <i class="material-icons">refresh</i>
+                            </div>
+                            <span class="text-slate-200">系统正在重启...</span>
+                        </div>
+                        <div class="text-sm text-slate-400" id="restartStatus"></div>
+                    </div>
+                </div>
+
+                <!-- 成功状态 -->
+                <div id="successState" class="hidden">
+                    <div class="text-center space-y-4">
+                        <div class="text-green-500">
+                            <i class="material-icons text-4xl">check_circle</i>
+                        </div>
+                        <div class="space-y-2">
+                            <p class="font-medium text-slate-200">数据库恢复完成</p>
+                            <div class="text-sm text-slate-400">
+                                <p>✓ 数据库文件已更新</p>
+                                <p>✓ 备份已创建</p>
+                            </div>
+                            <div class="mt-4 p-4 bg-slate-700/50 rounded-md text-left">
+                                <p class="text-yellow-400 font-medium mb-2">⚠️ 重要提示</p>
+                                <div class="text-slate-200 text-sm" id="restartMessage"></div>
+                            </div>
+                        </div>
+                        <button onclick="DatabaseManager.closeDialog()" 
+                                class="w-full px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-md">
+                            关闭
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 错误状态 -->
+                <div id="errorState" class="hidden">
+                    <div class="text-center space-y-4">
+                        <div class="text-red-500">
+                            <i class="material-icons text-4xl">error</i>
+                        </div>
+                        <p class="text-slate-200" id="errorMessage"></p>
+                        <button onclick="DatabaseManager.closeDialog()" 
+                                class="w-full px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md">
+                            关闭
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 保存按钮 -->
+    <div class="fixed bottom-6 right-6">
+        <button onclick="edit()" 
+                class="flex items-center justify-center w-14 h-14 rounded-full bg-blue-500 hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-900 text-white shadow-lg transition-colors">
+            <i class="material-icons">save</i>
+        </button>
+    </div>
+</div>
+</div>
+{%endblock%}
+
+{%block js%}
+<!-- 基础函数和工具 -->
+<script>
+function V(id){return document.getElementById(id).value;}
+</script>
+
+<!-- 设置管理脚本 -->
+<script>
+async function edit(){
+    // 显示加载动画
+    const spinner = document.getElementById('saveSpinner');
+    spinner.classList.remove('hidden');
+
+    try {
+        var setting={};
+        function gen(x,keys,val){
+            if(keys.length==0)return;
+            var key=keys[0];
+            keys.shift();
+            if(keys.length==0)x[key]=val;
+            else{
+                if(!x[key])x[key]={};
+                gen(x[key],keys,val)
+            };
+        }
+        for(var x of document.querySelectorAll("[key]")){
+            var val=x.value;
+            if(x.type=="number")val=Number(x.value);
+            if(x.type=="checkbox")val=x.checked;
+            if(x.getAttribute("isarray"))val=val.split(",");
+            gen(setting,x.getAttribute("key").split('.'),val);
+        }
+        console.log(setting);
+        for(var [key,val] of Object.entries(JSON.parse(V("setting_data"))))
+            if(setting[key]==val)delete setting[key];
+
+        const res = await fetch('/admin/setting', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(setting)
+        }).then(r => r.json());
+
+        if(res.code === 1){
+            toast.success('保存成功');
+            location.reload();
+        } else {
+            toast.error(res.msg || '保存失败');
+        }
+    } catch (error) {
+        console.error('保存设置失败:', error);
+        toast.error('保存失败: ' + error.message);
+    } finally {
+        // 隐藏加载动画
+        spinner.classList.add('hidden');
+    }
+}
+
+// 快捷键保存
+// Telegram 测试通知功能
+async function testTelegramNotification() {
+    const button = document.querySelector('button[onclick="testTelegramNotification()"]');
+    const originalContent = button.innerHTML;
+    
+    try {
+        // 显示加载状态
+        button.innerHTML = `<div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>`;
+        button.disabled = true;
+
+        const response = await fetch('/admin/test-telegram', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        const data = await response.json();
+        
+        if (data.code === 1) {
+            notice('测试通知已发送，请检查 Telegram 是否收到消息', 'success');
+        } else {
+            // 显示详细的错误信息
+            const errorDetails = data.details ? `\n\n错误详情:\n${data.details}` : '';
+            notice(`${data.msg || '发送测试通知失败'}${errorDetails}`, 'error');
+            console.error('测试通知错误:', data);
+        }
+    } catch (error) {
+        console.error('测试通知发送失败:', error);
+        notice(`发送测试通知失败: ${error.message}`, 'error');
+    } finally {
+        // 恢复按钮状态
+        button.innerHTML = originalContent;
+        button.disabled = false;
+    }
+}
+
+// 生成随机注册密钥
+function generateRegistrationKey() {
+    // 生成16位随机字符串
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let key = '';
+    for (let i = 0; i < 16; i++) {
+        key += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    
+    // 设置到输入框
+    document.querySelector('[key="autodiscovery.registrationKey"]').value = key;
+    
+    // 显示提示
+    toast.success('已生成新的注册密钥');
+}
+
+document.addEventListener("keydown", (e)=>{
+    if ((window.navigator.platform.match("Mac") ? e.metaKey : e.ctrlKey) && e.keyCode == 83) {
+        e.preventDefault();
+        edit();
+    }
+}, false);
+</script>
+
+<!-- 数据库管理脚本 -->
+<script src="/js/database.js"></script>
+
+<!-- 初始化数据库管理功能 -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    if (typeof DatabaseManager === 'undefined') {
+        console.error('DatabaseManager 未加载');
+    }
+});
+</script>
+{%endblock%}

@@ -1,0 +1,1355 @@
+{%set title = "节点状态"%}
+{%extends "./base.html"%}
+
+{%block content%}
+<style>
+/* 基础图标样式 */
+.material-icons {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
+    line-height: 1;
+}
+
+/* 主标题图标 - 用于卡片标题 */
+.card-title .material-icons,
+h2 .material-icons {
+    width: 24px;
+    height: 24px;
+    font-size: 24px;
+}
+
+/* 次级标题图标 - 用于区块标题 */
+h3 .material-icons,
+.section-title .material-icons {
+    width: 22px;
+    height: 22px;
+    font-size: 22px;
+}
+
+/* 普通图标 - 用于数据展示 */
+.data-icon .material-icons {
+    width: 18px;
+    height: 18px;
+    font-size: 18px;
+}
+
+/* 小图标 - 用于辅助信息 */
+.material-icons.text-sm {
+    width: 16px;
+    height: 16px;
+    font-size: 16px;
+}
+
+/* 操作图标 - 用于按钮和交互 */
+.action-icon .material-icons {
+    width: 20px;
+    height: 20px;
+    font-size: 20px;
+}
+
+.offline {
+    color: #94a3b8;
+}
+/* 进度条样式 */
+.progress-bar {
+    height: 0.25rem;
+    width: 100%;
+    background-color: rgba(55, 65, 81, 0.5);
+    border-radius: 9999px;
+    overflow: hidden;
+    position: relative;
+}
+.progress-bar-fill {
+    height: 100%;
+    border-radius: 9999px;
+    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: width;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+.progress-bar-fill-cpu {
+    background-color: rgba(59, 130, 246, 0.7);
+}
+.progress-bar-fill-mem {
+    background-color: rgba(168, 85, 247, 0.7);
+}
+.progress-bar-fill-swap {
+    background-color: rgba(139, 92, 246, 0.7);
+}
+
+/* 图表容器样式 */
+.chart-container {
+    height: 300px;
+    width: 100%;
+}
+</style>
+
+<!-- 预加载 Material Icons 字体 -->
+<link rel="preload" href="https://fonts.googleapis.com/icon?family=Material+Icons" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons"></noscript>
+
+<!-- 数据存储区域 -->
+<textarea id='traffic_data' class="hidden">{{traffic|dump}}</textarea>
+<textarea id='load_m_data' class="hidden">{{load_m|dump}}</textarea>
+<textarea id='load_h_data' class="hidden">{{load_h|dump}}</textarea>
+<textarea id='node-data' class="hidden">{{node|dump|safe}}</textarea>
+<textarea id="preprocessed-data" style="display: none;">{{preProcessedData|safe}}</textarea>
+
+<div class="space-y-4">
+    <!-- 节点信息卡片 -->
+    <div class="bg-white/5 backdrop-blur-sm rounded-lg border border-gray-700/50 overflow-hidden">
+        <div class="px-4 py-3 flex justify-between items-center border-b border-gray-700/50">
+            <div class="flex-1 flex items-center justify-between mr-4">
+                <!-- 左侧主机信息 -->
+                <div class="flex items-center gap-3">
+                    <i class="material-icons text-blue-500/70">dns</i>
+                    <h2 class="text-base sm:text-lg font-medium text-gray-200 truncate">{{node.name}}</h2>
+                    <span class="text-xs sm:text-sm text-gray-400">(主机名: <span id="system-hostname"></span>)</span>
+                </div>
+            </div>
+            
+            <div class="flex-shrink-0 flex items-center space-x-1 md:space-x-2 action-icon min-w-fit">
+               
+                {%if admin%}
+                <a href="/admin/servers/{{sid}}/" class="p-2 text-gray-400 hover:text-gray-200 hover:bg-white/5 rounded-md transition-colors">
+                    <i class="material-icons">edit</i>
+                </a>
+                <button onclick="webssh('{{sid}}')" class="p-2 text-gray-400 hover:text-gray-200 hover:bg-white/5 rounded-md transition-colors" title="web ssh">
+                    <i class="material-icons">open_in_browser</i>
+                </button>
+                {%endif%}
+            </div>
+        </div>
+    </div>
+
+    <!-- 系统状态区域 - 左右布局 2:3 -->
+    <div class="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        <!-- 系统状况和网络流量卡片 - 占2格 -->
+        <div class="col-span-1 lg:col-span-2 bg-white/5 backdrop-blur-sm rounded-lg border border-gray-700/50 overflow-hidden">
+            <div class="px-4 py-3 border-b border-gray-700/50">
+                <div class="flex items-center gap-2 section-title">
+                    <i class="material-icons text-blue-500/70">memory</i>
+                    <h3 class="text-lg font-medium text-gray-200">系统状况</h3>
+                    <span id="system-os" class="text-sm text-gray-400"></span>
+                </div>
+            </div>
+            <div class="p-4">
+                <div class="space-y-4">
+                    <!-- CPU -->
+                    <div class="space-y-2">
+                        <div class="flex items-center gap-3">
+                            <div class="flex-1">
+                                <div class="flex justify-between">
+                                    <div class="flex items-center gap-1 text-gray-400 data-icon">
+                                        <i class="material-icons">memory</i>
+                                        <span class="text-sm">CPU</span>
+                                        <span id="system-cpu-cores" class="text-sm text-gray-400">({{node.stat.cpu.single.length}}核)</span>
+                                    </div>
+                                    <span id="CPU" class="text-sm text-gray-200">{{(100*node.stat.cpu.multi).toFixed(2)}}%</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <!-- 总体CPU使用率进度条 -->
+                            <div class="progress-bar">
+                                <div id="CPU_total_progress" 
+                                     class="absolute top-0 left-0 h-full bg-blue-500/70 rounded-full"
+                                     style="width: {{node.stat.cpu.multi*100}}%;"></div>
+                            </div>
+                            
+                            <!-- 核心CPU使用率进度条 - 双列布局 -->
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
+                                {% for usage in node.stat.cpu.single %}
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs text-gray-400 w-12">核心{{loop.index}}</span>
+                                    <div class="progress-bar flex-1 relative">
+                                <div id="CPU{{loop.index}}_progress" 
+                                             class="absolute top-0 left-0 h-full bg-blue-500/70 rounded-full transition-all duration-800"
+                                             style="width: {{usage}}%;"></div>
+                            </div>
+                                    <span class="text-xs text-gray-400 w-12 text-right">{{usage.toFixed(1)}}%</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Memory -->
+                    <div class="space-y-2" id="MEM_item">
+                        <div class="flex items-center gap-3">
+                            <div class="flex-1">
+                                <div class="flex justify-between">
+                                    <div class="flex items-center gap-1 text-gray-400 data-icon">
+                                        <i class="material-icons">straighten</i>
+                                        <span class="text-sm">内存</span>
+                                        <span id="mem-total" class="text-sm text-gray-400"></span>
+                                    </div>
+                                    <span id="MEM" class="text-sm text-gray-200">{{(100*node.stat.mem.mem).toFixed(2)}}%</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="progress-bar">
+                                <div id="MEM_progress" 
+                                     class="absolute top-0 left-0 h-full bg-purple-500/70 rounded-full transition-all duration-800"
+                                     style="width: {{node.stat.mem.mem*100}}%;"></div>
+                            </div>
+                            <div class="progress-bar">
+                                <div id="SWAP_progress" 
+                                     class="absolute top-0 left-0 h-full bg-indigo-500/70 rounded-full transition-all duration-800"
+                                     style="width: {{node.stat.mem.swap*100}}%;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Disk Usage -->
+                    <div class="space-y-2" id="DISK_item">
+                        <div class="flex items-center gap-3">
+                            <div class="flex-1">
+                                <div class="flex justify-between">
+                                    <div class="flex items-center gap-1 text-gray-400 data-icon">
+                                        <i class="material-icons">storage</i>
+                                        <span class="text-sm">硬盘</span>
+                                        <span id="disk-total" class="text-sm text-gray-400"></span>
+                                    </div>
+                                    <span id="DISK" class="text-sm text-gray-200">{% if node.stat.disk.total > 0 %}{{ (100*node.stat.disk.used/node.stat.disk.total)|round(2) }}{% else %}0{% endif %}%</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="progress-bar">
+                                <div id="DISK_progress" 
+                                     class="absolute top-0 left-0 h-full bg-yellow-500/70 rounded-full transition-all duration-800"
+                                     style="width: {% if node.stat.disk.total > 0 %}{{ (node.stat.disk.used/node.stat.disk.total*100)|round(2) }}{% else %}0{% endif %}%;"></div>
+                            </div>
+                            <div class="flex justify-between text-xs text-gray-400 mt-1">
+                                <span>已用: <span id="disk-used">{{strB(node.stat.disk.used)}}</span></span>
+                                <span>可用: <span id="disk-free">{{strB(node.stat.disk.total - node.stat.disk.used)}}</span></span>
+                                <span>总计: <span id="disk-total-value">{{strB(node.stat.disk.total)}}</span></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Network Traffic -->
+                    <div class="pt-2 border-t border-gray-700/50">
+                        <div class="flex items-center gap-2 mb-2">
+                            <i class="material-icons text-blue-500/70">network_check</i>
+                            <h3 class="text-lg font-medium text-gray-200">网络流量</h3>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <i class="material-icons text-gray-400 text-sm" style="width:16px;height:16px;font-size:16px;">speed</i>
+                                    <span class="text-sm text-gray-400">实时带宽</span>
+                                </div>
+                                <div class="flex items-center gap-4">
+                                    <div class="flex items-center gap-1">
+                                        <i class="material-icons text-green-500/70 text-sm" style="width:16px;height:16px;font-size:16px;">arrow_downward</i>
+                                        <span id="NET_IN" class="text-base font-medium text-gray-200"></span>
+                                    </div>
+                                    <div class="flex items-center gap-1">
+                                        <i class="material-icons text-blue-500/70 text-sm" style="width:16px;height:16px;font-size:16px;">arrow_upward</i>
+                                        <span id="NET_OUT" class="text-base font-medium text-gray-200"></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <i class="material-icons text-gray-400 text-sm">data_usage</i>
+                                    <span class="text-sm text-gray-400">总流量</span>
+                                </div>
+                                
+                                <div class="flex items-center gap-4">
+                                    <div class="flex items-center gap-1">
+                                        <i class="material-icons text-green-500/70 text-sm" style="width:16px;height:16px;font-size:16px;">arrow_downward</i>
+                                        <span id="NET_IN_TOTAL" class="text-sm text-gray-200">{{strB(node.stat.net.total.in)}}</span>
+                                    </div>
+                                    <div class="flex items-center gap-1">
+                                        <i class="material-icons text-blue-500/70 text-sm" style="width:16px;height:16px;font-size:16px;">arrow_upward</i>
+                                        <span id="NET_OUT_TOTAL" class="text-sm text-gray-200">{{strB(node.stat.net.total.out)}}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- 月度流量统计 -->
+                            <div class="pt-2 border-t border-gray-700/50">
+                                <div class="flex flex-wrap items-center justify-between gap-4">
+                                    <div class="flex items-center gap-2">
+                                        <i class="material-icons text-blue-500/70">data_usage</i>
+                                        <span class="text-sm text-gray-200">月度流量</span>
+                                        <span class="text-xs text-gray-400">({{node.traffic_reset_day|default(1)}}日重置)</span>
+                                    </div>
+                                    
+                                    <!-- 流量使用进度条 -->
+                                    <div class="w-full">
+                                        <div class="progress-bar">
+                                            <div class="absolute top-0 left-0 h-full bg-blue-500/70 rounded-full transition-all duration-800" 
+                                                 id="traffic-progress-bar" 
+                                                 data-used="{{node.traffic_used|default(0)}}" 
+                                                 data-limit="{{node.traffic_limit|default(0)}}"
+                                                 style="width: {% if node.traffic_limit > 0 %}{{ (node.traffic_used/node.traffic_limit*100)|round(2) }}{% else %}0{% endif %}%;"></div>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- 流量信息 - 自适应布局 -->
+                                    <div class="w-full flex flex-wrap justify-center">
+                                        <div class="flex-1 flex items-center justify-center gap-1 min-w-[100px] max-w-[180px]">
+                                            <i class="material-icons text-green-500/70 text-sm" style="width:16px;height:16px;font-size:16px;">data_usage</i>
+                                            <span class="text-gray-400 text-sm">已用:</span>
+                                            <span class="text-white text-sm" id="traffic-used">0.00 B</span>
+                                        </div>
+                                        <div class="flex-1 flex items-center justify-center gap-1 min-w-[100px] max-w-[180px]">
+                                            <i class="material-icons text-yellow-500/70 text-sm" style="width:16px;height:16px;font-size:16px;">data_usage</i>
+                                            <span class="text-gray-400 text-sm">剩余:</span>
+                                            <span class="text-white text-sm" id="traffic-remaining">0.00 B</span>
+                                        </div>
+                                        <div class="flex-1 flex items-center justify-center gap-1 min-w-[100px] max-w-[180px]">
+                                            <i class="material-icons text-blue-500/70 text-sm" style="width:16px;height:16px;font-size:16px;">data_usage</i>
+                                            <span class="text-gray-400 text-sm">总量:</span>
+                                            <span class="text-white text-sm" id="traffic-limit">0.00 B</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 负载详情卡片 - 占3格 -->
+        <div class="col-span-1 lg:col-span-3 bg-white/5 backdrop-blur-sm rounded-lg border border-gray-700/50 overflow-hidden">
+            <div class="px-4 py-3 border-b border-gray-700/50">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <i class="material-icons text-blue-500/70">speed</i>
+                        <h3 class="text-lg font-medium text-gray-200">负载详情</h3>
+                    </div>
+                    <div class="flex bg-slate-800/50 rounded-lg overflow-hidden">
+                        <button data-tab="load-10m" class="tab-button px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700/50 border-r border-slate-700/50 transition-colors">
+                            实时(1分钟)
+                        </button>
+                        <button data-tab="load-ms" class="tab-button px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700/50 border-r border-slate-700/50 transition-colors">
+                            过去60分钟
+                        </button>
+                        <button data-tab="load-hs" class="tab-button px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700/50 transition-colors">
+                            过去24小时
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="p-4">
+                <div id="load-10m" class="tab-content">
+                    <div id="load-10m-chart" class="chart-container"></div>
+                </div>
+                <div id="load-ms" class="tab-content hidden">
+                    <div id="load-m" class="chart-container"></div>
+                </div>
+                <div id="load-hs" class="tab-content hidden">
+                    <div id="load-h" class="chart-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 网络详情区域 - 单列布局 -->
+    <div class="space-y-4">
+        <!-- 带宽监控面板 -->
+        <div class="bg-white/5 backdrop-blur-sm rounded-lg border border-gray-700/50 overflow-hidden">
+            <div class="px-4 py-3 border-b border-gray-700/50">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <i class="material-icons text-blue-500/70">network_check</i>
+                        <h3 class="text-lg font-medium text-gray-200">带宽监控</h3>
+                    </div>
+                    <div class="flex bg-slate-800/50 rounded-lg overflow-hidden">
+                        <button data-tab="bandwidth-realtime" class="tab-button px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700/50 border-r border-slate-700/50 transition-colors">
+                            实时(3分钟)
+                        </button>
+                        <button data-tab="load-m-bws" class="tab-button px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700/50 border-r border-slate-700/50 transition-colors">
+                            过去60分钟
+                        </button>
+                        <button data-tab="load-h-bws" class="tab-button px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700/50 transition-colors">
+                            过去24小时
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="p-4">
+                <div id="bandwidth-realtime" class="tab-content">
+                    <div id="bandwidth-realtime-chart" class="chart-container"></div>
+                </div>
+                <div id="load-m-bws" class="tab-content hidden">
+                    <div id="load-m-bw" class="chart-container"></div>
+                </div>
+                <div id="load-h-bws" class="tab-content hidden">
+                    <div id="load-h-bw" class="chart-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 流量统计面板 -->
+        <div class="bg-white/5 backdrop-blur-sm rounded-lg border border-gray-700/50 overflow-hidden">
+            <div class="px-4 py-3 border-b border-gray-700/50">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <i class="material-icons text-blue-500/70">data_usage</i>
+                        <h3 class="text-lg font-medium text-gray-200">流量统计</h3>
+                    </div>
+                    <div class="flex items-center gap-6">
+                        <div class="hidden md:flex space-x-6 text-sm text-slate-400">
+                            <span id='hs_tot'></span>
+                            <span id='ds_tot'></span>
+                            <span id='ms_tot'></span>
+                        </div>
+                        <div class="flex bg-slate-800/50 rounded-lg overflow-hidden">
+                            <button data-tab="traffic-hs" class="tab-button px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700/50 border-r border-slate-700/50 transition-colors">
+                                过去24小时
+                            </button>
+                            <button data-tab="traffic-ds" class="tab-button px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700/50 border-r border-slate-700/50 transition-colors">
+                                过去31天
+                            </button>
+                            <button data-tab="traffic-ms" class="tab-button px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700/50 transition-colors">
+                                过去12个月
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="p-4">
+                <div id="traffic-ds" class="tab-content hidden">
+                    <div id="ds" class="chart-container"></div>
+                </div>
+                <div id="traffic-ms" class="tab-content hidden">
+                    <div id="ms" class="chart-container"></div>
+                </div>
+                <div id="traffic-hs" class="tab-content">
+                    <div id="hs" class="chart-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Network Devices Table -->
+    <div class="bg-white/5 backdrop-blur-sm rounded-lg border border-gray-700/50 overflow-hidden">
+        <div class="px-4 py-3 border-b border-gray-700/50">
+            <div class="flex items-center gap-2">
+                <i class="material-icons text-blue-500/70">router</i>
+                <h3 class="text-lg font-medium text-gray-200">网络设备</h3>
+            </div>
+        </div>
+        <div class="p-4">
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="border-b border-gray-700/50">
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase w-1/5">设备</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase w-1/5">下行</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase w-1/5">上行</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase w-1/5">总下行</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase w-1/5">总上行</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-700/50" id="network-devices-table">
+                        {%if node.stat.net.devices%}
+                        {%for device,net in node.stat.net.devices%}
+                        <tr class="hover:bg-white/5">
+                            <td class="px-6 py-3 text-sm text-gray-200 truncate max-w-[20%]">{{device}}</td>
+                            <td class="px-6 py-3 text-sm text-gray-200 whitespace-nowrap w-[20%]" id="net_{{device}}_delta_in">{{strbps(net.delta.in)}}</td>
+                            <td class="px-6 py-3 text-sm text-gray-200 whitespace-nowrap w-[20%]" id="net_{{device}}_delta_out">{{strbps(net.delta.out)}}</td>
+                            <td class="px-6 py-3 text-sm text-gray-200 whitespace-nowrap w-[20%]" id="net_{{device}}_total_in">{{strB(net.total.in)}}</td>
+                            <td class="px-6 py-3 text-sm text-gray-200 whitespace-nowrap w-[20%]" id="net_{{device}}_total_out">{{strB(net.total.out)}}</td>
+                        </tr>
+                        {%endfor%}
+                        {%else%}
+                        <tr>
+                            <td colspan="5" class="px-6 py-4 text-sm text-gray-400 text-center">暂无网络设备数据</td>
+                        </tr>
+                        {%endif%}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Disk Usage Details Table -->
+    <div class="bg-white/5 backdrop-blur-sm rounded-lg border border-gray-700/50 overflow-hidden">
+        <div class="px-4 py-3 border-b border-gray-700/50">
+            <div class="flex items-center gap-2">
+                <i class="material-icons text-blue-500/70">storage</i>
+                <h3 class="text-lg font-medium text-gray-200">硬盘使用详情</h3>
+            </div>
+        </div>
+        <div class="p-4">
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="border-b border-gray-700/50">
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">挂载点</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">文件系统</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">总容量</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">已用空间</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">可用空间</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">使用率</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-700/50" id="disk-usage-table">
+                        {%if node.stat.disks%}
+                        {%for disk in node.stat.disks%}
+                        <tr class="hover:bg-white/5">
+                            <td class="px-6 py-3 text-sm text-gray-200">{{disk.mount}}</td>
+                            <td class="px-6 py-3 text-sm text-gray-200">{{disk.fstype}}</td>
+                            <td class="px-6 py-3 text-sm text-gray-200">{{strB(disk.total)}}</td>
+                            <td class="px-6 py-3 text-sm text-gray-200">{{strB(disk.used)}}</td>
+                            <td class="px-6 py-3 text-sm text-gray-200">{{strB(disk.free)}}</td>
+                            <td class="px-6 py-3 text-sm text-gray-200">
+                                <div class="flex items-center">
+                                    <div class="w-16 bg-gray-700 rounded-full h-2 mr-2">
+                                        <div class="bg-yellow-500/70 h-2 rounded-full" style="width: {% if disk.total > 0 %}{{ (disk.used/disk.total*100)|round(2) }}{% else %}0{% endif %}%;"></div>
+                                    </div>
+                                    <span>{% if disk.total > 0 %}{{ (disk.used/disk.total*100)|round(2) }}{% else %}0{% endif %}%</span>
+                                </div>
+                            </td>
+                        </tr>
+                        {%endfor%}
+                        {%else%}
+                        <tr>
+                            <td colspan="6" class="px-6 py-4 text-sm text-gray-400 text-center">暂无分区详情数据</td>
+                        </tr>
+                        {%endif%}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{%endblock%}
+
+{%block js%}
+<script src="https://lf26-cdn-tos.bytecdntp.com/cdn/expire-1-M/apexcharts/3.33.0/apexcharts.min.js"></script>
+<script src="/js/traffic-utils.js"></script>
+<!-- 基础工具库 - 需要提前加载 -->
+<script src="/js/traffic-format.js"></script>
+<script src="/js/stat.js"></script>
+
+<script>
+// 暗色主题配置
+const darkTheme = {
+    mode: 'dark',
+    background: 'transparent',
+    foreColor: '#94a3b8'
+};
+
+// 基础图表配置
+const baseChartOptions = {
+    chart: {
+        type: 'line',
+        height: 300,
+        fontFamily: 'inherit',
+        background: 'transparent',
+        animations: {
+            enabled: true,
+            easing: 'easeinout',
+            speed: 800,
+            dynamicAnimation: {
+                enabled: true,
+                speed: 350
+            }
+        },
+        toolbar: {
+            show: true,
+            offsetX: -5,
+            offsetY: 5,
+            tools: {
+                download: true,
+                selection: true,
+                zoom: true,
+                zoomin: true,
+                zoomout: true,
+                pan: true,
+                reset: true
+            }
+        },
+        zoom: {
+            enabled: true
+        }
+    },
+    stroke: {
+        curve: 'smooth',
+        width: 2,
+        lineCap: 'round',
+        dashArray: 0
+    },
+    grid: {
+        show: true,
+        borderColor: 'rgba(148, 163, 184, 0.1)',
+        strokeDashArray: 4,
+        padding: {
+            top: 5,
+            right: 5,
+            bottom: 5,
+            left: 5
+        }
+    },
+    colors: ['#3b82f6', '#6366f1', '#8b5cf6'],
+    dataLabels: {
+        enabled: false
+    },
+    markers: {
+        size: 0,
+        hover: {
+            size: 5,
+            sizeOffset: 3
+        }
+    },
+    tooltip: {
+        theme: 'dark',
+        marker: {
+            show: true
+        },
+        x: {
+            show: true
+        }
+    },
+    legend: {
+        position: 'top',
+        horizontalAlign: 'right',
+        offsetY: -5,
+        labels: {
+            colors: '#94a3b8'
+        },
+        itemMargin: {
+            horizontal: 10
+        }
+    }
+};
+
+// 选项卡切换功能
+document.addEventListener('DOMContentLoaded', () => {
+    // 更新流量使用进度条
+    const progressBar = document.getElementById('traffic-progress-bar');
+    if (progressBar) {
+        // 从页面元素获取数据，避免在JS中直接使用模板变量
+        const used = parseFloat(progressBar.getAttribute('data-used') || '0');
+        const limit = parseFloat(progressBar.getAttribute('data-limit') || '0');
+        const ratio = limit > 0 ? Math.min(used / limit, 1) : 0;
+        progressBar.style.width = `${ratio * 100}%`;
+    }
+    
+    // 初始化硬盘使用进度条 - 直接使用width属性
+    const diskProgressBar = document.getElementById('DISK_progress');
+    if (diskProgressBar) {
+        // 不再使用data-width和--progress-scale
+        // 硬盘进度条的宽度已经在HTML中通过style="width: ..."设置
+    }
+
+    // 初始化选项卡状态
+    document.querySelectorAll('.bg-white\\/5').forEach(panel => {
+        const tabs = panel.querySelectorAll('.tab-button');
+        const contents = panel.querySelectorAll('.tab-content');
+        
+        // 特殊处理流量统计面板
+        if (panel.querySelector('[data-tab="traffic-hs"]')) {
+            // 激活24小时标签
+            const hourlyTab = panel.querySelector('[data-tab="traffic-hs"]');
+            if (hourlyTab) {
+                tabs.forEach(tab => {
+                    tab.classList.toggle('bg-slate-700/50', tab === hourlyTab);
+                    tab.classList.toggle('text-white', tab === hourlyTab);
+                });
+            }
+        } else {
+            // 其他面板默认激活第一个选项卡
+            if (tabs.length > 0) {
+                tabs[0].classList.add('bg-slate-700/50', 'text-white');
+            }
+        }
+        
+        // 默认显示第一个内容，隐藏其他内容
+        contents.forEach((content, index) => {
+            content.classList.toggle('hidden', index !== 0);
+        });
+    });
+
+    // 选项卡点击事件
+    document.querySelectorAll('.tab-button').forEach(tab => {
+        tab.addEventListener('click', () => {
+            const panel = tab.closest('.bg-white\\/5');
+            const tabs = panel.querySelectorAll('.tab-button');
+            const contents = panel.querySelectorAll('.tab-content');
+            
+            // 更新选项卡样式
+            tabs.forEach(t => {
+                t.classList.toggle('bg-slate-700/50', t === tab);
+                t.classList.toggle('text-white', t === tab);
+            });
+
+            // 显示对应内容
+            contents.forEach(content => {
+                content.classList.toggle('hidden', content.id !== tab.dataset.tab);
+            });
+        });
+    });
+});
+
+// 时间格式化函数
+function formatDate(timestamp) {
+    if (!timestamp) return '未校准';
+    const date = new Date(timestamp * 1000);
+    return date.toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+// 流量格式化函数
+function formatTraffic(bytes) {
+    if (!bytes) return '0 B';
+    const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+    let value = bytes;
+    let unitIndex = 0;
+    
+    while (value >= 1024 && unitIndex < units.length - 1) {
+        value /= 1024;
+        unitIndex++;
+    }
+    
+    return `${value.toFixed(2)} ${units[unitIndex]}`;
+}
+
+// 计算流量使用比例
+function calculateTrafficUsageRatio(used, limit) {
+    if (!limit || limit <= 0) return 0;
+    const ratio = used / limit;
+    return Math.min(Math.max(ratio, 0), 1); // 确保比例在0-1之间
+}
+
+// 格式化百分比
+function formatPercentage(used, limit) {
+    if (!limit || limit <= 0) return '0%';
+    return ((used / limit * 100) || 0).toFixed(1) + '%';
+}
+
+// 格式化时间戳
+function formatTimestamp(timestamp) {
+    if (!timestamp) return '未校准';
+    const date = new Date(timestamp * 1000);
+    return date.toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    // 更新流量使用进度条
+    const progressBar = document.getElementById('traffic-progress-bar');
+    if (progressBar) {
+        // 从页面元素获取数据，避免在JS中直接使用模板变量
+        const used = parseFloat(progressBar.getAttribute('data-used') || '0');
+        const limit = parseFloat(progressBar.getAttribute('data-limit') || '0');
+        const ratio = limit > 0 ? Math.min(used / limit, 1) : 0;
+        progressBar.style.width = `${ratio * 100}%`;
+    }
+    
+    // 初始化硬盘使用进度条 - 直接使用width属性
+    const diskProgressBar = document.getElementById('DISK_progress');
+    if (diskProgressBar) {
+        // 不再使用data-width和--progress-scale
+        // 硬盘进度条的宽度已经在HTML中通过style="width: ..."设置
+    }
+    
+    // 更新网络设备实时流量数据
+    function updateNetworkDevices(data) {
+        const tableBody = document.querySelector('#network-devices-table tbody');
+        if (!tableBody) {
+            console.error('未找到网络设备表格');
+            return;
+        }
+        
+        // 保存现有表格中的设备名称，用于确定哪些行需要更新/添加
+        const existingDevices = {};
+        const rows = tableBody.querySelectorAll('tr');
+        rows.forEach(row => {
+            const deviceName = row.getAttribute('data-device-name');
+            if (deviceName) {
+                existingDevices[deviceName] = row;
+            }
+        });
+        
+        // 清除可能存在的"无数据"提示行
+        const emptyRow = tableBody.querySelector('tr.empty-row');
+        if (emptyRow) {
+            tableBody.removeChild(emptyRow);
+        }
+        
+        try {
+            // 检查网络数据是否存在且为对象
+            if (!data || typeof data !== 'object') {
+                console.warn('无效的网络数据:', data);
+                addEmptyRow(tableBody);
+                return;
+            }
+            
+            // 获取所有设备名称
+            const deviceNames = Object.keys(data).filter(name => 
+                name !== 'total' && name !== 'delta' && typeof data[name] === 'object'
+            );
+            
+            if (deviceNames.length === 0) {
+                console.debug('没有网络设备数据');
+                addEmptyRow(tableBody);
+                return;
+            }
+            
+            // 处理每个设备的数据
+            deviceNames.forEach(deviceName => {
+                const deviceData = data[deviceName];
+                
+                // 检查设备数据是否有效
+                if (!deviceData || typeof deviceData !== 'object') {
+                    console.warn(`设备 ${deviceName} 的数据无效:`, deviceData);
+                    return;
+                }
+                
+                // 如果该设备已存在行，则更新它
+                if (existingDevices[deviceName]) {
+                    updateDeviceRow(existingDevices[deviceName], deviceName, deviceData);
+                    delete existingDevices[deviceName]; // 从列表中移除已处理的设备
+                } else {
+                    // 否则创建新行
+                    const newRow = createDeviceRow(deviceName, deviceData);
+                    tableBody.appendChild(newRow);
+                }
+            });
+            
+            // 移除不再存在的设备行
+            Object.values(existingDevices).forEach(row => {
+                tableBody.removeChild(row);
+            });
+        } catch (error) {
+            console.error('更新网络设备表格失败:', error);
+        }
+    }
+    
+    // 创建空数据行
+    function addEmptyRow(tableBody) {
+        const emptyRow = document.createElement('tr');
+        emptyRow.className = 'empty-row';
+        emptyRow.innerHTML = `
+            <td colspan="5" class="text-center py-4 text-gray-500">
+                没有网络设备数据
+            </td>
+        `;
+        tableBody.appendChild(emptyRow);
+    }
+    
+    // 更新已存在的设备行
+    function updateDeviceRow(row, deviceName, data) {
+        try {
+            // 更新接收数据
+            const rxBytes = row.querySelector('.rx-bytes');
+            if (rxBytes && data.in !== undefined) {
+                rxBytes.textContent = window.strB(data.in);
+            }
+            
+            // 更新发送数据
+            const txBytes = row.querySelector('.tx-bytes');
+            if (txBytes && data.out !== undefined) {
+                txBytes.textContent = window.strB(data.out);
+            }
+            
+            // 更新实时接收速率
+            const rxRate = row.querySelector('.rx-rate');
+            if (rxRate && data.in_rate !== undefined) {
+                rxRate.textContent = window.strbps(data.in_rate);
+            }
+            
+            // 更新实时发送速率
+            const txRate = row.querySelector('.tx-rate');
+            if (txRate && data.out_rate !== undefined) {
+                txRate.textContent = window.strbps(data.out_rate);
+            }
+        } catch (error) {
+            console.error(`更新设备行 ${deviceName} 失败:`, error);
+        }
+    }
+    
+    // 创建新的设备行
+    function createDeviceRow(deviceName, data) {
+        const row = document.createElement('tr');
+        row.setAttribute('data-device-name', deviceName);
+        row.className = 'border-t border-gray-100 dark:border-gray-700';
+        
+        try {
+            row.innerHTML = `
+                <td class="py-2 px-4 whitespace-nowrap w-1/5">
+                    <span class="font-medium">${deviceName}</span>
+                </td>
+                <td class="py-2 px-4 whitespace-nowrap w-1/5 text-right">
+                    <span class="rx-bytes">${data.in !== undefined ? window.strB(data.in) : '0 B'}</span>
+                </td>
+                <td class="py-2 px-4 whitespace-nowrap w-1/5 text-right">
+                    <span class="tx-bytes">${data.out !== undefined ? window.strB(data.out) : '0 B'}</span>
+                </td>
+                <td class="py-2 px-4 whitespace-nowrap w-1/5 text-right">
+                    <span class="rx-rate">${data.in_rate !== undefined ? window.strbps(data.in_rate) : '0 bps'}</span>
+                </td>
+                <td class="py-2 px-4 whitespace-nowrap w-1/5 text-right">
+                    <span class="tx-rate">${data.out_rate !== undefined ? window.strbps(data.out_rate) : '0 bps'}</span>
+                </td>
+            `;
+        } catch (error) {
+            console.error(`创建设备行 ${deviceName} 失败:`, error);
+            row.innerHTML = `
+                <td class="py-2 px-4" colspan="5">
+                    <span class="text-red-500">加载设备 ${deviceName} 数据失败</span>
+                </td>
+            `;
+        }
+        
+        return row;
+    }
+    
+    // 更新硬盘使用情况表格
+    function updateDiskUsageTable(disks) {
+        const tableBody = document.querySelector('#disk-usage-table tbody');
+        if (!tableBody) {
+            console.debug('未找到硬盘使用表格');
+            return;
+        }
+        
+        // 保存现有表格中的设备路径，用于确定哪些行需要更新/添加
+        const existingDisks = {};
+        const rows = tableBody.querySelectorAll('tr');
+        rows.forEach(row => {
+            const mountPath = row.getAttribute('data-mount-path');
+            if (mountPath) {
+                existingDisks[mountPath] = row;
+            }
+        });
+        
+        // 清除可能存在的"无数据"提示行
+        const emptyRow = tableBody.querySelector('tr.empty-row');
+        if (emptyRow) {
+            tableBody.removeChild(emptyRow);
+        }
+        
+        try {
+            // 检查硬盘数据是否存在且为数组
+            if (!disks || !Array.isArray(disks) || disks.length === 0) {
+                console.debug('没有硬盘使用数据');
+                addEmptyDiskRow(tableBody);
+                return;
+            }
+            
+            // 处理每个硬盘的数据
+            disks.forEach(disk => {
+                // 检查硬盘数据是否有效
+                if (!disk || typeof disk !== 'object' || !disk.path) {
+                    console.warn('无效的硬盘数据:', disk);
+                    return;
+                }
+                
+                // 如果该硬盘路径已存在行，则更新它
+                if (existingDisks[disk.path]) {
+                    updateDiskRow(existingDisks[disk.path], disk);
+                    delete existingDisks[disk.path]; // 从列表中移除已处理的硬盘
+                } else {
+                    // 否则创建新行
+                    const newRow = createDiskRow(disk);
+                    tableBody.appendChild(newRow);
+                }
+            });
+            
+            // 移除不再存在的硬盘行
+            Object.values(existingDisks).forEach(row => {
+                tableBody.removeChild(row);
+            });
+        } catch (error) {
+            console.error('更新硬盘使用表格失败:', error);
+        }
+    }
+    
+    // 创建空硬盘数据行
+    function addEmptyDiskRow(tableBody) {
+        const emptyRow = document.createElement('tr');
+        emptyRow.className = 'empty-row';
+        emptyRow.innerHTML = `
+            <td colspan="5" class="text-center py-4 text-gray-500">
+                没有硬盘使用数据
+            </td>
+        `;
+        tableBody.appendChild(emptyRow);
+    }
+    
+    // 更新已存在的硬盘行
+    function updateDiskRow(row, disk) {
+        try {
+            // 计算使用率百分比
+            const usagePercent = disk.total > 0 ? (disk.used / disk.total * 100).toFixed(2) : 0;
+            
+            // 更新已使用空间
+            const usedSpace = row.querySelector('.used-space');
+            if (usedSpace) {
+                usedSpace.textContent = window.strB(disk.used);
+            }
+            
+            // 更新总空间
+            const totalSpace = row.querySelector('.total-space');
+            if (totalSpace) {
+                totalSpace.textContent = window.strB(disk.total);
+            }
+            
+            // 更新可用空间
+            const availableSpace = row.querySelector('.available-space');
+            if (availableSpace) {
+                availableSpace.textContent = window.strB(disk.total - disk.used);
+            }
+            
+            // 更新使用率
+            const usagePercDisplay = row.querySelector('.usage-percent');
+            if (usagePercDisplay) {
+                usagePercDisplay.textContent = `${usagePercent}%`;
+            }
+            
+            // 更新进度条
+            const progressBar = row.querySelector('.progress-bar-fill');
+            if (progressBar) {
+                progressBar.style.width = `${usagePercent}%`;
+                
+                // 根据使用率更改颜色
+                progressBar.classList.remove('bg-green-500', 'bg-yellow-500', 'bg-red-500');
+                if (usagePercent >= 90) {
+                    progressBar.classList.add('bg-red-500');
+                } else if (usagePercent >= 70) {
+                    progressBar.classList.add('bg-yellow-500');
+                } else {
+                    progressBar.classList.add('bg-green-500');
+                }
+            }
+        } catch (error) {
+            console.error(`更新硬盘行 ${disk.path} 失败:`, error);
+        }
+    }
+    
+    // 创建新的硬盘行
+    function createDiskRow(disk) {
+        const row = document.createElement('tr');
+        row.setAttribute('data-mount-path', disk.path);
+        row.className = 'border-t border-gray-100 dark:border-gray-700';
+        
+        try {
+            // 计算使用率百分比
+            const usagePercent = disk.total > 0 ? (disk.used / disk.total * 100).toFixed(2) : 0;
+            
+            // 设置进度条颜色类
+            let progressBarColorClass = 'bg-green-500';
+            if (usagePercent >= 90) {
+                progressBarColorClass = 'bg-red-500';
+            } else if (usagePercent >= 70) {
+                progressBarColorClass = 'bg-yellow-500';
+            }
+            
+            row.innerHTML = `
+                <td class="py-2 px-4 whitespace-nowrap">
+                    <span class="font-medium">${disk.path}</span>
+                </td>
+                <td class="py-2 px-4 whitespace-nowrap text-right">
+                    <span class="used-space">${window.strB(disk.used)}</span>
+                </td>
+                <td class="py-2 px-4 whitespace-nowrap text-right">
+                    <span class="available-space">${window.strB(disk.total - disk.used)}</span>
+                </td>
+                <td class="py-2 px-4 whitespace-nowrap text-right">
+                    <span class="total-space">${window.strB(disk.total)}</span>
+                </td>
+                <td class="py-2 px-4">
+                    <div class="flex items-center space-x-2">
+                        <div class="flex-1 bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                            <div class="progress-bar-fill h-2.5 rounded-full ${progressBarColorClass}" 
+                                 style="width: ${usagePercent}%"></div>
+                        </div>
+                        <span class="text-sm usage-percent">${usagePercent}%</span>
+                    </div>
+                </td>
+            `;
+        } catch (error) {
+            console.error(`创建硬盘行 ${disk.path} 失败:`, error);
+            row.innerHTML = `
+                <td class="py-2 px-4" colspan="5">
+                    <span class="text-red-500">加载硬盘 ${disk.path} 数据失败</span>
+                </td>
+            `;
+        }
+        
+        return row;
+    }
+    
+    // 获取节点数据并初始化显示
+    function initializeData() {
+        const nodeDataElement = document.getElementById('node-data');
+        if (nodeDataElement) {
+            try {
+                const nodeData = JSON.parse(nodeDataElement.value);
+                if (nodeData && nodeData.stat) {
+                    // 更新网络设备数据
+                    if (nodeData.stat.net) {
+                        updateNetworkDevices(nodeData.stat.net);
+                    }
+                    
+                    // 更新硬盘使用信息
+                    if (nodeData.stat.disks) {
+                        updateDiskUsageTable(nodeData.stat.disks);
+                    }
+                }
+            } catch (error) {
+                console.error('解析节点数据失败:', error);
+            }
+        }
+    }
+    
+    // 定时更新服务器状态数据
+    function setupServerStatusUpdate() {
+        // 每3秒更新一次服务器状态数据
+        setInterval(async () => {
+            try {
+                const timestamp = new Date().getTime();
+                // 解析服务器ID时处理不同的URL模式
+                const pathname = window.location.pathname;
+                // 使用正则表达式更可靠地提取服务器ID，避免额外斜杠的干扰
+                const matches = pathname.match(/\/stats\/([^\/]+)/);
+                const serverId = matches ? matches[1] : '';
+                
+                if (!serverId) {
+                    console.error('无法从URL获取服务器ID:', pathname);
+                    return;
+                }
+                
+                // 记录API请求开始
+                console.debug(`开始请求服务器状态: /stats/${serverId}/data?t=${timestamp}`);
+                
+                // 使用现有的stats接口
+                const response = await fetch(`/stats/${serverId}/data?t=${timestamp}`);
+                
+                if (!response.ok) {
+                    throw new Error(`获取服务器状态失败: ${response.status}`);
+                }
+                
+                // 解析JSON，添加错误处理
+                let data;
+                try {
+                    data = await response.json();
+                } catch (parseError) {
+                    throw new Error(`解析响应数据失败: ${parseError.message}`);
+                }
+                
+                // 进行数据有效性检查
+                if (!data) {
+                    console.warn('服务器返回空数据');
+                    return;
+                }
+                
+                if (data.stat) {
+                    // 更新网络设备数据
+                    if (data.stat.net) {
+                        updateNetworkDevices(data.stat.net);
+                    } else {
+                        console.debug('网络数据为空，跳过更新');
+                    }
+                    
+                    // 更新硬盘使用信息
+                    if (data.stat.disks) {
+                        updateDiskUsageTable(data.stat.disks);
+                    }
+                    
+                    // 更新其他状态信息（CPU、内存等）
+                    updateOtherStats(data.stat);
+                } else {
+                    console.warn('服务器响应缺少stat字段:', data);
+                }
+            } catch (error) {
+                console.error('更新服务器状态数据失败:', error);
+            }
+        }, 3000);
+    }
+    
+    // 更新其他状态信息
+    function updateOtherStats(stat) {
+        // 更新CPU使用率
+        if (stat.cpu) {
+            // 更新总CPU使用率文本
+            const cpuUsageElement = document.getElementById('CPU');
+            if (cpuUsageElement && stat.cpu.multi !== undefined) {
+                const cpuUsage = (stat.cpu.multi * 100).toFixed(2);
+                cpuUsageElement.textContent = `${cpuUsage}%`;
+                
+                // 更新总体CPU进度条
+                const cpuTotalProgressBar = document.getElementById('CPU_total_progress');
+                if (cpuTotalProgressBar) {
+                    cpuTotalProgressBar.style.width = `${stat.cpu.multi * 100}%`;
+                }
+                
+                // 更新单个核心进度条
+                if (stat.cpu.single && Array.isArray(stat.cpu.single)) {
+                    // 更新核心数量显示
+                    const cpuCoresElement = document.getElementById('system-cpu-cores');
+                    if (cpuCoresElement) {
+                        cpuCoresElement.textContent = `(${stat.cpu.single.length}核)`;
+                    }
+                    
+                    // 获取CPU核心容器
+                    const cpuCoresContainer = document.querySelector('.grid.grid-cols-1.sm\\:grid-cols-2');
+                    if (cpuCoresContainer) {
+                        // 清空现有核心显示
+                        cpuCoresContainer.innerHTML = '';
+                        
+                        // 为每个核心创建新的进度条
+                        stat.cpu.single.forEach((usage, index) => {
+                            const coreIndex = index + 1;
+                            const coreElement = document.createElement('div');
+                            coreElement.className = 'flex items-center gap-2';
+                            
+                            // 使用直接的width属性设置进度条
+                            coreElement.innerHTML = `
+                                <span class="text-xs text-gray-400 w-12">核心${coreIndex}</span>
+                                <div class="progress-bar flex-1 relative">
+                                    <div id="CPU${coreIndex}_progress" 
+                                         class="absolute top-0 left-0 h-full bg-blue-500/70 rounded-full transition-all duration-800"
+                                         style="width: ${usage}%;"></div>
+                                </div>
+                                <span class="text-xs text-gray-400 w-12 text-right">${usage.toFixed(1)}%</span>
+                            `;
+                            cpuCoresContainer.appendChild(coreElement);
+                        });
+                    }
+                }
+            }
+        }
+        
+        // 更新内存使用情况
+        if (stat.mem) {
+            const memUsageElement = document.getElementById('MEM');
+            if (memUsageElement && stat.mem.mem !== undefined) {
+                const memUsage = (stat.mem.mem * 100).toFixed(2);
+                memUsageElement.textContent = `${memUsage}%`;
+                
+                // 更新内存进度条 - 直接设置width属性
+                const memProgressBar = document.getElementById('MEM_progress');
+                if (memProgressBar) {
+                    memProgressBar.style.width = `${stat.mem.mem * 100}%`;
+                }
+                
+                // 更新交换内存进度条 - 直接设置width属性
+                const swapProgressBar = document.getElementById('SWAP_progress');
+                if (swapProgressBar && stat.mem.swap !== undefined) {
+                    swapProgressBar.style.width = `${stat.mem.swap * 100}%`;
+                }
+            }
+        }
+        
+        // 更新硬盘使用情况
+        if (stat.disk) {
+            const diskUsageElement = document.getElementById('DISK');
+            if (diskUsageElement && stat.disk.total > 0) {
+                const diskUsage = (stat.disk.used / stat.disk.total * 100).toFixed(2);
+                diskUsageElement.textContent = `${diskUsage}%`;
+                
+                // 更新硬盘进度条 - 直接设置width属性
+                const diskProgressBar = document.getElementById('DISK_progress');
+                if (diskProgressBar) {
+                    diskProgressBar.style.width = `${diskUsage}%`;
+                }
+                
+                // 更新硬盘使用详情
+                const diskUsedElement = document.getElementById('disk-used');
+                const diskFreeElement = document.getElementById('disk-free');
+                const diskTotalElement = document.getElementById('disk-total-value');
+                
+                if (diskUsedElement) diskUsedElement.textContent = window.strB(stat.disk.used);
+                if (diskFreeElement) diskFreeElement.textContent = window.strB(stat.disk.total - stat.disk.used);
+                if (diskTotalElement) diskTotalElement.textContent = window.strB(stat.disk.total);
+            }
+        }
+        
+        // 更新网络带宽信息
+        if (stat.net) {
+            // 更新实时带宽显示
+            if (stat.net.delta) {
+                const netInElement = document.getElementById('NET_IN');
+                const netOutElement = document.getElementById('NET_OUT');
+                
+                try {
+                    if (netInElement && stat.net.delta.in !== undefined) {
+                        netInElement.textContent = window.strbps(stat.net.delta.in);
+                    }
+                    
+                    if (netOutElement && stat.net.delta.out !== undefined) {
+                        netOutElement.textContent = window.strbps(stat.net.delta.out);
+                    }
+                } catch (error) {
+                    console.error('更新网络带宽显示失败:', error);
+                }
+            }
+            
+            // 更新总流量信息
+            if (stat.net.total) {
+                const netInTotalElement = document.getElementById('NET_IN_TOTAL');
+                const netOutTotalElement = document.getElementById('NET_OUT_TOTAL');
+                
+                try {
+                    if (netInTotalElement && stat.net.total.in !== undefined) {
+                        netInTotalElement.textContent = window.strB(stat.net.total.in);
+                    }
+                    
+                    if (netOutTotalElement && stat.net.total.out !== undefined) {
+                        netOutTotalElement.textContent = window.strB(stat.net.total.out);
+                    }
+                } catch (error) {
+                    console.error('更新网络总流量显示失败:', error);
+                }
+            }
+        }
+        
+        // 更新流量使用进度条
+        if (stat.traffic_used !== undefined && stat.traffic_limit !== undefined && stat.traffic_limit > 0) {
+            const trafficProgressBar = document.getElementById('traffic-progress-bar');
+            if (trafficProgressBar) {
+                const ratio = Math.min(stat.traffic_used / stat.traffic_limit, 1);
+                trafficProgressBar.style.width = `${ratio * 100}%`;
+                
+                // 更新流量使用文本
+                const trafficUsedElement = document.getElementById('traffic-used');
+                const trafficRemainingElement = document.getElementById('traffic-remaining');
+                const trafficLimitElement = document.getElementById('traffic-limit');
+                
+                if (trafficUsedElement) trafficUsedElement.textContent = window.strB(stat.traffic_used);
+                if (trafficLimitElement) trafficLimitElement.textContent = window.strB(stat.traffic_limit);
+                if (trafficRemainingElement) {
+                    const remaining = Math.max(0, stat.traffic_limit - stat.traffic_used);
+                    trafficRemainingElement.textContent = window.strB(remaining);
+                }
+            }
+        }
+    }
+    
+    // 初始化数据显示
+    initializeData();
+    
+    // 启动数据更新
+    setupServerStatusUpdate();
+});
+</script>
+<!-- 其他功能模块 -->
+<script src="/js/load.js"></script>
+<script src="/js/traffic.js"></script>
+{%include "./webssh.html"%}
+{%endblock%}

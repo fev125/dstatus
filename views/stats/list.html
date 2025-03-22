@@ -1,0 +1,211 @@
+{%set title = "节点状态"%}
+{%extends "../base.html"%}
+{%block content%}
+
+<!-- 主容器 -->
+<div class="max-w-container mx-auto px-4 w-full">
+    <!-- 仪表盘区域 -->
+    {% include "stats/dashboard.html" %}
+
+ 
+
+    <!-- 服务器卡片网格 -->
+    <div class="mt-3" id="groups-container">
+        {% macro server_card(sid, node, group_id='all') %}
+        <div class="server-card bg-white/5 backdrop-blur-sm rounded-lg border border-gray-700/50 hover:border-gray-600/50 transition-all duration-200 {%if node.stat==0%}opacity-60{%endif%}" 
+             data-group="{{group_id}}" 
+             data-sid="{{sid}}" 
+             data-top="{{node.top}}"
+             data-cpu="{{(node.stat.cpu.multi * 100)|float|round(2) if node.stat and node.stat.cpu else 0}}"
+             data-memory="{{((node.stat.mem.virtual.used / node.stat.mem.virtual.total) * 100)|float|round(2) if node.stat and node.stat.mem.virtual else 0}}"
+             data-total-traffic="{{node.traffic_used if node.traffic_used else 0}}"
+             data-upload="{{node.stat.net.delta.out if node.stat and node.stat.net else 0}}"
+             data-download="{{node.stat.net.delta.in if node.stat and node.stat.net else 0}}"
+             data-expiration="{{node.expire_time if node.expire_time else 0}}"
+             data-region="{% if node.data.location and node.data.location.code %}{{node.data.location.code}}{% elif node.data.location and node.data.location.country and node.data.location.country.code %}{{node.data.location.country.code}}{% else %}UNKNOWN{% endif %}">
+            
+            <!-- 紧凑的卡片内容布局 -->
+            <div class="p-3">
+                <!-- 第一行：状态和名称 -->
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-2 flex-1 min-w-0">
+                        <div class="w-2 h-2 rounded-full flex-shrink-0 {% if node.stat and node.stat != 0 %}bg-green-500{% else %}bg-red-500{% endif %}" 
+                             id="{{sid}}_status_indicator"
+                             title="{% if node.stat and node.stat != 0 %}在线{% else %}离线{% endif %}">
+                        </div>
+                        <h3 class="font-medium text-sm text-gray-200 truncate">
+                            <a href="/stats/{{sid}}/" class="hover:text-primary-400">{{node.name}}</a>
+                        </h3>
+                    </div>
+                    
+                    <!-- 国家/地区信息 -->
+                    <div class="flex items-center gap-2">
+                        {% if node.data.location and node.data.location.code %}
+                            <span class="country-flag text-xl" title="{{node.data.location.code}}">
+                                {% set code = node.data.location.code %}
+                                {% include "stats/flag.html" %} 
+                            </span>
+                            <span class="text-sm text-gray-400">{{node.data.location.code}}</span>
+                        {% else %}
+                            <span class="country-flag text-lg" title="未知位置">
+                                🌎
+                            </span>
+                        {% endif %}
+
+                        {%if admin%}
+                        <a class="p-1 text-gray-400 hover:text-gray-200 rounded-md transition-colors" 
+                           href="/admin/servers/{{sid}}/">
+                            <i class="material-icons text-base">edit</i>
+                        </a>
+                        {%endif%}
+                    </div>
+                </div>
+
+                <!-- 第二行：系统资源监控 -->
+                <div class="grid grid-cols-2 gap-3 mb-3">
+                    <!-- CPU -->
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <div class="flex items-center gap-1 text-gray-400">
+                                <i class="material-icons text-base">memory</i>
+                                <span class="text-xs">CPU</span>
+                            </div>
+                            <span id="{{sid}}_CPU" class="text-xs text-gray-200 tabular-nums" 
+                                  data-cpu="{{(node.stat.cpu.multi * 100)|float|round(2) if node.stat and node.stat.cpu else 0}}">
+                                {{(node.stat.cpu.multi * 100)|float|round(2) if node.stat and node.stat.cpu else 0}}%
+                            </span>
+                        </div>
+                        <div class="h-1 bg-gray-700/50 rounded-full overflow-hidden">
+                            <div id="{{sid}}_CPU_progress" class="h-full bg-blue-500/70 rounded-full transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- 内存 -->
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <div class="flex items-center gap-1 text-gray-400">
+                                <i class="material-icons text-base">dns</i>
+                                <span class="text-xs">内存</span>
+                            </div>
+                            <span id="{{sid}}_MEM" class="text-xs text-gray-200 tabular-nums" 
+                                  data-memory="{{((node.stat.mem.virtual.used / node.stat.mem.virtual.total) * 100)|float|round(2) if node.stat and node.stat.mem.virtual else 0}}">
+                                {{((node.stat.mem.virtual.used / node.stat.mem.virtual.total) * 100)|float|round(2) if node.stat and node.stat.mem.virtual else 0}}%
+                            </span>
+                        </div>
+                        <div class="h-1 bg-gray-700/50 rounded-full overflow-hidden">
+                            <div id="{{sid}}_MEM_progress" class="h-full bg-purple-500/70 rounded-full transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 第三行：网络信息 -->
+                <div class="grid grid-cols-2 gap-3">
+                    <!-- 实时带宽 -->
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-1.5">
+                            <i class="material-icons text-green-500/70 text-base">arrow_downward</i>
+                            <span id="{{sid}}_NET_IN" class="text-xs text-gray-200 tabular-nums"
+                                  data-download="{{node.stat.net.delta.in if node.stat and node.stat.net else 0}}">
+                                NaN
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <i class="material-icons text-blue-500/70 text-base">arrow_upward</i>
+                            <span id="{{sid}}_NET_OUT" class="text-xs text-gray-200 tabular-nums"
+                                  data-upload="{{node.stat.net.delta.out if node.stat and node.stat.net else 0}}">
+                                NaN
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- 总流量 -->
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-1.5">
+                            <i class="material-icons text-green-500/70 text-base">cloud_download</i>
+                            <span id="{{sid}}_NET_IN_TOTAL" class="text-xs text-gray-200 tabular-nums"
+                                  data-total-traffic="{{node.traffic_used if node.traffic_used else 0}}">
+                                NaN
+                            </span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <i class="material-icons text-blue-500/70 text-base">cloud_upload</i>
+                            <span id="{{sid}}_NET_OUT_TOTAL" class="text-xs text-gray-200 tabular-nums"
+                                  data-total-traffic="{{node.traffic_used if node.traffic_used else 0}}">
+                                NaN
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 到期时间 -->
+                <div class="flex items-center gap-1 text-sm text-gray-400 mt-3">
+                    <i class="material-icons text-base">access_time</i>
+                    <span>到期：</span>
+                    <span id="{{sid}}_EXPIRE_TIME" class="text-gray-200 text-xs" 
+                          data-expire="{{node.expire_time|default(0)}}">
+                        {{node.expire}}
+                    </span>
+                </div>
+            </div>
+        </div>
+        {% endmacro %}
+
+        <!-- 分组视图容器 -->
+        <div class="group-view transition-all duration-300 ease-in-out" data-group="all">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {%for sid, node in stats%}
+                    {{ server_card(sid, node) }}
+                {% endfor %}
+            </div>
+        </div>
+        
+        {% for group in groups %}
+        <div class="group-view hidden transition-all duration-300 ease-in-out opacity-0" data-group="{{group.id}}">
+            <div id="card-grid-{{group.id}}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {%for sid, node in stats%}
+                {% if node.group_id == group.id %}
+                    {{ server_card(sid, node, group.id) }}
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{%endblock%}
+
+{%block js%}
+<style type="text/tailwindcss">
+/* 添加脉动动画 */
+@keyframes pulse {
+    0% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.95); }
+    100% { opacity: 1; transform: scale(1); }
+}
+
+.pulse-animation {
+    animation: pulse 2s infinite ease-in-out;
+}
+
+.hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+/* 确保数字等宽显示 */
+.tabular-nums {
+    font-variant-numeric: tabular-nums;
+}
+</style>
+
+  <!-- 核心脚本 -->
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+  <script src="/js/core.js"></script>
+  <script src="/js/sort.js"></script>
+  <script src="/js/stats.js"></script>
+  <script src="/js/region-stats.js"></script>
+{%endblock%}

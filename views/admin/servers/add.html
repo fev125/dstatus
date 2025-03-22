@@ -1,0 +1,333 @@
+{% set title = "新增服务器" %}
+{%set admin = true%}
+{% extends "../../base.html" %}
+
+{% block content %}
+<!-- 引入侧边栏 -->
+{% include "../sidebar.html" %}
+
+<!-- 主内容区域 -->
+<div class="md:ml-64 p-4 transition-all duration-300">
+<div class="max-w-7xl mx-auto">
+    <!-- 新增服务器卡片 -->
+    <div class="bg-slate-900/80 backdrop-blur rounded-lg border border-slate-800/50">
+        <!-- 卡片标题 -->
+        <div class="flex items-center justify-between p-4 border-b border-slate-800/50">
+            <div class="flex items-center gap-3">
+                <i class="material-icons text-blue-500">add_circle</i>
+                <div>
+                    <h3 class="text-lg font-medium text-white">新增服务器</h3>
+                    <p class="text-sm text-slate-400">添加新的服务器节点</p>
+                </div>
+            </div>
+            <!-- 保存按钮 -->
+            <button onclick="add()" 
+                    class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-green-500 hover:bg-green-600 rounded-md transition-colors">
+                <i class="material-icons text-[18px]">save</i>
+                <span>保存</span>
+            </button>
+        </div>
+
+        <!-- 卡片内容 -->
+        <div class="p-6 space-y-8">
+            <!-- 基本信息 -->
+            <div class="space-y-4">
+                <h4 class="text-base font-medium text-slate-200">基本信息</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">服务器名称</label>
+                        <input type="text" 
+                               id="add_name"
+                               class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">服务器状态</label>
+                        <select id="server_status" 
+                                class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="1">正常</option>
+                            <option value="0">不可用</option>
+                            <option value="2">对外隐藏</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">到期时间</label>
+                        <input type="date" 
+                               id="add_expire_time"
+                               class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                </div>
+            </div>
+
+            <!-- SSH设置 -->
+            <div class="space-y-4">
+                <h4 class="text-base font-medium text-slate-200">SSH 设置</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">域名/IP</label>
+                        <input type="text" 
+                               id="add_ssh_host"
+                               class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">端口</label>
+                        <input type="number" 
+                               id="add_ssh_port"
+                               placeholder="22"
+                               class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">用户名</label>
+                        <input type="text" 
+                               id="add_ssh_username"
+                               placeholder="root"
+                               class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">密码 (可选)</label>
+                        <input type="text" 
+                               id="add_ssh_password"
+                               class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">私钥 (可选)</label>
+                        <input type="text" 
+                               id="add_ssh_privateKey"
+                               class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 流量设置 -->
+            <div class="space-y-4">
+                <h4 class="text-base font-medium text-slate-200">流量设置</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">月流量限制 (GB)</label>
+                        <input type="number" 
+                               id="add_traffic_limit"
+                               placeholder="0 表示不限制"
+                               min="0"
+                               class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">流量重置日</label>
+                        <input type="number" 
+                               id="add_traffic_reset_day"
+                               placeholder="1-31"
+                               min="1"
+                               max="31"
+                               value="1"
+                               class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">流量警告阈值 (%)</label>
+                        <input type="number" 
+                               id="add_traffic_alert_percent"
+                               placeholder="80"
+                               min="1"
+                               max="100"
+                               value="80"
+                               class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                </div>
+
+                <!-- 流量校准设置 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">流量校准日期</label>
+                        <input type="date" 
+                               id="add_traffic_calibration_date"
+                               class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">校准时已用流量 (GB)</label>
+                        <input type="number" 
+                               id="add_traffic_calibration_value"
+                               step="0.01"
+                               min="0"
+                               placeholder="0"
+                               class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                </div>
+            </div>
+
+            <!-- API设置 -->
+            <div class="space-y-4">
+                <h4 class="text-base font-medium text-slate-200">API 设置</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">通讯密钥</label>
+                        <input type="text" 
+                               id="add_api_key"
+                               value="{{uuid.v4()}}"
+                               class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">通讯端口</label>
+                        <input type="number" 
+                               id="add_api_port"
+                               value="9999"
+                               class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">指定网卡</label>
+                        <input type="text" 
+                               id="add_device"
+                               placeholder="eth0"
+                               class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- 安装进度弹窗 -->
+<div id="install-progress-modal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+    <div class="bg-slate-900 rounded-lg p-6 max-w-md w-full mx-4 border border-slate-800/50">
+        <div class="text-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mx-auto mb-4"></div>
+            <h3 class="text-lg font-medium text-white mb-2">系统安装中</h3>
+            <p id="install-status" class="text-sm text-slate-400 mb-4">正在安装系统组件...</p>
+            <div class="text-xs text-slate-500">安装过程可能需要几分钟，请耐心等待</div>
+        </div>
+    </div>
+</div>
+{%endblock%}
+
+{%block js%}
+<script>
+// 添加E函数定义
+function E(id) {
+    return document.getElementById(id);
+}
+
+// 添加弹窗控制函数
+function showInstallModal(title = '系统安装中', status = '正在安装系统组件...') {
+    const modal = document.getElementById('install-progress-modal');
+    if (modal) {
+        modal.querySelector('h3').textContent = title;
+        document.getElementById('install-status').textContent = status;
+        modal.classList.remove('hidden');
+    }
+}
+
+function hideInstallModal() {
+    const modal = document.getElementById('install-progress-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
+
+function updateInstallStatus(status) {
+    const statusElement = document.getElementById('install-status');
+    if (statusElement) {
+        statusElement.textContent = status;
+    }
+}
+
+// 添加自动安装处理函数
+async function handleInstallation(sid) {
+    try {
+        showInstallModal('正在安装探针', '准备安装...');
+        const res = await postjson(`/admin/servers/${sid}/init`);
+        
+        if (res.status) {
+            notice('服务器添加成功，探针已安装', 'success');
+        } else {
+            notice('服务器已添加，但探针安装失败：' + res.data, 'info');
+        }
+        setTimeout(() => location.href = '/admin/servers', 1000);
+    } catch (error) {
+        console.error('探针安装失败:', error);
+        notice('服务器已添加，但探针安装失败，您可以稍后手动安装', 'info');
+        setTimeout(() => location.href = '/admin/servers', 1000);
+    } finally {
+        hideInstallModal();
+    }
+}
+
+// 修改现有的 add 函数
+async function add() {
+    try {
+        // 基本验证
+        const name = V('add_name');
+        if (!name) {
+            notice('请输入服务器名称', 'error');
+            return;
+        }
+
+        const sshHost = V('add_ssh_host');
+        if (!sshHost) {
+            notice('请输入服务器地址', 'error');
+            return;
+        }
+
+        startloading();
+        
+        // 使用已生成的 API key 作为服务器 ID
+        const sid = V('add_api_key');
+        const status = parseInt(E('server_status').value);
+        
+        // 处理到期时间
+        const expireTime = V('add_expire_time') ? 
+            Math.floor(new Date(V('add_expire_time') + ' 23:59:59').getTime() / 1000) : 
+            null;
+        
+        const data = {
+            ssh: {
+                host: V('add_ssh_host'),
+                port: V('add_ssh_port') || 22,
+                username: V('add_ssh_username') || 'root',
+                password: V('add_ssh_password'),
+                privateKey: V('add_ssh_privateKey'),
+            },
+            api: {
+                mode: true,
+                key: sid,
+                port: parseInt(V('add_api_port')) || 9999,
+            },
+            device: V('add_device') || 'eth0'
+        };
+
+        // 添加流量相关数据
+        const trafficLimit = parseInt(V('add_traffic_limit')) || 0;
+        const trafficResetDay = parseInt(V('add_traffic_reset_day')) || 1;
+        const trafficAlertPercent = parseInt(V('add_traffic_alert_percent')) || 80;
+
+        // 处理流量校准数据
+        const calibrationDate = V('add_traffic_calibration_date');
+        const calibrationValue = parseFloat(V('add_traffic_calibration_value')) || 0;
+        const calibrationTime = calibrationDate ? 
+            Math.floor(new Date(calibrationDate + ' 00:00:00').getTime() / 1000) : 
+            null;
+
+        const res = await postjson('/admin/servers/add', {
+            sid,
+            name,
+            data,
+            status,
+            expire_time: expireTime,
+            traffic_limit: trafficLimit ? trafficLimit * 1024 * 1024 * 1024 : 0,
+            traffic_reset_day: trafficResetDay,
+            traffic_alert_percent: trafficAlertPercent,
+            traffic_calibration_date: calibrationTime,
+            traffic_calibration_value: calibrationValue ? calibrationValue * 1024 * 1024 * 1024 : 0
+        });
+        
+        if (res.status) {
+            // 添加成功后自动开始安装
+            await handleInstallation(res.data);
+        } else {
+            notice(res.msg || '添加失败', 'error');
+        }
+    } catch (error) {
+        console.error('添加服务器失败:', error);
+        notice(error.message || '添加服务器失败', 'error');
+    } finally {
+        endloading();
+    }
+}
+</script>
+{%endblock%}

@@ -1,0 +1,17 @@
+{
+    "name": "节点状态",
+    "short_name": "节点状态",
+    "description": "服务器节点状态监控",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#1a1b1e",
+    "theme_color": "#3b82f6",
+    "icons": [
+        {
+            "src": "/icons/icon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any maskable"
+        }
+    ]
+} 

@@ -1,0 +1,158 @@
+<!-- 管理后台侧边栏 -->
+<div class="fixed top-16 bottom-0 left-0 w-64 bg-slate-900 border-r border-slate-800/50 shadow-lg z-10 transition-transform duration-300 ease-in-out" id="admin-sidebar" style="top: calc(4rem + env(safe-area-inset-top));">
+    <!-- 侧边栏头部 -->
+    <div class="p-4 border-b border-slate-800/50">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <i class="material-icons text-blue-500">admin_panel_settings</i>
+                <h2 class="text-lg font-medium text-white">管理控制台</h2>
+            </div>
+            <button id="close-sidebar" class="md:hidden p-1 text-slate-400 hover:text-white rounded-md hover:bg-slate-800/50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+                <i class="material-icons">close</i>
+            </button>
+        </div>
+    </div>
+    
+    <!-- 侧边栏菜单 -->
+    <nav class="py-4">
+        <ul class="space-y-1 px-2">
+             <!-- 新增服务器 -->
+             <li>
+                <a href="/admin/servers/add" class="flex items-center gap-3 px-4 py-2.5 rounded-md text-slate-300 hover:text-white hover:bg-slate-800/50 transition-colors duration-200 group">
+                    <i class="material-icons text-slate-400 group-hover:text-blue-500 transition-colors duration-200">add_circle</i>
+                    <span>新增服务器</span>
+                </a>
+            </li>
+            <!-- 服务器管理 -->
+            <li>
+                <a href="/admin/servers" class="flex items-center gap-3 px-4 py-2.5 rounded-md text-slate-300 hover:text-white hover:bg-slate-800/50 transition-colors duration-200 group">
+                    <i class="material-icons text-slate-400 group-hover:text-blue-500 transition-colors duration-200">dns</i>
+                    <span>服务器管理</span>
+                </a>
+            </li>
+            
+           
+            
+            <!-- 分组管理 -->
+            <li>
+                <a href="/admin/groups" class="flex items-center gap-3 px-4 py-2.5 rounded-md text-slate-300 hover:text-white hover:bg-slate-800/50 transition-colors duration-200 group">
+                    <i class="material-icons text-slate-400 group-hover:text-blue-500 transition-colors duration-200">folder</i>
+                    <span>分组管理</span>
+                </a>
+            </li>
+            
+            <!-- 自动发现管理 -->
+            <li>
+                <a href="/admin/autodiscovery" class="flex items-center gap-3 px-4 py-2.5 rounded-md text-slate-300 hover:text-white hover:bg-slate-800/50 transition-colors duration-200 group">
+                    <i class="material-icons text-slate-400 group-hover:text-blue-500 transition-colors duration-200">devices_other</i>
+                    <span>自动发现管理</span>
+                </a>
+            </li>
+            
+            <!-- SSH脚本 -->
+            <li>
+                <a href="/admin/ssh_scripts" class="flex items-center gap-3 px-4 py-2.5 rounded-md text-slate-300 hover:text-white hover:bg-slate-800/50 transition-colors duration-200 group">
+                    <i class="material-icons text-slate-400 group-hover:text-blue-500 transition-colors duration-200">format_align_left</i>
+                    <span>SSH脚本</span>
+                </a>
+            </li>
+            
+            <!-- 通知管理 -->
+            <li>
+                <a href="/admin/notification-logs-page" class="flex items-center gap-3 px-4 py-2.5 rounded-md text-slate-300 hover:text-white hover:bg-slate-800/50 transition-colors duration-200 group">
+                    <i class="material-icons text-slate-400 group-hover:text-blue-500 transition-colors duration-200">notifications_active</i>
+                    <span>通知管理</span>
+                </a>
+            </li>
+            
+            <!-- 系统设置 -->
+            <li>
+                <a href="/admin/setting" class="flex items-center gap-3 px-4 py-2.5 rounded-md text-slate-300 hover:text-white hover:bg-slate-800/50 transition-colors duration-200 group">
+                    <i class="material-icons text-slate-400 group-hover:text-blue-500 transition-colors duration-200">settings</i>
+                    <span>系统设置</span>
+                </a>
+            </li>
+            
+            <!-- 返回前台 -->
+            <li class="mt-6 pt-4 border-t border-slate-800/30">
+                <a href="/" class="flex items-center gap-3 px-4 py-2.5 rounded-md text-slate-300 hover:text-white hover:bg-slate-800/50 transition-colors duration-200 group">
+                    <i class="material-icons text-slate-400 group-hover:text-blue-500 transition-colors duration-200">home</i>
+                    <span>返回前台</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</div>
+
+<!-- 移动端侧边栏切换按钮 -->
+<div class="fixed top-4 left-4 md:hidden z-20">
+    <button id="toggle-sidebar" class="p-2 bg-slate-800/80 backdrop-blur rounded-md text-slate-300 hover:text-white hover:bg-slate-700/80 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500/40">
+        <i class="material-icons">menu</i>
+    </button>
+</div>
+
+<!-- 侧边栏控制脚本 -->
+<script>
+    // 获取DOM元素
+    const sidebar = document.getElementById('admin-sidebar');
+    const toggleBtn = document.getElementById('toggle-sidebar');
+    const closeBtn = document.getElementById('close-sidebar');
+    
+    // 初始化侧边栏状态
+    function initSidebar() {
+        // 在移动端默认隐藏侧边栏
+        if (window.innerWidth < 768) {
+            sidebar.classList.add('-translate-x-full');
+        } else {
+            sidebar.classList.remove('-translate-x-full');
+        }
+        
+        // 高亮当前页面对应的菜单项
+        highlightCurrentPage();
+    }
+    
+    // 切换侧边栏显示/隐藏
+    function toggleSidebar() {
+        sidebar.classList.toggle('-translate-x-full');
+    }
+    
+    // 高亮当前页面对应的菜单项
+    function highlightCurrentPage() {
+        const currentPath = window.location.pathname;
+        const menuItems = document.querySelectorAll('#admin-sidebar a');
+        
+        menuItems.forEach(item => {
+            // 移除所有高亮
+            item.classList.remove('bg-slate-800', 'text-white');
+            
+            // 检查路径匹配
+            if (item.getAttribute('href') === currentPath ||
+                (currentPath.startsWith(item.getAttribute('href')) && item.getAttribute('href') !== '/')) {
+                item.classList.add('bg-slate-800', 'text-white');
+                
+                // 高亮图标
+                const icon = item.querySelector('.material-icons');
+                if (icon) {
+                    icon.classList.remove('text-slate-400');
+                    icon.classList.add('text-blue-500');
+                }
+            }
+        });
+    }
+    
+    // 添加事件监听器
+    toggleBtn.addEventListener('click', toggleSidebar);
+    closeBtn.addEventListener('click', toggleSidebar);
+    
+    // 窗口大小变化时调整侧边栏
+    window.addEventListener('resize', () => {
+        if (window.innerWidth >= 768) {
+            sidebar.classList.remove('-translate-x-full');
+        } else {
+            sidebar.classList.add('-translate-x-full');
+        }
+    });
+    
+    // 页面加载时初始化侧边栏
+    document.addEventListener('DOMContentLoaded', initSidebar);
+</script>

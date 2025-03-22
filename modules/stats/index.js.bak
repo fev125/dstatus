@@ -1,0 +1,349 @@
+\"use strict";
+const fetch=require("node-fetch"),
+    schedule=require("node-schedule"),
+    { IPLocationService } = require('./iplocation');
+const notification = require('../notification');
+
+// 创建IP地理位置服务实例
+const ipLocationService = new IPLocationService();
+
+function sleep(ms){return new Promise(resolve=>setTimeout(()=>resolve(),ms));}
+module.exports=async(svr)=>{
+const {db,pr,bot,setting}=svr.locals;
+var stats={},fails={},highcpu={},highDown={},updating=new Set(),noticed={};
+
+/**
+ * 统一的状态数据获取接口
+ * @param {boolean} isAdmin - 是否为管理员
+ * @param {boolean} shouldFilter - 是否需要过滤敏感数据
+ * @returns {Object} 处理后的状态数据
+ */
+function getStatsData(isAdmin = false, shouldFilter = true) {
+    try {
+        const statsData = getStats(isAdmin);
+        
+        // 处理每个节点的数据
+        Object.entries(statsData).forEach(([sid, node]) => {
+            // 非管理员过滤敏感数据
+            if (!isAdmin && shouldFilter && node.data) {
+                // 保存地区信息
+                let locationCode = null;
+                if (node.data.location) {
+                    locationCode = node.data.location.code || 
+                                 (node.data.location.country ? node.data.location.country.code : null);
+                }
+                
+                // 替换data对象，只保留地区信息
+                node.data = locationCode ? {
+                    location: {
+                        code: locationCode
+                    }
+                } : null;
+            }
+            
+            // 处理stat对象
+            if (typeof node.stat === 'number' || !node.stat) {
+                // 如果stat是数字或不存在，转换为标准对象结构
+                const isOffline = !node.stat || node.stat <= 0;
+                statsData[sid] = {
+                    ...node,
+                    stat: {
+                        cpu: { multi: 0 },
+                        mem: {
+                            virtual: {
+                                used: 0,
+                                total: 1,
+                                usedPercent: 0
+                            }
+                        },
+                        net: {
+                            delta: { in: 0, out: 0 },
+                            total: { in: 0, out: 0 }
+                        },
+                        offline: isOffline
+                    }
+                };
+            } else if (typeof node.stat === 'object') {
+                // 确保对象结构完整性并处理无效值
+                const cpuMulti = Number(node.stat.cpu?.multi) || 0;
+                const memUsed = Number(node.stat.mem?.virtual?.used) || 0;
+                const memTotal = Number(node.stat.mem?.virtual?.total) || 1;
+                const memPercent = Number(node.stat.mem?.virtual?.usedPercent) || (memTotal > 0 ? (memUsed / memTotal * 100) : 0);
+
+                statsData[sid] = {
+                    ...node,
+                    stat: {
+                        ...node.stat,
+                        cpu: {
+                            multi: cpuMulti >= 0 ? cpuMulti : 0,
+                            single: Array.isArray(node.stat.cpu?.single) ? 
+                                   node.stat.cpu.single.map(v => Number(v) >= 0 ? Number(v) : 0) : 
+                                   [0]
+                        },
+                        mem: {
+                            virtual: {
+                                used: memUsed,
+                                total: memTotal,
+                                usedPercent: memPercent >= 0 ? memPercent : 0
+                            }
+                        },
+                        net: {
+                            delta: {
+                                in: Math.max(0, Number(node.stat.net?.delta?.in) || 0),
+                                out: Math.max(0, Number(node.stat.net?.delta?.out) || 0)
+                            },
+                            total: {
+                                in: Math.max(0, Number(node.stat.net?.total?.in) || 0),
+                                out: Math.max(0, Number(node.stat.net?.total?.out) || 0)
+                            }
+                        }
+                    }
+                };
+            }
+        });
+        
+        // 添加详细的数据日志
+        if (setting.debug) {
+            const sampleNode = Object.values(statsData)[0];
+            console.log(`[${new Date().toISOString()}] 状态数据示例:`, {
+                name: sampleNode?.name,
+                stat: sampleNode?.stat ? {
+                    cpu: sampleNode.stat.cpu?.multi,
+                    mem: sampleNode.stat.mem?.virtual?.usedPercent,
+                    net_in: sampleNode.stat.net?.delta?.in,
+                    net_out: sampleNode.stat.net?.delta?.out
+                } : '不存在'
+            });
+        }
+        
+        return statsData;
+    } catch (error) {
+        console.error('获取状态数据失败:', error);
+        return {};
+    }
+}
+
+function getStats(isAdmin=false){
+    let Stats = {};
+    for(let server of db.servers.all()) {
+        if(server.status == 1 || (server.status == 2 && isAdmin)){
+            const serverStats = stats[server.sid];
+            // 状态判断逻辑：
+            // - 如果没有stats记录，返回-1（初始状态）
+            // - 如果stats.stat === false，说明连接失败
+            // - 如果有具体数据，说明在线
+            const stat = !serverStats ? -1 : 
+                        serverStats.stat === false ? 0 :
+                        serverStats.stat;
+            
+            Stats[server.sid] = {
+                name: server.name,
+                stat: stat,
+                expire_time: server.expire_time,
+                group_id: server.group_id,
+                top: server.top,
+                traffic_used: serverStats?.traffic_used || 0,
+                traffic_limit: server.traffic_limit || 0,
+                traffic_reset_day: server.traffic_reset_day || 1,
+                traffic_calibration_date: server.traffic_calibration_date || 0,
+                traffic_calibration_value: server.traffic_calibration_value || 0,
+                calibration_base_traffic: serverStats?.calibration_base_traffic || null,
+                data: server.data
+            };
+        }
+    }
+    return Stats;
+}
+
+// 将getStats、getStatsData和ipLocationService添加到svr.locals中
+svr.locals.stats = { getStats, getStatsData, ipLocationService };
+
+// 更新路由处理
+svr.get("/",(req,res)=>{
+    try {
+        const theme = req.query.theme || db.setting.get("theme") || "card";
+        const isAdmin = req.admin;
+        
+        console.log(`[${new Date().toISOString()}] 首页请求 - 主题:${theme} 管理员:${isAdmin}`);
+        
+        res.render(`stats/${theme}`,{
+            stats: getStatsData(isAdmin),
+            groups: db.groups.getWithCount(),
+            theme,
+            admin: isAdmin
+        });
+    } catch (error) {
+        console.error('首页渲染错误:', error);
+        res.status(500).send('服务器内部错误');
+    }
+});
+
+svr.get("/stats/data",(req,res)=>{
+    try {
+        const isAdmin = req.admin;
+        console.log(`[${new Date().toISOString()}] 数据API请求 - 管理员:${isAdmin}`);
+        
+        res.json(getStatsData(isAdmin));
+    } catch (error) {
+        console.error('数据API错误:', error);
+        res.status(500).json({ error: '获取数据失败' });
+    }
+});
+
+svr.get("/stats/:sid",(req,res)=>{
+    let {sid}=req.params;
+    const statsData = getStats(req.admin);
+    const node = statsData[sid];
+    if (!node) {
+        return res.status(404).send('Node not found');
+    }
+    
+    // 获取服务器完整信息
+    const server = db.servers.get(sid);
+    if (server) {
+        // 添加校准数据到node对象
+        node.traffic_calibration_date = server.traffic_calibration_date || 0;
+        node.traffic_calibration_value = server.traffic_calibration_value || 0;
+        node.traffic_limit = server.traffic_limit || 0;
+        node.traffic_reset_day = server.traffic_reset_day || 1;
+        
+        // 预处理数据，确保所有值都有默认值
+        node.traffic_used = node.traffic_used || 0;
+        node.traffic_limit = node.traffic_limit || 0;
+        node.traffic_reset_day = node.traffic_reset_day || 1;
+    }
+    
+    // 添加预处理的JSON数据
+    const preProcessedData = {
+        traffic_used: node.traffic_used || 0,
+        traffic_limit: node.traffic_limit || 0,
+        traffic_reset_day: node.traffic_reset_day || 1,
+        traffic_calibration_date: node.traffic_calibration_date || 0,
+        traffic_calibration_value: node.traffic_calibration_value || 0,
+        calibration_base_traffic: node.calibration_base_traffic || null
+    };
+    
+    res.render('stat',{
+        sid,
+        node,
+        preProcessedData: JSON.stringify(preProcessedData),
+        traffic: db.traffic.get(sid),
+        load_m: db.load_m.select(sid),
+        load_h: db.load_h.select(sid),
+        admin: req.admin
+    });
+});
+svr.get("/stats/:sid/data",(req,res)=>{
+    let {sid}=req.params;
+    res.json({sid,...stats[sid]});
+});
+
+// 流量统计API
+svr.get("/stats/:sid/traffic", async (req, res) => {
+    const { sid } = req.params;
+    const server = db.servers.get(sid);
+    
+    if (!server) {
+        return res.json({
+            error: '服务器不存在',
+            data: null
+        });
+    }
+    
+    try {
+        // 获取traffic表中的ds数据
+        const trafficData = await db.traffic.get(sid);
+        
+        res.json({
+            data: {
+                ds: trafficData?.ds || [],  // 月度流量记录数据
+                calibration_date: server.traffic_calibration_date || 0,
+                calibration_value: server.traffic_calibration_value || 0,
+                traffic_reset_day: server.traffic_reset_day || 1,
+                traffic_limit: server.traffic_limit || 0
+            }
+        });
+    } catch (error) {
+        console.error('获取流量统计失败:', error);
+        res.status(500).json({
+            error: '获取流量统计失败',
+            message: error.message
+        });
+    }
+});
+
+svr.post("/stats/update", async (req, res) => {
+    let {sid, data} = req.body;
+    stats[sid] = data;
+    
+    // 调用自动发现拦截器
+    try {
+        if (svr.locals.autodiscovery && svr.locals.autodiscovery.interceptor) {
+            await svr.locals.autodiscovery.interceptor.checkAndRegisterIP(req, data);
+        }
+    } catch (error) {
+        console.error('[自动发现] 拦截器错误:', error);
+        // 不影响正常状态上报
+    }
+    
+    res.json(pr(1, 'update success'));
+});
+
+async function getStat(server){
+    let res;
+    try{
+        res=await fetch(`http://${server.data.ssh.host}:${server.data.api.port}/stat`,{
+            method:"GET",
+            headers:{key:server.data.api.key},
+            timeout:15000,
+        }).then(res=>res.json());
+    }catch(e){
+        // console.log(e);
+        res={success:false,msg:'timeout'};
+    }
+    if(res.success)return res.data;
+    else return false;
+}
+async function update(server){
+    let {sid}=server;
+    
+    if(server.status<=0){
+        delete stats[sid];
+        return;
+    }
+    
+    let stat = await getStat(server);
+    if(stat){
+        let notice = false;
+        // 检查是否需要发送上线通知：之前状态为离线或初始状态，现在状态为在线
+        if(!stats[sid] || stats[sid].stat === false) notice = true;
+        
+        // 1. 确保基础网络数据结构完整
+        if (!stat.net || typeof stat.net !== 'object') {
+            stat.net = {
+                delta: { in: 0, out: 0 },
+                total: { in: 0, out: 0 },
+                devices: {}
+            };
+        }
+
+        // 2. 处理网络设备数据
+        let deviceData = null;
+        if (stat.net.devices && server.data.device) {
+            deviceData = stat.net.devices[server.data.device];
+            if (deviceData) {
+                // 深拷贝设备数据，避免引用问题
+                deviceData = {
+                    total: {
+                        in: Number(deviceData.total?.in || 0),
+                        out: Number(deviceData.total?.out || 0)
+                    },
+                    delta: {
+                        in: Number(deviceData.delta?.in || 0),
+                        out: Number(deviceData.delta?.out || 0)
+                    }
+                };
+            }
+        }
+
+        // 3.

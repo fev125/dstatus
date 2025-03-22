@@ -1,0 +1,52 @@
+FROM golang:1.18 as builder
+
+WORKDIR /build
+
+# 设置Go代理解决网络问题
+ENV GOPROXY=https://goproxy.cn,direct
+
+# 复制源代码
+COPY . .
+
+# 安装依赖
+RUN go mod download github.com/shirou/gopsutil@v3.20.10+incompatible && \
+    go mod download golang.org/x/net@v0.0.0-20210610132358-84b48f89b13b && \
+    go mod download golang.org/x/sys@v0.0.0-20210423082822-04245dca01da && \
+    go mod download github.com/mattn/go-isatty@v0.0.14 && \
+    go mod download github.com/tonobo/mtr@v0.1.0
+
+# 替换依赖
+RUN go mod edit -replace=golang.org/x/net=golang.org/x/net@v0.0.0-20210610132358-84b48f89b13b && \
+    go mod edit -replace=golang.org/x/sys=golang.org/x/sys@v0.0.0-20210423082822-04245dca01da && \
+    go mod edit -replace=github.com/shirou/gopsutil=github.com/shirou/gopsutil@v3.20.10+incompatible
+
+# 更新go.mod和go.sum
+RUN go mod tidy && \
+    go get -u ./...
+
+# 构建多平台二进制文件
+RUN mkdir -p /build/output && \
+    # Linux AMD64
+    CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o /build/output/neko-status_linux_amd64 && \
+    # Darwin AMD64
+    CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -ldflags="-w -s" -o /build/output/neko-status_darwin_amd64 && \
+    # Darwin ARM64 (M1)
+    CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags="-w -s" -o /build/output/neko-status_darwin_arm64 && \
+    # Linux ARM64
+    CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags="-w -s" -o /build/output/neko-status_linux_arm64 && \
+    # Linux ARM
+    CGO_ENABLED=0 GOOS=linux GOARCH=arm GOARM=7 go build -ldflags="-w -s" -o /build/output/neko-status_linux_arm7 && \
+    # Linux 386
+    CGO_ENABLED=0 GOOS=linux GOARCH=386 go build -ldflags="-w -s" -o /build/output/neko-status_linux_386
+
+# 使用小型镜像作为最终镜像
+FROM alpine:latest
+
+# 复制构建好的二进制文件
+COPY --from=builder /build/output /output
+
+# 设置卷，方便从容器中复制文件
+VOLUME /output
+
+# 容器启动时显示构建结果
+CMD ["sh", "-c", "ls -la /output && echo '构建完成！请使用 docker cp 命令复制文件到宿主机'"] 

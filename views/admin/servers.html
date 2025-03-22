@@ -1,0 +1,147 @@
+{% set title = "管理服务器" %}
+{%set admin = true%}
+{% extends "../base.html" %}
+
+{% block content %}
+<!-- 引入侧边栏 -->
+{% include "admin/sidebar.html" %}
+
+<!-- 主内容区域 -->
+<div class="md:ml-64 p-4 pt-6 transition-all duration-300" style="padding-top: calc(1.5rem + env(safe-area-inset-top))">
+<div class="max-w-7xl mx-auto">
+    <!-- 服务器列表卡片 -->
+    <div class="bg-slate-900/80 backdrop-blur rounded-lg border border-slate-800/50">
+        <!-- 卡片标题 -->
+        <div class="flex items-center justify-between p-4 border-b border-slate-800/50">
+            <div class="flex items-center gap-3">
+                <i class="material-icons text-blue-500">dns</i>
+                <div>
+                    <h3 class="text-lg font-medium text-white">服务器管理</h3>
+                    <p class="text-sm text-slate-400">Server Management</p>
+                </div>
+            </div>
+            <!-- 操作按钮组 -->
+            <div class="flex items-center gap-2">
+                <a href="/admin/servers/add" 
+                   class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-blue-500 hover:bg-blue-600 rounded-md transition-colors">
+                    <i class="material-icons text-[18px]">add</i>
+                    <span>新增服务器</span>
+                </a>
+                <a href="/admin/ssh_scripts"
+                   class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-slate-300 hover:text-white bg-slate-800/50 hover:bg-slate-700/50 rounded-md transition-colors">
+                    <i class="material-icons text-[18px]">format_align_left</i>
+                    <span>SSH脚本</span>
+                </a>
+                <button onclick="saveOrder()"
+                        class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-slate-300 hover:text-white bg-slate-800/50 hover:bg-slate-700/50 rounded-md transition-colors">
+                    <i class="material-icons text-[18px]">save</i>
+                    <span>保存排序</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 服务器列表 -->
+        <div class="p-4">
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="text-left border-b border-slate-800/50">
+                            <th class="p-3 text-sm font-medium text-slate-400">排序</th>
+                            <th class="p-3 text-sm font-medium text-slate-400">名称</th>
+                            <th class="p-3 text-sm font-medium text-slate-400">域名/IP</th>
+                            <th class="p-3 text-sm font-medium text-slate-400">状态</th>
+                            <th class="p-3 text-sm font-medium text-slate-400">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="servers">
+                        {%set stas={
+                            '1':'<span class="text-green-400">正常</span>',
+                            '2':'<span class="text-yellow-400">对外隐藏</span>',
+                            '0':'<span class="text-red-400">不可用</span>'
+                        }%}
+                        {%for server in servers%}
+                        <tr sid="{{server.sid}}" class="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
+                            <td class="p-3">
+                                <i class="handle material-icons text-slate-400 hover:text-slate-300 cursor-move">drag_handle</i>
+                            </td>
+                            <td class="p-3 text-slate-200 cursor-pointer select-all">{{server.name}}</td>
+                            <td class="p-3 text-slate-200 cursor-pointer select-all">{{server.data.ssh.host}}</td>
+                            <td class="p-3">{{stas[server.status]|safe}}</td>
+                            <td class="p-3">
+                                <div class="flex items-center gap-2">
+                                    <button onclick="init('{{server.sid}}')"
+                                            class="p-1.5 text-slate-400 hover:text-white rounded-md hover:bg-slate-800/50 transition-colors"
+                                            title="安装">
+                                        <i class="material-icons">redo</i>
+                                    </button>
+                                    <a href="/admin/servers/{{server.sid}}/"
+                                       class="p-1.5 text-slate-400 hover:text-white rounded-md hover:bg-slate-800/50 transition-colors"
+                                       title="编辑">
+                                        <i class="material-icons">edit</i>
+                                    </a>
+                                    <button onclick="del('{{server.sid}}')"
+                                            class="p-1.5 text-slate-400 hover:text-red-400 rounded-md hover:bg-slate-800/50 transition-colors"
+                                            title="删除">
+                                        <i class="material-icons">delete</i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {%endfor%}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+{%endblock%}
+
+{%block js%}
+<script src=https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js></script>
+<script>
+// 添加E函数定义
+function E(id) {
+    return document.getElementById(id);
+}
+
+new Sortable(E("servers"), {
+    handle: '.handle',
+    animation: 150
+});
+
+async function saveOrder(){
+    var servers = [];
+    for(var x of document.querySelectorAll("#servers > tr"))
+        servers.push(x.getAttribute('sid'));
+    startloading();
+    var res = await postjson("/admin/servers/ord", {servers});
+    endloading();
+    notice(res.data);
+}
+
+async function init(sid){
+    startloading();
+    var res = await postjson(`/admin/servers/${sid}/init`);
+    endloading();
+    notice(res.data);
+}
+
+async function del(sid){
+    if(!confirm("确认删除?")) return;
+    startloading();
+    var res = await postjson(`/admin/servers/${sid}/del`);
+    endloading();
+    notice(res.data);
+    if(res.status) refreshPage();
+}
+
+// 快捷键保存
+document.addEventListener("keydown", (e) => {
+    if ((window.navigator.platform.match("Mac") ? e.metaKey : e.ctrlKey) && e.keyCode == 83) {
+        e.preventDefault();
+        saveOrder();
+    }
+}, false);
+</script>
+{%endblock%}

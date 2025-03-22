@@ -1,0 +1,8 @@
+# 忽略大型二进制文件
+neko-status/release/*.tar.gz
+neko-status/build/
+static/neko-status
+node_modules/
+*.log
+.DS_Store
+dstatus/
