@@ -525,7 +525,7 @@ async function add() {
         const res = await postjson('/admin/servers/add', {
             sid,
             name: name.trim(),
-            data,
+            data: JSON.stringify(data),
             status,
             expire_time: expireTime,
             traffic_limit: trafficLimit ? trafficLimit * 1024 * 1024 * 1024 : 0,

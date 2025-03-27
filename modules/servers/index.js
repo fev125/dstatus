@@ -51,6 +51,14 @@ svr.post("/admin/servers/add",async(req,res)=>{
         const serverData = typeof data === 'string' ? JSON.parse(data) : data;
         const ip = serverData.ip || serverData.ssh?.host;
 
+        // 添加调试日志，检查IP位置服务状态
+        console.log(`[${new Date().toISOString()}] 服务器添加时IP位置服务状态:`, {
+            hasStats: !!svr.locals.stats,
+            hasService: !!(svr.locals.stats && svr.locals.stats.ipLocationService),
+            hasIP: !!ip,
+            ip: ip
+        });
+
         // 如果有IP地址，尝试获取IP国家信息
         if (ip && svr.locals.stats && svr.locals.stats.ipLocationService) {
             try {
