@@ -264,6 +264,7 @@ cleanup_backup() {
 download_neko_status() {
     local SERVER_URL="$1"
     local install_success=false
+    local TEMP_FILE="/tmp/neko-status.new"
     
     # 构建下载URL
     BASE_URL="https://github.com/fev125/dstatus/releases/download/v1.0.1"
@@ -278,10 +279,19 @@ download_neko_status() {
         local retries=3
         local success=false
         
+        # 先确保所有旧进程停止
+        print_info "确保neko-status进程已完全停止..."
+        stop_service
+        
+        # 强制结束可能残留的进程
+        pkill -9 -f "neko-status" 2>/dev/null || true
+        
+        # 等待进程完全退出
+        sleep 3
+        
         for i in $(seq 1 $retries); do
             print_info "尝试下载 (${i}/${retries})..."
             if wget -q --show-progress "$url" -O "$output"; then
-                chmod +x "$output"
                 success=true
                 break
             else
@@ -291,6 +301,14 @@ download_neko_status() {
         done
         
         if [ "$success" = true ]; then
+            # 下载成功，替换文件
+            if [ "$output" != "/usr/bin/neko-status" ]; then
+                print_info "下载成功，替换二进制文件..."
+                mv "$output" /usr/bin/neko-status
+                chmod +x /usr/bin/neko-status
+            else
+                chmod +x "$output"
+            fi
             return 0
         else
             return 1
@@ -302,21 +320,21 @@ download_neko_status() {
     if ! ping -c 1 github.com >/dev/null 2>&1 && ! curl -s --connect-timeout 5 https://github.com >/dev/null; then
         print_warning "无法连接到GitHub，将尝试从服务器下载"
         # 尝试从服务器下载对应架构版本
-        if ! download_file "$SERVER_ARCH_URL" "/usr/bin/neko-status"; then
+        if ! download_file "$SERVER_ARCH_URL" "$TEMP_FILE"; then
             print_info "服务器上没有对应架构版本，尝试下载通用版本..."
-            if ! download_file "${SERVER_URL}/neko-status" "/usr/bin/neko-status"; then
+            if ! download_file "${SERVER_URL}/neko-status" "$TEMP_FILE"; then
                 print_error "下载neko-status失败，请检查网络连接或手动下载"
                 return 1
             fi
         fi
     else
         # 正常从GitHub下载
-        if ! download_file "$DOWNLOAD_URL" "/usr/bin/neko-status"; then
+        if ! download_file "$DOWNLOAD_URL" "$TEMP_FILE"; then
             # 下载失败，尝试从服务器下载
             print_warning "从GitHub下载失败，尝试从服务器下载..."
-            if ! download_file "$SERVER_ARCH_URL" "/usr/bin/neko-status"; then
+            if ! download_file "$SERVER_ARCH_URL" "$TEMP_FILE"; then
                 print_info "尝试下载通用版本..."
-                if ! download_file "${SERVER_URL}/neko-status" "/usr/bin/neko-status"; then
+                if ! download_file "${SERVER_URL}/neko-status" "$TEMP_FILE"; then
                     print_error "下载neko-status失败，请检查网络连接或手动下载"
                     return 1
                 fi
@@ -332,7 +350,7 @@ download_neko_status() {
         if [ "$ARCH" = "amd64" ]; then
             # 尝试386架构
             print_info "尝试386架构..."
-            if download_file "${BASE_URL}/neko-status_${OS_TYPE}_386" "/usr/bin/neko-status"; then
+            if download_file "${BASE_URL}/neko-status_${OS_TYPE}_386" "$TEMP_FILE"; then
                 if /usr/bin/neko-status -v >/dev/null 2>&1; then
                     print_success "使用386架构版本成功"
                     install_success=true
@@ -341,7 +359,7 @@ download_neko_status() {
         elif [ "$ARCH" = "arm64" ]; then
             # 尝试arm7架构
             print_info "尝试arm7架构..."
-            if download_file "${BASE_URL}/neko-status_${OS_TYPE}_arm7" "/usr/bin/neko-status"; then
+            if download_file "${BASE_URL}/neko-status_${OS_TYPE}_arm7" "$TEMP_FILE"; then
                 if /usr/bin/neko-status -v >/dev/null 2>&1; then
                     print_success "使用arm7架构版本成功"
                     install_success=true
@@ -350,6 +368,11 @@ download_neko_status() {
         fi
     else
         install_success=true
+    fi
+
+    # 清理临时文件
+    if [ -f "$TEMP_FILE" ]; then
+        rm -f "$TEMP_FILE"
     fi
 
     if [ "$install_success" = true ]; then
