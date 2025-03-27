@@ -78,7 +78,7 @@ jobs:
           
       - name: Upload main branch binaries as artifacts
         if: github.ref == 'refs/heads/main'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: neko-status-latest
           path: latest/
@@ -94,7 +94,7 @@ jobs:
           
       - name: Upload develop branch binaries as artifacts
         if: github.ref == 'refs/heads/develop'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: neko-status-dev-latest
           path: dev-latest/
