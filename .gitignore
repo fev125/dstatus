@@ -30,7 +30,13 @@ debug.log
 
 # 编译文件
 /neko-status/bin/
+/neko-status/build/
+/neko-status/build.zip
+/neko-status/release/
 /neko-status/dist/
+/static/neko-status
+*.zip
+*.tar.gz
 
 # 临时文件
 .DS_Store
