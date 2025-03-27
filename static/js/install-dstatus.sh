@@ -663,10 +663,11 @@ show_menu() {
     echo "4. 重启服务"
     echo "5. 查看状态"
     echo "6. 卸载服务"
+    echo "7. 查看帮助信息"
     echo "------------------------"
     echo "0. 退出脚本"
     echo ""
-    echo -n "请输入选项 [0-6]: "
+    echo -n "请输入选项 [0-7]: "
     read -r choice
     
     case $choice in
@@ -732,6 +733,12 @@ show_menu() {
             press_any_key
             show_menu
             ;;
+        7)
+            # 显示帮助信息后返回菜单
+            show_usage
+            press_any_key
+            show_menu
+            ;;
         0)
             clear
             exit 0
@@ -793,14 +800,11 @@ main() {
             *)
                 print_error "未知的命令: $1"
                 show_usage
-                show_menu
+                exit 1
                 ;;
         esac
     else
-        # 无参数，先显示帮助信息再显示菜单
-        show_usage
-        echo "按Enter键继续进入交互式菜单..."
-        read
+        # 无参数时，直接显示菜单，在菜单中提供查看帮助的选项
         show_menu
     fi
 }
