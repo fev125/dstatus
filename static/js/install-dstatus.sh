@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# DStatus客户端一键安装/管理脚本
-# 1. 此脚本用于安装和管理DStatus客户端(neko-status)，支持自动发现功能
+# DStatus客户端一键安装脚本
+# 1. 此脚本用于安装DStatus客户端(neko-status)，支持自动发现功能
 # 2. 支持通过注册密钥自动注册到服务器
-# 3. 提供完整的安装、启动、停止、重启、卸载功能
+# 3. 支持多系统多架构
 # 修改时间: 2023-11-01
 
 # 颜色定义
@@ -11,8 +11,6 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-BOLD='\033[1m'
 NC='\033[0m' # 无颜色
 
 # 打印带颜色的信息
@@ -32,23 +30,11 @@ print_error() {
     echo -e "${RED}[错误]${NC} $1"
 }
 
-# 显示横幅
-show_banner() {
-    clear
-    echo -e "${CYAN}${BOLD}"
-    echo "====================================="
-    echo "    DStatus 客户端管理工具          "
-    echo "====================================="
-    echo -e "${NC}"
-}
-
 # 检查是否为root用户
 check_root() {
     if [ "$(id -u)" != "0" ]; then
         print_error "此脚本需要root权限运行"
-        print_info "请尝试以下方法之一:"
-        print_info "1. 使用root用户直接运行此脚本"
-        print_info "2. 使用sudo运行此脚本: sudo $0"
+        print_info "请使用sudo运行此脚本: sudo $0 注册密钥 服务器URL"
         exit 1
     fi
 }
@@ -82,12 +68,6 @@ get_system_info() {
     if [ -z "$DEFAULT_DEVICE" ]; then
         DEFAULT_DEVICE="eth0"
     fi
-
-    print_info "系统信息:"
-    print_info "  主机名: $HOSTNAME"
-    print_info "  IP地址: $IP"
-    print_info "  系统: $SYSTEM"
-    print_info "  默认网卡: $DEFAULT_DEVICE"
 }
 
 # 安装必要的命令
@@ -104,12 +84,6 @@ install_dependencies() {
         pacman -S --noconfirm curl wget
     else
         print_warning "不支持的操作系统，请确保已安装: curl wget"
-    fi
-
-    # 检查wget是否已安装
-    if ! command -v wget &> /dev/null; then
-        print_error "无法安装wget，请手动安装后重试"
-        exit 1
     fi
 }
 
@@ -145,10 +119,9 @@ register_autodiscovery() {
         print_info "API密钥: $API_KEY"
         
         if [ "$APPROVED" = "true" ]; then
-            print_info "服务器已自动批准，无需等待审核"
+            print_info "服务器已自动批准"
         else
             print_warning "服务器需要管理员审核后才能使用"
-            print_info "请联系管理员审核您的服务器"
         fi
         
         return 0
@@ -188,7 +161,6 @@ detect_architecture() {
             fi
             ;;
         *)
-            print_warning "未知架构: $ARCH，将尝试使用amd64版本"
             ARCH="amd64"
             ;;
     esac
@@ -197,73 +169,40 @@ detect_architecture() {
     if [ "$OS_TYPE" = "darwin" ]; then
         # macOS只支持amd64和arm64
         if [ "$ARCH" != "amd64" ] && [ "$ARCH" != "arm64" ]; then
-            print_warning "Darwin系统不支持 $ARCH 架构，将尝试使用amd64"
             ARCH="amd64"
         fi
     fi
     
     # 添加代理支持
     if [ ! -z "$HTTP_PROXY" ]; then
-        print_info "检测到HTTP代理: $HTTP_PROXY"
         export http_proxy="$HTTP_PROXY"
         export https_proxy="$HTTP_PROXY"
     fi
 
     if [ ! -z "$HTTPS_PROXY" ]; then
-        print_info "检测到HTTPS代理: $HTTPS_PROXY"
         export https_proxy="$HTTPS_PROXY"
     fi
 
     print_info "检测到系统: $OS_TYPE, 架构: $ARCH"
 }
 
-# 备份现有二进制文件
-backup_binary() {
-    if [ -f "/usr/bin/neko-status" ]; then
-        print_info "备份现有neko-status二进制文件..."
-        cp /usr/bin/neko-status /usr/bin/neko-status.bak
-        if [ $? -eq 0 ]; then
-            print_success "备份成功: /usr/bin/neko-status.bak"
-            return 0
-        else
-            print_error "备份失败，无法继续安装"
-            return 1
-        fi
+# 停止服务
+stop_service() {
+    if command -v systemctl &> /dev/null; then
+        systemctl stop nekonekostatus 2>/dev/null
+    elif [ -f /etc/init.d/nekonekostatus ]; then
+        /etc/init.d/nekonekostatus stop
+    elif [ -f /usr/local/bin/nekonekostatus-stop ]; then
+        /usr/local/bin/nekonekostatus-stop
     else
-        print_info "未发现现有二进制文件，跳过备份"
-        return 0
-    fi
-}
-
-# 执行回滚操作
-rollback() {
-    print_warning "安装失败，执行回滚操作..."
-    if [ -f "/usr/bin/neko-status.bak" ]; then
-        print_info "恢复备份的二进制文件..."
-        mv /usr/bin/neko-status.bak /usr/bin/neko-status
-        if [ $? -eq 0 ]; then
-            print_success "回滚成功，已恢复之前的版本"
-        else
-            print_error "回滚失败，请手动检查"
-        fi
-    else
-        print_info "无备份文件可恢复"
-    fi
-}
-
-# 清理备份文件
-cleanup_backup() {
-    if [ -f "/usr/bin/neko-status.bak" ]; then
-        print_info "清理备份文件..."
-        rm -f /usr/bin/neko-status.bak
-        print_success "备份文件已清理"
+        # 尝试通过进程查找并关闭
+        pkill -f "neko-status -c /etc/neko-status/config.yaml" 2>/dev/null
     fi
 }
 
 # 下载neko-status客户端
 download_neko_status() {
     local SERVER_URL="$1"
-    local install_success=false
     local TEMP_FILE="/tmp/neko-status.new"
     
     # 构建下载URL
@@ -272,141 +211,54 @@ download_neko_status() {
     SERVER_ARCH_URL="${SERVER_URL}/neko-status_${OS_TYPE}_${ARCH}"
     print_info "使用下载链接: $DOWNLOAD_URL"
 
-    # 增强下载逻辑，添加失败重试和回退机制
-    download_file() {
-        local url=$1
-        local output=$2
-        local retries=3
-        local success=false
-        
-        # 先确保所有旧进程停止
-        print_info "确保neko-status进程已完全停止..."
-        stop_service
-        
-        # 强制结束可能残留的进程
-        pkill -9 -f "neko-status" 2>/dev/null || true
-        
-        # 等待进程完全退出
-        sleep 3
-        
-        for i in $(seq 1 $retries); do
-            print_info "尝试下载 (${i}/${retries})..."
-            if wget -q --show-progress "$url" -O "$output"; then
-                success=true
-                break
-            else
-                print_warning "下载失败，等待重试..."
-                sleep 2
-            fi
-        done
-        
-        if [ "$success" = true ]; then
-            # 下载成功，替换文件
-            if [ "$output" != "/usr/bin/neko-status" ]; then
-                print_info "下载成功，替换二进制文件..."
-                mv "$output" /usr/bin/neko-status
-                chmod +x /usr/bin/neko-status
-            else
-                chmod +x "$output"
-            fi
-            return 0
-        else
-            return 1
-        fi
-    }
-
-    # 网络连接检测
-    print_info "检测网络连接..."
-    if ! ping -c 1 github.com >/dev/null 2>&1 && ! curl -s --connect-timeout 5 https://github.com >/dev/null; then
-        print_warning "无法连接到GitHub，将尝试从服务器下载"
-        # 尝试从服务器下载对应架构版本
-        if ! download_file "$SERVER_ARCH_URL" "$TEMP_FILE"; then
-            print_info "服务器上没有对应架构版本，尝试下载通用版本..."
-            if ! download_file "${SERVER_URL}/neko-status" "$TEMP_FILE"; then
-                print_error "下载neko-status失败，请检查网络连接或手动下载"
-                return 1
-            fi
-        fi
+    # 确保所有旧进程停止
+    print_info "确保旧进程已停止..."
+    stop_service
+    
+    # 强制结束可能残留的进程
+    pkill -9 -f "neko-status" 2>/dev/null || true
+    
+    # 等待进程完全退出
+    sleep 2
+    
+    # 尝试从不同源下载
+    if wget -q --show-progress "$DOWNLOAD_URL" -O "$TEMP_FILE"; then
+        print_success "从GitHub下载成功"
+    elif wget -q --show-progress "$SERVER_ARCH_URL" -O "$TEMP_FILE"; then
+        print_success "从服务器下载架构版本成功"
+    elif wget -q --show-progress "${SERVER_URL}/neko-status" -O "$TEMP_FILE"; then
+        print_success "从服务器下载通用版本成功"
     else
-        # 正常从GitHub下载
-        if ! download_file "$DOWNLOAD_URL" "$TEMP_FILE"; then
-            # 下载失败，尝试从服务器下载
-            print_warning "从GitHub下载失败，尝试从服务器下载..."
-            if ! download_file "$SERVER_ARCH_URL" "$TEMP_FILE"; then
-                print_info "尝试下载通用版本..."
-                if ! download_file "${SERVER_URL}/neko-status" "$TEMP_FILE"; then
-                    print_error "下载neko-status失败，请检查网络连接或手动下载"
-                    return 1
-                fi
-            fi
-        fi
-    fi
-
-    # 验证可执行文件
-    if ! /usr/bin/neko-status -v >/dev/null 2>&1; then
-        print_warning "neko-status可能不适用于当前系统，尝试下载其他架构版本..."
-        
-        # 尝试其他架构
-        if [ "$ARCH" = "amd64" ]; then
-            # 尝试386架构
-            print_info "尝试386架构..."
-            if download_file "${BASE_URL}/neko-status_${OS_TYPE}_386" "$TEMP_FILE"; then
-                if /usr/bin/neko-status -v >/dev/null 2>&1; then
-                    print_success "使用386架构版本成功"
-                    install_success=true
-                fi
-            fi
-        elif [ "$ARCH" = "arm64" ]; then
-            # 尝试arm7架构
-            print_info "尝试arm7架构..."
-            if download_file "${BASE_URL}/neko-status_${OS_TYPE}_arm7" "$TEMP_FILE"; then
-                if /usr/bin/neko-status -v >/dev/null 2>&1; then
-                    print_success "使用arm7架构版本成功"
-                    install_success=true
-                fi
-            fi
-        fi
-    else
-        install_success=true
-    fi
-
-    # 清理临时文件
-    if [ -f "$TEMP_FILE" ]; then
-        rm -f "$TEMP_FILE"
-    fi
-
-    if [ "$install_success" = true ]; then
-        print_success "安装neko-status二进制文件成功"
-        return 0
-    else
-        print_error "所有尝试均失败，无法安装适用的neko-status二进制文件"
+        print_error "所有下载尝试均失败"
         return 1
     fi
+    
+    # 安装文件
+    mv "$TEMP_FILE" /usr/bin/neko-status
+    chmod +x /usr/bin/neko-status
+    
+    # 验证可执行文件
+    if ! /usr/bin/neko-status -v >/dev/null 2>&1; then
+        print_error "安装失败，二进制文件无法执行"
+        return 1
+    fi
+    
+    print_success "安装neko-status二进制文件成功"
+    return 0
 }
 
 # 配置防火墙
 configure_firewall() {
-    print_info "配置防火墙..."
     if command -v ufw &> /dev/null; then
         # Ubuntu/Debian with UFW
         ufw allow 9999/tcp >/dev/null 2>&1
-        print_info "已配置UFW防火墙规则"
     elif command -v firewall-cmd &> /dev/null; then
         # CentOS/RHEL with firewalld
         firewall-cmd --permanent --add-port=9999/tcp >/dev/null 2>&1
         firewall-cmd --reload >/dev/null 2>&1
-        print_info "已配置firewalld防火墙规则"
     elif command -v iptables &> /dev/null; then
         # Generic iptables
         iptables -C INPUT -p tcp --dport 9999 -j ACCEPT >/dev/null 2>&1 || iptables -A INPUT -p tcp --dport 9999 -j ACCEPT
-        if command -v iptables-save &> /dev/null; then
-            iptables-save > /etc/iptables.rules 2>/dev/null
-            print_info "已配置iptables防火墙规则"
-        else
-            print_warning "已添加iptables规则，但可能在重启后失效"
-        fi
-    else
-        print_warning "未检测到支持的防火墙系统，请手动配置防火墙以允许9999端口"
     fi
 }
 
@@ -414,14 +266,10 @@ configure_firewall() {
 create_service() {
     local API_KEY="$1"
     
-    # 停止现有服务
-    stop_service
-    
     # 创建配置目录
     mkdir -p /etc/neko-status/
     
     # 创建配置文件
-    print_info "创建配置文件..."
     cat > /etc/neko-status/config.yaml <<EOF
 key: ${API_KEY}
 port: 9999
@@ -430,7 +278,6 @@ EOF
     
     # 创建systemd服务 (对于使用systemd的系统)
     if command -v systemctl &> /dev/null; then
-        print_info "创建systemd服务..."
         cat > /etc/systemd/system/nekonekostatus.service <<EOF
 [Unit]
 Description=DStatus客户端服务
@@ -448,7 +295,6 @@ EOF
         systemctl daemon-reload
     # 对于使用init.d的系统
     elif [ -d /etc/init.d ]; then
-        print_info "创建init.d服务..."
         cat > /etc/init.d/nekonekostatus <<EOF
 #!/bin/sh
 ### BEGIN INIT INFO
@@ -512,7 +358,6 @@ EOF
         # 添加到启动项
         update-rc.d nekonekostatus defaults >/dev/null 2>&1 || chkconfig nekonekostatus on >/dev/null 2>&1
     else
-        print_warning "未检测到支持的服务管理系统，将使用简单的启动脚本"
         # 创建简单的启动脚本
         cat > /usr/local/bin/nekonekostatus-start <<EOF
 #!/bin/sh
@@ -534,104 +379,32 @@ EOF
 
 # 启动服务
 start_service() {
-    print_info "启动DStatus客户端服务..."
-    
     if command -v systemctl &> /dev/null; then
         systemctl start nekonekostatus
         systemctl enable nekonekostatus >/dev/null 2>&1
-        if systemctl is-active --quiet nekonekostatus; then
-            print_success "服务启动成功"
-        else
-            print_error "服务启动失败"
-            return 1
-        fi
     elif [ -f /etc/init.d/nekonekostatus ]; then
         /etc/init.d/nekonekostatus start
-        print_success "服务启动成功"
     elif [ -f /usr/local/bin/nekonekostatus-start ]; then
         /usr/local/bin/nekonekostatus-start
-        print_success "服务启动成功"
-    else
-        print_error "未安装服务，请先安装DStatus客户端"
-        return 1
     fi
-    
-    return 0
-}
-
-# 停止服务
-stop_service() {
-    print_info "停止DStatus客户端服务..."
-    
-    if command -v systemctl &> /dev/null; then
-        systemctl stop nekonekostatus 2>/dev/null
-    elif [ -f /etc/init.d/nekonekostatus ]; then
-        /etc/init.d/nekonekostatus stop
-    elif [ -f /usr/local/bin/nekonekostatus-stop ]; then
-        /usr/local/bin/nekonekostatus-stop
-    else
-        # 尝试通过进程查找并关闭
-        pkill -f "neko-status -c /etc/neko-status/config.yaml" 2>/dev/null
-    fi
-    
-    print_success "服务已停止"
-    return 0
-}
-
-# 重启服务
-restart_service() {
-    print_info "重启DStatus客户端服务..."
-    
-    stop_service
-    start_service
-    
-    return 0
-}
-
-# 卸载服务
-uninstall_service() {
-    print_info "卸载DStatus客户端..."
-    
-    # 先停止服务
-    stop_service
-    
-    # 删除服务相关文件
-    if command -v systemctl &> /dev/null; then
-        systemctl disable nekonekostatus >/dev/null 2>&1
-        rm -f /etc/systemd/system/nekonekostatus.service
-        systemctl daemon-reload
-    elif [ -f /etc/init.d/nekonekostatus ]; then
-        update-rc.d nekonekostatus remove >/dev/null 2>&1 || chkconfig nekonekostatus off >/dev/null 2>&1
-        rm -f /etc/init.d/nekonekostatus
-    elif [ -f /usr/local/bin/nekonekostatus-start ]; then
-        rm -f /usr/local/bin/nekonekostatus-start
-        rm -f /usr/local/bin/nekonekostatus-stop
-    fi
-    
-    # 删除程序和配置文件
-    rm -f /usr/bin/neko-status
-    rm -rf /etc/neko-status
-    
-    print_success "DStatus客户端已成功卸载"
-    return 0
 }
 
 # 安装DStatus客户端
-install_dstatus_client() {
+install_dstatus() {
     local REGISTRATION_KEY="$1"
     local SERVER_URL="$2"
     
     # 检查参数
     if [ -z "$REGISTRATION_KEY" ] || [ -z "$SERVER_URL" ]; then
-        print_error "注册密钥和服务器URL不能为空"
-        return 1
+        print_error "使用方法: $0 注册密钥 服务器URL"
+        exit 1
     fi
     
     # 去除URL末尾的斜杠
     SERVER_URL=${SERVER_URL%/}
     
-    print_info "使用服务器: $SERVER_URL"
-    print_info "使用注册密钥: $REGISTRATION_KEY"
+    # 检测系统架构
+    detect_architecture
     
     # 安装必要的命令
     install_dependencies
@@ -639,23 +412,13 @@ install_dstatus_client() {
     # 注册到自动发现服务
     if ! register_autodiscovery "$REGISTRATION_KEY" "$SERVER_URL"; then
         print_error "注册失败，安装中止"
-        return 1
-    fi
-    
-    # 检测系统架构
-    detect_architecture
-    
-    # 备份现有二进制文件
-    if ! backup_binary; then
-        print_error "备份失败，安装中止"
-        return 1
+        exit 1
     fi
     
     # 下载neko-status客户端
     if ! download_neko_status "$SERVER_URL"; then
-        print_error "下载neko-status失败，执行回滚操作"
-        rollback
-        return 1
+        print_error "下载neko-status失败，安装中止"
+        exit 1
     fi
     
     # 创建系统服务
@@ -665,215 +428,29 @@ install_dstatus_client() {
     configure_firewall
     
     # 启动服务
-    if start_service; then
-        # 安装成功，清理备份
-        cleanup_backup
-        
-        print_success "DStatus 客户端安装完成!"
-        print_info "服务器信息:"
-        print_info "  主机名: $HOSTNAME"
-        print_info "  IP地址: $IP"
-        print_info "  系统: $SYSTEM"
-        print_info "  网卡: $DEFAULT_DEVICE"
-        print_info "  API端口: 9999"
-        
-        if command -v systemctl &> /dev/null; then
-            print_info "客户端状态: $(systemctl is-active nekonekostatus)"
-            print_info "客户端日志: journalctl -u nekonekostatus"
-        elif [ -f /etc/init.d/nekonekostatus ]; then
-            print_info "客户端状态: $(/etc/init.d/nekonekostatus status || echo '未知')"
-            print_info "客户端日志: 请检查系统日志"
-        else
-            print_info "客户端日志: /var/log/nekonekostatus.log"
-        fi
-        
-        print_info "客户端配置文件: /etc/neko-status/config.yaml"
-        return 0
-    else
-        print_error "服务启动失败，执行回滚操作"
-        rollback
-        return 1
-    fi
-}
-
-# 查看服务状态
-check_status() {
-    print_info "检查DStatus客户端状态..."
+    start_service
     
-    if [ ! -f "/usr/bin/neko-status" ]; then
-        print_error "DStatus客户端未安装"
-        return 1
-    fi
-    
-    print_info "客户端版本: $(/usr/bin/neko-status -v 2>&1 || echo '未知')"
-    
-    if command -v systemctl &> /dev/null; then
-        if systemctl is-active --quiet nekonekostatus; then
-            print_success "服务状态: 运行中"
-            print_info "启动时间: $(systemctl show nekonekostatus -p ActiveEnterTimestamp | cut -d= -f2)"
-        else
-            print_error "服务状态: 未运行"
-        fi
-    elif [ -f /etc/init.d/nekonekostatus ]; then
-        if /etc/init.d/nekonekostatus status >/dev/null 2>&1; then
-            print_success "服务状态: 运行中"
-        else
-            print_error "服务状态: 未运行"
-        fi
-    elif [ -f /var/run/nekonekostatus.pid ] && kill -0 $(cat /var/run/nekonekostatus.pid) 2>/dev/null; then
-        print_success "服务状态: 运行中"
-    else
-        print_error "服务状态: 未运行"
-    fi
-    
+    print_success "DStatus客户端安装完成"
+    print_info "服务器信息:"
+    print_info "  主机名: $HOSTNAME"
+    print_info "  IP地址: $IP"
+    print_info "  系统: $SYSTEM"
+    print_info "  API端口: 9999"
     print_info "配置文件: /etc/neko-status/config.yaml"
-    print_info "API密钥: $(grep 'key:' /etc/neko-status/config.yaml 2>/dev/null | awk '{print $2}' || echo '未找到')"
-    print_info "API端口: $(grep 'port:' /etc/neko-status/config.yaml 2>/dev/null | awk '{print $2}' || echo '9999')"
     
-    return 0
+    exit 0
 }
 
-# 显示主菜单
-show_menu() {
-    show_banner
-    echo "请选择操作:"
-    echo "------------------------"
-    echo "1. 安装DStatus客户端"
-    echo "2. 启动服务"
-    echo "3. 停止服务"
-    echo "4. 重启服务"
-    echo "5. 查看状态"
-    echo "6. 卸载服务"
-    echo "------------------------"
-    echo "0. 退出脚本"
-    echo ""
-    echo -n "请输入选项 [0-6]: "
-    read -r choice
-    
-    case $choice in
-        1)
-            show_banner
-            echo "安装DStatus客户端"
-            echo "------------------------"
-            echo -n "请输入注册密钥: "
-            read -r reg_key
-            echo -n "请输入服务器URL: "
-            read -r server_url
-            
-            if [ -z "$reg_key" ] || [ -z "$server_url" ]; then
-                print_error "注册密钥和服务器URL不能为空"
-                press_any_key
-                show_menu
-                return
-            fi
-            
-            check_root
-            get_system_info
-            install_dstatus_client "$reg_key" "$server_url"
-            press_any_key
-            show_menu
-            ;;
-        2)
-            check_root
-            start_service
-            press_any_key
-            show_menu
-            ;;
-        3)
-            check_root
-            stop_service
-            press_any_key
-            show_menu
-            ;;
-        4)
-            check_root
-            restart_service
-            press_any_key
-            show_menu
-            ;;
-        5)
-            check_status
-            press_any_key
-            show_menu
-            ;;
-        6)
-            show_banner
-            echo "卸载DStatus客户端"
-            echo "------------------------"
-            echo -n "确定要卸载DStatus客户端吗？(y/n): "
-            read -r confirm
-            
-            if [ "$confirm" = "y" ] || [ "$confirm" = "Y" ]; then
-                check_root
-                uninstall_service
-            else
-                print_info "已取消卸载"
-            fi
-            
-            press_any_key
-            show_menu
-            ;;
-        0)
-            clear
-            exit 0
-            ;;
-        *)
-            print_error "无效的选项，请重新选择"
-            press_any_key
-            show_menu
-            ;;
-    esac
-}
-
-# 等待用户按任意键继续
-press_any_key() {
-    echo ""
-    echo -n "按任意键继续..."
-    read -r -n 1
-    echo ""
-}
-
-# 开始执行脚本
+# 主函数
 main() {
-    # 检查命令行参数
-    if [ "$#" -ge 1 ]; then
-        case "$1" in
-            install)
-                if [ "$#" -lt 3 ]; then
-                    print_error "使用方法: $0 install 注册密钥 服务器URL"
-                    exit 1
-                fi
-                check_root
-                get_system_info
-                install_dstatus_client "$2" "$3"
-                ;;
-            start)
-                check_root
-                start_service
-                ;;
-            stop)
-                check_root
-                stop_service
-                ;;
-            restart)
-                check_root
-                restart_service
-                ;;
-            status)
-                check_status
-                ;;
-            uninstall)
-                check_root
-                uninstall_service
-                ;;
-            *)
-                show_menu
-                ;;
-        esac
-    else
-        # 无参数，显示菜单
-        show_menu
-    fi
+    # 检查root权限
+    check_root
+    
+    # 获取系统信息
+    get_system_info
+    
+    # 安装服务
+    install_dstatus "$1" "$2"
 }
 
 # 执行主函数
