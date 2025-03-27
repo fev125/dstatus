@@ -9,20 +9,9 @@ on:
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
-        include:
-          # Linux构建
-          - os: ubuntu-latest
-            targets: >-
-              linux/amd64
-              linux/arm64
-              linux/386
-              linux/arm/v7
-          # macOS构建
-          - os: macos-latest
-            targets: >-
-              darwin/amd64
-              darwin/arm64
+        os: [ubuntu-latest, macos-latest]
     
     runs-on: ${{ matrix.os }}
     permissions:
@@ -64,8 +53,8 @@ jobs:
           chmod +x build-ci.sh
           ./build-ci.sh
           
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
         with:
           name: binaries-${{ matrix.os }}
           path: neko-status/build/
@@ -79,7 +68,7 @@ jobs:
     
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         
       - name: Prepare release files
         run: |
@@ -133,7 +122,7 @@ jobs:
     
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         
       - name: Prepare files for Pages
         run: |
