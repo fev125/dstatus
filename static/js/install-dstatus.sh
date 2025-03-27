@@ -42,26 +42,6 @@ show_banner() {
     echo -e "${NC}"
 }
 
-# 显示命令行用法
-show_usage() {
-    echo -e "${CYAN}${BOLD}DStatus 客户端管理工具 - 命令行用法${NC}"
-    echo "支持以下命令行参数:"
-    echo "------------------------"
-    echo -e "${GREEN}./install-dstatus.sh${NC} - 启动交互式菜单"
-    echo -e "${GREEN}./install-dstatus.sh install 注册密钥 服务器URL${NC} - 安装客户端"
-    echo -e "${GREEN}./install-dstatus.sh 注册密钥 服务器URL${NC} - 安装客户端(简化方式)"
-    echo -e "${GREEN}./install-dstatus.sh start${NC} - 启动服务"
-    echo -e "${GREEN}./install-dstatus.sh stop${NC} - 停止服务"
-    echo -e "${GREEN}./install-dstatus.sh restart${NC} - 重启服务"
-    echo -e "${GREEN}./install-dstatus.sh status${NC} - 查看服务状态"
-    echo -e "${GREEN}./install-dstatus.sh uninstall${NC} - 卸载服务"
-    echo -e "${GREEN}./install-dstatus.sh help${NC} - 显示此帮助信息"
-    echo "------------------------"
-    echo "示例: ./install-dstatus.sh install abc123 https://your-server.com"
-    echo "  或: curl -s https://example.com/install-dstatus.sh | bash -s -- abc123 https://your-server.com"
-    echo ""
-}
-
 # 检查是否为root用户
 check_root() {
     if [ "$(id -u)" != "0" ]; then
@@ -237,9 +217,53 @@ detect_architecture() {
     print_info "检测到系统: $OS_TYPE, 架构: $ARCH"
 }
 
+# 备份现有二进制文件
+backup_binary() {
+    if [ -f "/usr/bin/neko-status" ]; then
+        print_info "备份现有neko-status二进制文件..."
+        cp /usr/bin/neko-status /usr/bin/neko-status.bak
+        if [ $? -eq 0 ]; then
+            print_success "备份成功: /usr/bin/neko-status.bak"
+            return 0
+        else
+            print_error "备份失败，无法继续安装"
+            return 1
+        fi
+    else
+        print_info "未发现现有二进制文件，跳过备份"
+        return 0
+    fi
+}
+
+# 执行回滚操作
+rollback() {
+    print_warning "安装失败，执行回滚操作..."
+    if [ -f "/usr/bin/neko-status.bak" ]; then
+        print_info "恢复备份的二进制文件..."
+        mv /usr/bin/neko-status.bak /usr/bin/neko-status
+        if [ $? -eq 0 ]; then
+            print_success "回滚成功，已恢复之前的版本"
+        else
+            print_error "回滚失败，请手动检查"
+        fi
+    else
+        print_info "无备份文件可恢复"
+    fi
+}
+
+# 清理备份文件
+cleanup_backup() {
+    if [ -f "/usr/bin/neko-status.bak" ]; then
+        print_info "清理备份文件..."
+        rm -f /usr/bin/neko-status.bak
+        print_success "备份文件已清理"
+    fi
+}
+
 # 下载neko-status客户端
 download_neko_status() {
     local SERVER_URL="$1"
+    local install_success=false
     
     # 构建下载URL
     BASE_URL="https://github.com/fev125/dstatus/releases/download/v1.0.1"
@@ -280,7 +304,10 @@ download_neko_status() {
         # 尝试从服务器下载对应架构版本
         if ! download_file "$SERVER_ARCH_URL" "/usr/bin/neko-status"; then
             print_info "服务器上没有对应架构版本，尝试下载通用版本..."
-            download_file "${SERVER_URL}/neko-status" "/usr/bin/neko-status"
+            if ! download_file "${SERVER_URL}/neko-status" "/usr/bin/neko-status"; then
+                print_error "下载neko-status失败，请检查网络连接或手动下载"
+                return 1
+            fi
         fi
     else
         # 正常从GitHub下载
@@ -305,15 +332,33 @@ download_neko_status() {
         if [ "$ARCH" = "amd64" ]; then
             # 尝试386架构
             print_info "尝试386架构..."
-            download_file "${BASE_URL}/neko-status_${OS_TYPE}_386" "/usr/bin/neko-status"
+            if download_file "${BASE_URL}/neko-status_${OS_TYPE}_386" "/usr/bin/neko-status"; then
+                if /usr/bin/neko-status -v >/dev/null 2>&1; then
+                    print_success "使用386架构版本成功"
+                    install_success=true
+                fi
+            fi
         elif [ "$ARCH" = "arm64" ]; then
             # 尝试arm7架构
             print_info "尝试arm7架构..."
-            download_file "${BASE_URL}/neko-status_${OS_TYPE}_arm7" "/usr/bin/neko-status"
+            if download_file "${BASE_URL}/neko-status_${OS_TYPE}_arm7" "/usr/bin/neko-status"; then
+                if /usr/bin/neko-status -v >/dev/null 2>&1; then
+                    print_success "使用arm7架构版本成功"
+                    install_success=true
+                fi
+            fi
         fi
+    else
+        install_success=true
     fi
 
-    return 0
+    if [ "$install_success" = true ]; then
+        print_success "安装neko-status二进制文件成功"
+        return 0
+    else
+        print_error "所有尝试均失败，无法安装适用的neko-status二进制文件"
+        return 1
+    fi
 }
 
 # 配置防火墙
@@ -577,9 +622,16 @@ install_dstatus_client() {
     # 检测系统架构
     detect_architecture
     
+    # 备份现有二进制文件
+    if ! backup_binary; then
+        print_error "备份失败，安装中止"
+        return 1
+    fi
+    
     # 下载neko-status客户端
     if ! download_neko_status "$SERVER_URL"; then
-        print_error "下载neko-status失败，安装中止"
+        print_error "下载neko-status失败，执行回滚操作"
+        rollback
         return 1
     fi
     
@@ -591,6 +643,9 @@ install_dstatus_client() {
     
     # 启动服务
     if start_service; then
+        # 安装成功，清理备份
+        cleanup_backup
+        
         print_success "DStatus 客户端安装完成!"
         print_info "服务器信息:"
         print_info "  主机名: $HOSTNAME"
@@ -612,7 +667,8 @@ install_dstatus_client() {
         print_info "客户端配置文件: /etc/neko-status/config.yaml"
         return 0
     else
-        print_error "服务启动失败，请检查日志"
+        print_error "服务启动失败，执行回滚操作"
+        rollback
         return 1
     fi
 }
@@ -665,11 +721,10 @@ show_menu() {
     echo "4. 重启服务"
     echo "5. 查看状态"
     echo "6. 卸载服务"
-    echo "7. 查看帮助信息"
     echo "------------------------"
     echo "0. 退出脚本"
     echo ""
-    echo -n "请输入选项 [0-7]: "
+    echo -n "请输入选项 [0-6]: "
     read -r choice
     
     case $choice in
@@ -735,12 +790,6 @@ show_menu() {
             press_any_key
             show_menu
             ;;
-        7)
-            # 显示帮助信息后返回菜单
-            show_usage
-            press_any_key
-            show_menu
-            ;;
         0)
             clear
             exit 0
@@ -765,12 +814,10 @@ press_any_key() {
 main() {
     # 检查命令行参数
     if [ "$#" -ge 1 ]; then
-        # 检查第一个参数是否是命令名
         case "$1" in
             install)
                 if [ "$#" -lt 3 ]; then
                     print_error "使用方法: $0 install 注册密钥 服务器URL"
-                    show_usage
                     exit 1
                 fi
                 check_root
@@ -796,26 +843,12 @@ main() {
                 check_root
                 uninstall_service
                 ;;
-            help)
-                show_usage
-                exit 0
-                ;;
             *)
-                # 如果有两个参数且第一个不是已知命令，则假定是直接传递注册密钥和服务器URL
-                if [ "$#" -eq 2 ]; then
-                    print_info "检测到直接安装模式"
-                    check_root
-                    get_system_info
-                    install_dstatus_client "$1" "$2"
-                else
-                    print_error "未知的命令: $1"
-                    show_usage
-                    exit 1
-                fi
+                show_menu
                 ;;
         esac
     else
-        # 无参数时，直接显示菜单，在菜单中提供查看帮助的选项
+        # 无参数，显示菜单
         show_menu
     fi
 }
