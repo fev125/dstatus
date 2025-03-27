@@ -1,4 +1,4 @@
-name: Deploy Binaries to Pages
+name: Deploy Binaries to Pages dev
 
 on:
   workflow_run:
