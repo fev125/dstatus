@@ -17,7 +17,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         
       - name: Set up Go
         uses: actions/setup-go@v4
@@ -66,7 +66,7 @@ jobs:
       # 主分支 - 部署到GitHub Pages
       - name: Setup Pages
         if: github.ref == 'refs/heads/main'
-        uses: actions/configure-pages@v3
+        uses: actions/configure-pages@v4
 
       - name: Prepare main branch files for Pages
         if: github.ref == 'refs/heads/main'
@@ -96,14 +96,14 @@ jobs:
 
       - name: Upload main branch files to Pages
         if: github.ref == 'refs/heads/main'
-        uses: actions/upload-pages-artifact@v2
+        uses: actions/upload-pages-artifact@v3
         with:
           path: 'public'
 
       - name: Deploy main branch to Pages
         if: github.ref == 'refs/heads/main'
         id: deployment
-        uses: actions/deploy-pages@v2
+        uses: actions/deploy-pages@v4
 
       # 开发分支 - 部署到dev目录
       - name: Prepare develop branch files for Pages
