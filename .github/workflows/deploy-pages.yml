@@ -1,0 +1,112 @@
+name: Deploy Binaries to Pages
+
+on:
+  workflow_run:
+    workflows: ["Build and Release Binary"]
+    types:
+      - completed
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+
+# 设置GITHUB_TOKEN的权限
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 允许一个并发部署
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  # 发布到主分支页面
+  deploy-main:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'workflow_dispatch') ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      
+      - name: Download neko-status artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: neko-status-latest
+          path: download
+      
+      - name: Setup Pages
+        uses: actions/configure-pages@v3
+      
+      - name: Prepare public directory
+        run: |
+          mkdir -p public
+          cp download/neko-status public/
+          cp download/neko-status_darwin public/
+          cp download/neko-status_darwin_arm64 public/
+          
+          # 创建版本信息文件
+          echo "$(date +%Y-%m-%d_%H:%M:%S)" > public/version.txt
+          
+          # 确保文件可执行
+          chmod +x public/neko-status
+          chmod +x public/neko-status_darwin
+          chmod +x public/neko-status_darwin_arm64
+          
+          # 列出文件
+          ls -la public/
+      
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v2
+        with:
+          path: 'public'
+      
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v2
+
+  # 发布到开发分支页面
+  deploy-dev:
+    runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/develop') ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'develop')
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      
+      - name: Download neko-status-dev artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: neko-status-dev-latest
+          path: download-dev
+      
+      - name: Prepare dev directory
+        run: |
+          mkdir -p public-dev
+          cp download-dev/neko-status public-dev/
+          cp download-dev/neko-status_darwin public-dev/
+          cp download-dev/neko-status_darwin_arm64 public-dev/
+          
+          # 创建版本信息文件
+          echo "DEV-$(date +%Y-%m-%d_%H:%M:%S)" > public-dev/version.txt
+          
+          # 确保文件可执行
+          chmod +x public-dev/neko-status
+          chmod +x public-dev/neko-status_darwin
+          chmod +x public-dev/neko-status_darwin_arm64
+          
+          # 列出文件
+          ls -la public-dev/
+      
+      - name: Deploy to Dev Folder
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: public-dev
+          target-folder: dev 
