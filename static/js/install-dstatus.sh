@@ -49,6 +49,7 @@ show_usage() {
     echo "------------------------"
     echo -e "${GREEN}./install-dstatus.sh${NC} - 启动交互式菜单"
     echo -e "${GREEN}./install-dstatus.sh install 注册密钥 服务器URL${NC} - 安装客户端"
+    echo -e "${GREEN}./install-dstatus.sh 注册密钥 服务器URL${NC} - 安装客户端(简化方式)"
     echo -e "${GREEN}./install-dstatus.sh start${NC} - 启动服务"
     echo -e "${GREEN}./install-dstatus.sh stop${NC} - 停止服务"
     echo -e "${GREEN}./install-dstatus.sh restart${NC} - 重启服务"
@@ -57,6 +58,7 @@ show_usage() {
     echo -e "${GREEN}./install-dstatus.sh help${NC} - 显示此帮助信息"
     echo "------------------------"
     echo "示例: ./install-dstatus.sh install abc123 https://your-server.com"
+    echo "  或: curl -s https://example.com/install-dstatus.sh | bash -s -- abc123 https://your-server.com"
     echo ""
 }
 
@@ -763,6 +765,7 @@ press_any_key() {
 main() {
     # 检查命令行参数
     if [ "$#" -ge 1 ]; then
+        # 检查第一个参数是否是命令名
         case "$1" in
             install)
                 if [ "$#" -lt 3 ]; then
@@ -798,9 +801,17 @@ main() {
                 exit 0
                 ;;
             *)
-                print_error "未知的命令: $1"
-                show_usage
-                exit 1
+                # 如果有两个参数且第一个不是已知命令，则假定是直接传递注册密钥和服务器URL
+                if [ "$#" -eq 2 ]; then
+                    print_info "检测到直接安装模式"
+                    check_root
+                    get_system_info
+                    install_dstatus_client "$1" "$2"
+                else
+                    print_error "未知的命令: $1"
+                    show_usage
+                    exit 1
+                fi
                 ;;
         esac
     else
