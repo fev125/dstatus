@@ -1,0 +1,86 @@
+{
+  "listen": 5555,
+  "password": "YOUR_PASSWORD_HERE",
+  "theme": "card",
+  "neko_status_url": "https://example.com/neko-status",
+  "debug": false,
+  "bot": {
+    "webhook": false
+  },
+  "site": {
+    "name": "DStatus",
+    "url": "https://your-site.example.com/"
+  },
+  "autodiscovery": {
+    "enabled": true,
+    "registrationKey": "YOUR_REGISTRATION_KEY_HERE",
+    "defaultGroup": "",
+    "requireKey": true,
+    "requireApproval": true
+  },
+  "dataEncryptKey": "YOUR_ENCRYPT_KEY_HERE",
+  "personalization": {
+    "background": {
+      "type": "image",
+      "url": "/bg.svg",
+      "darken": true,
+      "darken_amount": 25,
+      "svg": {
+        "enabled": false,
+        "code": "",
+        "colors": ["#3b82f6", "#8b5cf6", "#ec4899"],
+        "opacity": 0.3
+      },
+      "gradient_start": "#1e3a8a",
+      "gradient_end": "#312e81",
+      "gradient_direction": "to bottom"
+    },
+    "pages": {
+      "card": true,
+      "list": true,
+      "admin": true
+    },
+    "theme": {
+      "mode": "auto",
+      "forceDark": false,
+      "accentColor": "#3b82f6",
+      "light": {
+        "backgroundColor": "#f8fafc",
+        "cardBackgroundColor": "#ffffff",
+        "textColor": "#1e293b",
+        "secondaryTextColor": "#64748b",
+        "borderColor": "#e2e8f0",
+        "chartColors": ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"]
+      },
+      "dark": {
+        "backgroundColor": "#0f172a",
+        "cardBackgroundColor": "#1e293b",
+        "textColor": "#f1f5f9",
+        "secondaryTextColor": "#94a3b8",
+        "borderColor": "#334155",
+        "chartColors": ["#60a5fa", "#34d399", "#fbbf24", "#f87171", "#a78bfa"]
+      }
+    },
+    "customCSS": {
+      "enabled": false,
+      "code": ""
+    }
+  },
+  "telegram": {
+    "token": "YOUR_TELEGRAM_TOKEN_HERE",
+    "chatIds": ["YOUR_CHAT_ID_HERE"],
+    "webhook": "webhook",
+    "polling": "polling",
+    "baseApiUrl": "https://api.telegram.org",
+    "enabled": false,
+    "notificationTypes": {
+      "serverOnline": true,
+      "serverOffline": true,
+      "trafficLimit": true,
+      "testNotification": true,
+      "statusSummary": true,
+      "newServerDiscovered": true,
+      "serverApproved": true
+    }
+  }
+} 

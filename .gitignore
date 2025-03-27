@@ -1,0 +1,51 @@
+# 数据目录
+/data/
+/data_*/
+*.db
+*.sqlite
+*.sqlite-journal
+
+# 配置和密钥文件
+/config.json
+/settings.json
+/setting_data.json
+/tokens.json
+.env
+.env.*
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+
+# 日志文件
+/logs/
+*.log
+debug.log
+
+# 依赖
+/node_modules/
+/package-lock.json
+/yarn.lock
+
+# 编译文件
+/neko-status/bin/
+/neko-status/dist/
+
+# 临时文件
+.DS_Store
+.tmp/
+/tmp/
+/backup/
+
+# cookies
+cookies.txt
+
+# 备份
+*_backup_*
+*.bak
+
+# IDE文件
+.vscode/
+.idea/
+.cursor/ 
