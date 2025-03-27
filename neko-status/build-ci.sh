@@ -1,7 +1,6 @@
 #!/bin/bash
 
 # 设置环境变量
-export GOPROXY=https://goproxy.cn,direct
 export GO111MODULE=on
 
 # 创建构建目录
