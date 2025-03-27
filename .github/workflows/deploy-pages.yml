@@ -9,6 +9,15 @@ on:
       - main
       - develop
   workflow_dispatch:
+    inputs:
+      branch:
+        description: '要部署的分支名称'
+        required: true
+        default: 'develop'
+        type: choice
+        options:
+          - main
+          - develop
 
 # 设置GITHUB_TOKEN的权限
 permissions:
@@ -22,14 +31,38 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # 调试工作流信息
+  debug-workflow:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 打印工作流信息
+        run: |
+          echo "Event name: ${{ github.event_name }}"
+          echo "Workflow ref: ${{ github.ref }}"
+          echo "Actor: ${{ github.actor }}"
+          echo "Triggering workflow: ${{ github.event.workflow.name || 'N/A' }}"
+          
+          # 如果是workflow_run事件，打印相关信息
+          if [ "${{ github.event_name }}" == "workflow_run" ]; then
+            echo "Workflow run conclusion: ${{ github.event.workflow_run.conclusion }}"
+            echo "Workflow run head branch: ${{ github.event.workflow_run.head_branch }}"
+            echo "Workflow run id: ${{ github.event.workflow_run.id }}"
+          fi
+
+          # 如果是workflow_dispatch事件，打印相关信息
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "Selected branch: ${{ github.event.inputs.branch }}"
+          fi
+
   # 发布到主分支页面
   deploy-main:
+    needs: debug-workflow
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     if: |
-      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.branch == 'main') ||
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
     steps:
       - name: Checkout
@@ -80,9 +113,10 @@ jobs:
 
   # 发布到开发分支页面
   deploy-dev:
+    needs: debug-workflow
     runs-on: ubuntu-latest
     if: |
-      (github.event_name == 'workflow_dispatch') ||
+      (github.event_name == 'workflow_dispatch' && (github.event.inputs.branch == 'develop' || github.ref == 'refs/heads/develop')) ||
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'develop')
     steps:
       - name: Checkout
@@ -91,12 +125,35 @@ jobs:
           ref: develop
           fetch-depth: 0
 
-      - name: Set up artifact information
-        id: artifact-info
+      - name: 打印构件下载信息
         run: |
-          echo "Run ID: ${{ github.event.workflow_run.id }}"
-          echo "Repository: ${{ github.repository }}"
-          echo "Head Branch: ${{ github.event.workflow_run.head_branch }}"
+          echo "尝试从以下运行ID下载构件: ${{ github.event.workflow_run.id || 'manual trigger' }}"
+          echo "仓库: ${{ github.repository }}"
+          echo "分支: ${{ github.event.workflow_run.head_branch || github.ref }}"
+      
+      - name: 获取最新的workflow运行ID
+        id: get-run-id
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          # 使用GitHub CLI获取最新的workflow运行ID
+          echo "安装 GitHub CLI..."
+          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+          sudo apt update
+          sudo apt install gh
+          
+          # 使用GitHub CLI获取Build and Release Binary workflow的最新成功运行ID
+          LATEST_RUN_ID=$(gh run list --workflow "Build and Release Binary" --branch develop --json databaseId,conclusion,headBranch --jq '.[] | select(.conclusion=="success" and .headBranch=="develop") | .databaseId' --limit 1)
+          
+          if [ -n "$LATEST_RUN_ID" ]; then
+            echo "latest_run_id=$LATEST_RUN_ID" >> $GITHUB_OUTPUT
+            echo "找到最新的workflow运行ID: $LATEST_RUN_ID"
+          else
+            echo "未找到成功的workflow运行"
+            exit 1
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Download neko-status-dev artifacts
         uses: actions/download-artifact@v4
@@ -104,8 +161,13 @@ jobs:
           name: neko-status-dev-latest
           path: download-dev
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          run-id: ${{ github.event.workflow_run.id }}
+          run-id: ${{ github.event.workflow_run.id || steps.get-run-id.outputs.latest_run_id }}
       
+      - name: 检查下载的文件
+        run: |
+          echo "下载目录内容:"
+          find download-dev -type f | sort
+
       - name: Prepare dev directory
         run: |
           mkdir -p public-dev
