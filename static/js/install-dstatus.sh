@@ -42,6 +42,24 @@ show_banner() {
     echo -e "${NC}"
 }
 
+# 显示命令行用法
+show_usage() {
+    echo -e "${CYAN}${BOLD}DStatus 客户端管理工具 - 命令行用法${NC}"
+    echo "支持以下命令行参数:"
+    echo "------------------------"
+    echo -e "${GREEN}./install-dstatus.sh${NC} - 启动交互式菜单"
+    echo -e "${GREEN}./install-dstatus.sh install 注册密钥 服务器URL${NC} - 安装客户端"
+    echo -e "${GREEN}./install-dstatus.sh start${NC} - 启动服务"
+    echo -e "${GREEN}./install-dstatus.sh stop${NC} - 停止服务"
+    echo -e "${GREEN}./install-dstatus.sh restart${NC} - 重启服务"
+    echo -e "${GREEN}./install-dstatus.sh status${NC} - 查看服务状态"
+    echo -e "${GREEN}./install-dstatus.sh uninstall${NC} - 卸载服务"
+    echo -e "${GREEN}./install-dstatus.sh help${NC} - 显示此帮助信息"
+    echo "------------------------"
+    echo "示例: ./install-dstatus.sh install abc123 https://your-server.com"
+    echo ""
+}
+
 # 检查是否为root用户
 check_root() {
     if [ "$(id -u)" != "0" ]; then
@@ -742,6 +760,7 @@ main() {
             install)
                 if [ "$#" -lt 3 ]; then
                     print_error "使用方法: $0 install 注册密钥 服务器URL"
+                    show_usage
                     exit 1
                 fi
                 check_root
@@ -767,12 +786,21 @@ main() {
                 check_root
                 uninstall_service
                 ;;
+            help)
+                show_usage
+                exit 0
+                ;;
             *)
+                print_error "未知的命令: $1"
+                show_usage
                 show_menu
                 ;;
         esac
     else
-        # 无参数，显示菜单
+        # 无参数，先显示帮助信息再显示菜单
+        show_usage
+        echo "按Enter键继续进入交互式菜单..."
+        read
         show_menu
     fi
 }
