@@ -4,6 +4,10 @@ on:
   push:
     branches: [ "main", "develop" ]
     tags: [ 'v*.*.*' ]
+    paths:
+      - 'neko-status/**'
+      - '.github/workflows/build-release.yml'
+      - 'go.*'
   workflow_dispatch:
 
 jobs:

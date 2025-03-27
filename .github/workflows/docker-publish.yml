@@ -4,8 +4,28 @@ on:
   push:
     branches: [ "main", "develop" ]
     tags: [ 'v*.*.*' ]
+    paths:
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+      - 'docker-*.sh'
+      - '.github/workflows/docker-publish.yml'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'nekonekostatus.js'
+      - 'modules/**'
+      - 'views/**'
   pull_request:
     branches: [ "main" ]
+    paths:
+      - 'Dockerfile'
+      - 'docker-compose.yml'
+      - 'docker-*.sh'
+      - '.github/workflows/docker-publish.yml'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'nekonekostatus.js'
+      - 'modules/**'
+      - 'views/**'
 
 env:
   REGISTRY: ghcr.io
