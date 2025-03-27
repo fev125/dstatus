@@ -8,9 +8,9 @@ const traffic={
     ins(sid){
         this._ins.run({
             sid,
-            hs:JSON.stringify(new Array(24).fill([0,0])),
-            ds:JSON.stringify(new Array(31).fill([0,0])),
-            ms:JSON.stringify(new Array(12).fill([0,0]))
+            hs:JSON.stringify(Array(24).fill().map(() => [0, 0])),
+            ds:JSON.stringify(Array(31).fill().map(() => [0, 0])),
+            ms:JSON.stringify(Array(12).fill().map(() => [0, 0]))
         })
     },
     qry(sid){return this._qry.get(sid)},_qry: DB.prepare("SELECT * FROM traffic WHERE sid=?"),
@@ -19,9 +19,9 @@ const traffic={
         if(t)return {hs:JSON.parse(t.hs),ds:JSON.parse(t.ds),ms:JSON.parse(t.ms),}
         this.ins(sid);
         return {
-            hs:new Array(24).fill([0,0]),
-            ds:new Array(31).fill([0,0]),
-            ms:new Array(12).fill([0,0])
+            hs:Array(24).fill().map(() => [0, 0]),
+            ds:Array(31).fill().map(() => [0, 0]),
+            ms:Array(12).fill().map(() => [0, 0])
         };
     },_get:DB.prepare("SELECT hs,ds,ms FROM traffic WHERE sid=?"),
     UPD(sid,hs,ds,ms){this._UPD.run(JSON.stringify(hs),JSON.stringify(ds),JSON.stringify(ms),sid)},_UPD:DB.prepare("UPDATE traffic SET hs=?,ds=?,ms=? WHERE sid=?"),
