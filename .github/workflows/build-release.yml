@@ -78,7 +78,10 @@ jobs:
           # 创建发布目录
           mkdir -p release
           # 移动所有构建文件到发布目录
-          mv artifacts/binaries-*/* release/
+          # 先复制macos的构建文件
+          cp -f artifacts/binaries-macos-latest/* release/ || true
+          # 再复制ubuntu的构建文件（会覆盖重复的文件）
+          cp -f artifacts/binaries-ubuntu-latest/* release/ || true
           cd release
           # 生成校验和
           sha256sum neko-status_* > SHA256SUMS
@@ -88,6 +91,7 @@ jobs:
           else
             echo "$(date +%Y-%m-%d_%H:%M:%S)" > version.txt
           fi
+          echo "文件列表:"
           ls -la  # 显示文件列表以便调试
           
       # 如果是develop分支，先删除已存在的dev-latest标签
