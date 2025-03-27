@@ -286,14 +286,30 @@ async function handleInstallation(sid) {
         
         if (res.status) {
             notice('服务器添加成功，探针已安装', 'success');
+            setTimeout(() => location.href = '/admin/servers', 1000);
         } else {
-            notice('服务器已添加，但探针安装失败：' + res.data, 'info');
+            hideInstallModal();
+            const errorMsg = res.data || '未知错误';
+            const retryInstall = confirm(`探针安装失败: ${errorMsg}\n\n是否重试安装？`);
+            
+            if (retryInstall) {
+                return handleInstallation(sid); // 递归调用重试
+            } else {
+                notice('服务器已添加，但探针未安装', 'info');
+                setTimeout(() => location.href = '/admin/servers', 1000);
+            }
         }
-        setTimeout(() => location.href = '/admin/servers', 1000);
     } catch (error) {
         console.error('探针安装失败:', error);
-        notice('服务器已添加，但探针安装失败，您可以稍后手动安装', 'info');
-        setTimeout(() => location.href = '/admin/servers', 1000);
+        hideInstallModal();
+        
+        const retryInstall = confirm(`探针安装过程出错: ${error.message || '未知错误'}\n\n是否重试安装？`);
+        if (retryInstall) {
+            return handleInstallation(sid); // 递归调用重试
+        } else {
+            notice('服务器已添加，但探针未安装', 'info');
+            setTimeout(() => location.href = '/admin/servers', 1000);
+        }
     } finally {
         hideInstallModal();
     }
@@ -411,15 +427,46 @@ async function add() {
     try {
         // 基本验证
         const name = V('add_name');
-        if (!name) {
+        if (!name || name.trim() === '') {
             notice('请输入服务器名称', 'error');
             return;
         }
 
         const sshHost = V('add_ssh_host');
-        if (!sshHost) {
+        if (!sshHost || sshHost.trim() === '') {
             notice('请输入服务器地址', 'error');
             return;
+        }
+
+        // 验证IP地址格式
+        const ipRegex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+        const ipv6Regex = /^(?:[A-F0-9]{1,4}:){7}[A-F0-9]{1,4}$/i;
+        if (!ipRegex.test(sshHost) && !ipv6Regex.test(sshHost)) {
+            notice('请输入有效的IP地址（IPv4或IPv6）', 'error');
+            return;
+        }
+
+        // 验证端口号
+        const sshPort = parseInt(V('add_ssh_port')) || 22;
+        if (sshPort < 1 || sshPort > 65535) {
+            notice('端口号必须在1-65535之间', 'error');
+            return;
+        }
+
+        // 验证用户名
+        const sshUsername = V('add_ssh_username');
+        if (!sshUsername || sshUsername.trim() === '') {
+            notice('请输入SSH用户名', 'error');
+            return;
+        }
+
+        // 验证密码或私钥（改为非必填，但仍显示警告）
+        const sshPassword = V('add_ssh_password');
+        const sshPrivateKey = V('add_ssh_privateKey');
+        const hasCredentials = Boolean(sshPassword || sshPrivateKey);
+        if (!hasCredentials) {
+            notice('未提供SSH密码或私钥，此服务器将只能记录信息，无法安装探针或执行远程操作', 'warning');
+            // 继续执行，不返回
         }
 
         startloading();
@@ -435,16 +482,15 @@ async function add() {
         
         // 构建SSH配置数据
         const sshConfig = {
-            host: sshHost,
-            port: V('add_ssh_port') || 22,
-            username: V('add_ssh_username') || 'root',
-            password: V('add_ssh_password')
+            host: sshHost.trim(),
+            port: sshPort,
+            username: sshUsername.trim(),
+            password: sshPassword
         };
         
         // 添加私钥（如果有）
-        const privateKey = V('add_ssh_privateKey');
-        if (privateKey && privateKey.trim() !== '') {
-            sshConfig.privateKey = privateKey;
+        if (sshPrivateKey && sshPrivateKey.trim() !== '') {
+            sshConfig.privateKey = sshPrivateKey.trim();
             
             // 添加私钥密码（如果有）
             const passphrase = V('add_ssh_passphrase');
@@ -460,7 +506,8 @@ async function add() {
                 key: sid,
                 port: parseInt(V('add_api_port')) || 9999,
             },
-            device: V('add_device') || 'eth0'
+            device: V('add_device') || 'eth0',
+            recordOnly: !hasCredentials
         };
 
         // 添加流量相关数据
@@ -477,7 +524,7 @@ async function add() {
 
         const res = await postjson('/admin/servers/add', {
             sid,
-            name,
+            name: name.trim(),
             data,
             status,
             expire_time: expireTime,
@@ -489,8 +536,19 @@ async function add() {
         });
         
         if (res.status) {
-            // 添加成功后自动开始安装
-            await handleInstallation(res.data);
+            if (hasCredentials) {
+                // 有凭据，弹窗询问是否安装探针
+                if (confirm('服务器添加成功！是否立即安装探针？')) {
+                    await handleInstallation(res.data);
+                } else {
+                    notice('服务器已添加，您可以稍后手动安装探针', 'success');
+                    setTimeout(() => location.href = '/admin/servers', 1000);
+                }
+            } else {
+                // 没有凭据，直接提示
+                notice('服务器已添加（仅记录模式）', 'success');
+                setTimeout(() => location.href = '/admin/servers', 1000);
+            }
         } else {
             notice(res.msg || '添加失败', 'error');
         }

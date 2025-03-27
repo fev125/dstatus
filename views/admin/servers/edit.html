@@ -364,7 +364,108 @@
 
 {%block js%}
 <!-- 引入流量转换工具 -->
-<script src="/js/traffic-format.js"></script>
+<script>
+/**
+ * 流量格式化工具函数
+ */
+window.TrafficFormat = {
+    /**
+     * 将字节数转换为GB
+     * @param {number} bytes 字节数
+     * @returns {number} GB值,保留2位小数
+     */
+    bytesToGB(bytes) {
+        if (!bytes) return 0;
+        
+        // 使用安全的方式处理大数值
+        try {
+            const value = Number(bytes);
+            if (isNaN(value) || !isFinite(value)) return 0;
+            
+            // 1GB = 1024^3 bytes
+            const result = value / (1024 * 1024 * 1024);
+            return parseFloat(result.toFixed(2));
+        } catch (e) {
+            console.error('[TrafficFormat] 字节转GB失败:', e);
+            return 0;
+        }
+    },
+
+    /**
+     * 将GB转换为字节数
+     * @param {number} gb GB值
+     * @returns {number} 字节数
+     */
+    gbToBytes(gb) {
+        if (!gb) return 0;
+        try {
+            const value = Number(gb);
+            if (isNaN(value) || !isFinite(value)) return 0;
+            
+            // 处理非常大的值
+            if (value > Number.MAX_SAFE_INTEGER / (1024 * 1024 * 1024)) {
+                console.warn('[TrafficFormat] GB值过大，可能导致精度丢失');
+            }
+            
+            // 1GB = 1024^3 bytes
+            return Math.floor(value * 1024 * 1024 * 1024);
+        } catch (e) {
+            console.error('[TrafficFormat] GB转字节失败:', e);
+            return 0;
+        }
+    },
+
+    /**
+     * 格式化流量数值为可读字符串
+     * @param {number} bytes 字节数
+     * @returns {string} 格式化后的字符串
+     */
+    formatBytes(bytes) {
+        if (bytes === null || bytes === undefined || isNaN(bytes)) {
+            return '0 B';
+        }
+
+        try {
+            let value = Number(bytes);
+            if (!isFinite(value)) {
+                return '0 B';
+            }
+
+            const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB'];
+            const k = 1024;
+            
+            if (value === 0) return '0 B';
+            
+            // 使用对数计算来确定合适的单位级别
+            const i = Math.floor(Math.log(Math.abs(value)) / Math.log(k));
+            const unitIndex = Math.min(i, units.length - 1);
+            
+            value = value / Math.pow(k, unitIndex);
+
+            // 根据数值大小和单位级别决定小数位数
+            let decimals = 2;
+            if (unitIndex >= 4) decimals = 2; // TB及以上保留2位小数
+            else if (value >= 100) decimals = 1;
+            else if (value >= 10) decimals = 2;
+            else decimals = 3;
+
+            return value.toFixed(decimals) + ' ' + units[unitIndex];
+        } catch (e) {
+            console.error('[TrafficFormat] 格式化字节失败:', e);
+            return '0 B';
+        }
+    },
+
+    /**
+     * 格式化GB值为可读字符串
+     * @param {number} gb GB值
+     * @returns {string} 格式化后的字符串
+     */
+    formatGB(gb) {
+        return this.formatBytes(this.gbToBytes(gb));
+    }
+};
+</script>
 <script>
 // 工具函数
 function timestampToDate(timestamp) {
@@ -566,7 +667,7 @@ async function edit() {
             return;
         }
 
-        // 构造服务器配置数据
+        // 构造服务器配置数据 - 不检查SSH凭据，允许无凭据保存
         const serverData = {
             ssh: {
                 host: host,
@@ -650,9 +751,8 @@ async function edit() {
         // 优化错误提示
         if (error.message && error.message.includes('handleInstallation')) {
             notice('保存成功，但自动安装失败。您可以稍后手动安装。', 'info');
-            // 保持在当前页面，不再跳转
         } else {
-            notice('保存失败: 请确保服务器名称和IP地址已填写', 'error');
+            notice('保存失败: ' + (error.message || '发生未知错误'), 'error');
         }
     } finally {
         endloading();
@@ -745,11 +845,26 @@ async function init() {
                 hideInstallModal();
             }, 1000);
         } else {
-            throw new Error(res.data || '安装失败');
+            hideInstallModal();
+            const errorMsg = res.data || '未知错误';
+            const retryInstall = confirm(`探针安装失败: ${errorMsg}\n\n是否重试安装？`);
+            
+            if (retryInstall) {
+                return init(); // 递归调用重试
+            } else {
+                notice('探针安装失败', 'error');
+            }
         }
     } catch (error) {
         console.error('安装失败:', error);
-        notice(error.message || '安装失败', 'error');
+        hideInstallModal();
+        
+        const retryInstall = confirm(`安装过程出错: ${error.message || '未知错误'}\n\n是否重试安装？`);
+        if (retryInstall) {
+            return init(); // 递归调用重试
+        } else {
+            notice('探针安装失败: ' + (error.message || '未知错误'), 'error');
+        }
     } finally {
         hideInstallModal();
     }
@@ -772,11 +887,26 @@ async function update() {
                 hideInstallModal();
             }, 1000);
         } else {
-            throw new Error(res.data || '更新失败');
+            hideInstallModal();
+            const errorMsg = res.data || '未知错误';
+            const retryUpdate = confirm(`探针更新失败: ${errorMsg}\n\n是否重试更新？`);
+            
+            if (retryUpdate) {
+                return update(); // 递归调用重试
+            } else {
+                notice('探针更新失败', 'error');
+            }
         }
     } catch (error) {
         console.error('更新失败:', error);
-        notice(error.message || '更新失败', 'error');
+        hideInstallModal();
+        
+        const retryUpdate = confirm(`更新过程出错: ${error.message || '未知错误'}\n\n是否重试更新？`);
+        if (retryUpdate) {
+            return update(); // 递归调用重试
+        } else {
+            notice('探针更新失败: ' + (error.message || '未知错误'), 'error');
+        }
     } finally {
         hideInstallModal();
     }
@@ -831,7 +961,8 @@ async function testSSHConnection() {
         const passphrase = V('edit_ssh_passphrase');
         
         if (!password && !privateKey) {
-            notice('请提供密码或私钥', 'error');
+            notice('测试连接需要SSH密码或私钥，但您可以不提供这些信息也能保存服务器', 'info');
+            endloading();
             return;
         }
         

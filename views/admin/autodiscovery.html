@@ -733,8 +733,14 @@ async function viewServerDetail(serverId, isPending = false) {
             
             // 显示/隐藏审核按钮
             if (isPending) {
-                if (approveButton) approveButton.classList.remove('hidden');
-                if (rejectButton) rejectButton.onclick = () => rejectServer(serverId);
+                if (approveButton) {
+                    approveButton.classList.remove('hidden');
+                    approveButton.onclick = () => approveServer(serverId);
+                }
+                if (rejectButton) {
+                    rejectButton.classList.remove('hidden');
+                    rejectButton.onclick = () => rejectServer(serverId);
+                }
             } else {
                 if (approveButton) approveButton.classList.add('hidden');
                 if (rejectButton) rejectButton.classList.add('hidden');
@@ -801,6 +807,11 @@ function generateServerDetailHtml(server) {
 // 批准服务器
 async function approveServer(serverId) {
     try {
+        // 添加确认提示
+        if (!confirm('确定要批准此服务器吗？')) {
+            return;
+        }
+        
         // 修正API路径
         const response = await fetch(`/admin/autodiscovery/approve/${serverId}`, {
             method: 'POST',
@@ -833,6 +844,11 @@ async function approveServer(serverId) {
 // 拒绝服务器
 async function rejectServer(serverId) {
     try {
+        // 添加确认提示
+        if (!confirm('确定要拒绝此服务器吗？此操作不可恢复。')) {
+            return;
+        }
+        
         // 修正API路径
         const response = await fetch(`/admin/autodiscovery/reject/${serverId}`, {
             method: 'POST',
@@ -851,7 +867,7 @@ async function rejectServer(serverId) {
         if (result.success === true) {
             notice('服务器已拒绝', 'success');
             closeModal();
-            await refreshPendingServers();
+            await Promise.all([refreshPendingServers(), refreshDiscoveredServers()]);
         } else {
             notice(result.message || '拒绝服务器失败', 'error');
         }
