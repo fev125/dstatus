@@ -977,7 +977,7 @@ function generateInstallCommand() {
     const serverUrl = window.location.origin;
     
     // 构建安装命令 - 修正脚本路径
-    return `curl -s ${serverUrl}/js/install-dstatus.sh | bash -s -- "${registrationKey}" "${serverUrl}"`;
+    return `curl -s https://raw.githubusercontent.com/fev125/dstatus/refs/heads/develop/static/js/install-dstatus.sh | bash -s -- "${registrationKey}" "${serverUrl}"`;
 }
 
 // 显示复制命令弹窗
