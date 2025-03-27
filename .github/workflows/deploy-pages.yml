@@ -1,4 +1,4 @@
-name: Deploy Binaries to Pages dev
+name: Deploy Binaries to Pages
 
 on:
   workflow_run:
@@ -12,7 +12,7 @@ on:
 
 # 设置GITHUB_TOKEN的权限
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -29,7 +29,7 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     if: |
-      (github.event_name == 'workflow_dispatch') ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main')
     steps:
       - name: Checkout
@@ -40,6 +40,7 @@ jobs:
         with:
           name: neko-status-latest
           path: download
+          github-token: ${{ secrets.GITHUB_TOKEN }}
       
       - name: Setup Pages
         uses: actions/configure-pages@v3
@@ -75,32 +76,47 @@ jobs:
   deploy-dev:
     runs-on: ubuntu-latest
     if: |
-      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/develop') ||
+      (github.event_name == 'workflow_dispatch') ||
       (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'develop')
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          ref: develop
+          fetch-depth: 0
+
+      - name: Set up artifact information
+        id: artifact-info
+        run: |
+          echo "Run ID: ${{ github.event.workflow_run.id }}"
+          echo "Repository: ${{ github.repository }}"
+          echo "Head Branch: ${{ github.event.workflow_run.head_branch }}"
       
       - name: Download neko-status-dev artifacts
         uses: actions/download-artifact@v4
         with:
           name: neko-status-dev-latest
           path: download-dev
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ github.event.workflow_run.id }}
       
       - name: Prepare dev directory
         run: |
           mkdir -p public-dev
-          cp download-dev/neko-status public-dev/
-          cp download-dev/neko-status_darwin public-dev/
-          cp download-dev/neko-status_darwin_arm64 public-dev/
+          ls -la download-dev || echo "download-dev目录内容列表失败"
+          
+          # 如果文件存在则复制
+          [ -f download-dev/neko-status ] && cp download-dev/neko-status public-dev/ || echo "neko-status文件不存在"
+          [ -f download-dev/neko-status_darwin ] && cp download-dev/neko-status_darwin public-dev/ || echo "neko-status_darwin文件不存在"
+          [ -f download-dev/neko-status_darwin_arm64 ] && cp download-dev/neko-status_darwin_arm64 public-dev/ || echo "neko-status_darwin_arm64文件不存在"
           
           # 创建版本信息文件
           echo "DEV-$(date +%Y-%m-%d_%H:%M:%S)" > public-dev/version.txt
           
-          # 确保文件可执行
-          chmod +x public-dev/neko-status
-          chmod +x public-dev/neko-status_darwin
-          chmod +x public-dev/neko-status_darwin_arm64
+          # 确保文件可执行（如果存在）
+          [ -f public-dev/neko-status ] && chmod +x public-dev/neko-status
+          [ -f public-dev/neko-status_darwin ] && chmod +x public-dev/neko-status_darwin
+          [ -f public-dev/neko-status_darwin_arm64 ] && chmod +x public-dev/neko-status_darwin_arm64
           
           # 列出文件
           ls -la public-dev/
@@ -109,4 +125,6 @@ jobs:
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           folder: public-dev
-          target-folder: dev 
+          target-folder: dev
+          token: ${{ secrets.GITHUB_TOKEN }}
+          clean: false
