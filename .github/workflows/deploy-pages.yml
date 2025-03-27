@@ -48,17 +48,23 @@ jobs:
       - name: Prepare public directory
         run: |
           mkdir -p public
-          cp download/neko-status public/
-          cp download/neko-status_darwin public/
+          
+          # 复制二进制文件到public目录
+          cp download/neko-status_linux_amd64 public/
+          cp download/neko-status_linux_arm64 public/
+          cp download/neko-status_linux_arm7 public/
+          cp download/neko-status_linux_386 public/
+          cp download/neko-status_darwin_amd64 public/
           cp download/neko-status_darwin_arm64 public/
+          cp download/neko-status_linux_universal public/neko-status
+          cp download/neko-status_darwin_universal public/neko-status_darwin
+          cp download/SHA256SUMS public/
           
           # 创建版本信息文件
           echo "$(date +%Y-%m-%d_%H:%M:%S)" > public/version.txt
           
           # 确保文件可执行
-          chmod +x public/neko-status
-          chmod +x public/neko-status_darwin
-          chmod +x public/neko-status_darwin_arm64
+          chmod +x public/neko-status*
           
           # 列出文件
           ls -la public/
@@ -105,18 +111,22 @@ jobs:
           mkdir -p public-dev
           ls -la download-dev || echo "download-dev目录内容列表失败"
           
-          # 如果文件存在则复制
-          [ -f download-dev/neko-status ] && cp download-dev/neko-status public-dev/ || echo "neko-status文件不存在"
-          [ -f download-dev/neko-status_darwin ] && cp download-dev/neko-status_darwin public-dev/ || echo "neko-status_darwin文件不存在"
-          [ -f download-dev/neko-status_darwin_arm64 ] && cp download-dev/neko-status_darwin_arm64 public-dev/ || echo "neko-status_darwin_arm64文件不存在"
+          # 复制二进制文件到public-dev目录
+          cp download-dev/neko-status_linux_amd64 public-dev/ || echo "linux_amd64文件不存在"
+          cp download-dev/neko-status_linux_arm64 public-dev/ || echo "linux_arm64文件不存在" 
+          cp download-dev/neko-status_linux_arm7 public-dev/ || echo "linux_arm7文件不存在"
+          cp download-dev/neko-status_linux_386 public-dev/ || echo "linux_386文件不存在"
+          cp download-dev/neko-status_darwin_amd64 public-dev/ || echo "darwin_amd64文件不存在"
+          cp download-dev/neko-status_darwin_arm64 public-dev/ || echo "darwin_arm64文件不存在"
+          cp download-dev/neko-status_linux_universal public-dev/neko-status || echo "linux_universal文件不存在"
+          cp download-dev/neko-status_darwin_universal public-dev/neko-status_darwin || echo "darwin_universal文件不存在"
+          cp download-dev/SHA256SUMS public-dev/ || echo "SHA256SUMS文件不存在"
           
           # 创建版本信息文件
           echo "DEV-$(date +%Y-%m-%d_%H:%M:%S)" > public-dev/version.txt
           
-          # 确保文件可执行（如果存在）
-          [ -f public-dev/neko-status ] && chmod +x public-dev/neko-status
-          [ -f public-dev/neko-status_darwin ] && chmod +x public-dev/neko-status_darwin
-          [ -f public-dev/neko-status_darwin_arm64 ] && chmod +x public-dev/neko-status_darwin_arm64
+          # 确保文件可执行
+          find public-dev -type f -name "neko-status*" -exec chmod +x {} \;
           
           # 列出文件
           ls -la public-dev/
