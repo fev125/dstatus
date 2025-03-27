@@ -21,7 +21,18 @@ jobs:
         uses: actions/setup-go@v4
         with:
           go-version: '1.21'
-          cache: true
+          # 禁用缓存功能，避免缓存错误
+          cache: false
+      
+      - name: Check directory structure
+        run: |
+          echo "当前工作目录: $(pwd)"
+          echo "仓库根目录文件列表:"
+          ls -la
+          echo "neko-status目录文件列表:"
+          ls -la neko-status/
+          echo "查找go.sum文件:"
+          find . -name "go.sum"
       
       - name: Install dependencies
         run: |
