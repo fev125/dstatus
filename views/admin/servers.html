@@ -86,6 +86,11 @@
                                                 title="安装">
                                             <i class="material-icons">redo</i>
                                         </button>
+                                        <button onclick="resetTraffic('{{server.sid}}', '{{server.name}}')"
+                                                class="p-1.5 text-slate-400 hover:text-blue-400 rounded-md hover:bg-slate-800/50 transition-colors"
+                                                title="初始化流量数据">
+                                            <i class="material-icons">data_usage</i>
+                                        </button>
                                         <a href="/admin/servers/{{server.sid}}/"
                                            class="p-1.5 text-slate-400 hover:text-white rounded-md hover:bg-slate-800/50 transition-colors"
                                            title="编辑">
@@ -145,6 +150,20 @@ async function init(sid){
     var res = await postjson(`/admin/servers/${sid}/init`);
     endloading();
     notice(res.data);
+}
+
+async function resetTraffic(sid, serverName){
+    if(!confirm(`确认初始化 ${serverName} 的流量数据?\n这将清空所有历史流量记录，只保留未来新增的流量数据。`)) return;
+    startloading();
+    try {
+        const res = await postjson(`/admin/servers/${sid}/reset-traffic`);
+        endloading();
+        notice(res.data || '流量数据已初始化');
+        if(res.status) window.location.reload();
+    } catch(error) {
+        endloading();
+        notice('初始化流量数据失败: ' + (error.message || '未知错误'));
+    }
 }
 
 async function del(sid){

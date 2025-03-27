@@ -63,6 +63,10 @@ const traffic={
         try {
             var {hs,ds,ms} = this.get(sid);
             
+            // 忽略负值流量差额（只处理正向流量）
+            if (tf[0] < 0) tf[0] = 0;
+            if (tf[1] < 0) tf[1] = 0;
+            
             // 添加数据到每个时间段的最后一个元素
             hs[23][0] += tf[0];
             hs[23][1] += tf[1];

@@ -673,10 +673,18 @@ function calc(){
         let ni=stat.stat.net.total.in,
             no=stat.stat.net.total.out,
             t=db.lt.get(sid)||db.lt.ins(sid);
-        let ti=ni<t.traffic[0]?ni:ni-t.traffic[0],
-            to=no<t.traffic[1]?no:no-t.traffic[1];
+        
+        // 只处理正向流量差额，如果是负值则不计入
+        let ti=ni<t.traffic[0]?0:ni-t.traffic[0],
+            to=no<t.traffic[1]?0:no-t.traffic[1];
+        
+        // 更新最后记录的流量值
         db.lt.set(sid,[ni,no]);
-        db.traffic.add(sid,[ti,to]);
+        
+        // 只在有实际流量变化时更新记录
+        if (ti > 0 || to > 0) {
+            db.traffic.add(sid,[ti,to]);
+        }
     }
 }
 get();

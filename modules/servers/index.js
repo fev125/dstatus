@@ -175,6 +175,42 @@ svr.post("/admin/servers/:sid/update",async(req,res)=>{
         server=db.servers.get(sid);
     res.json(await updateServer(server,db.setting.get("neko_status_url")));
 });
+
+/**
+ * @description 重置服务器流量数据API端点
+ * 1. 为什么要添加：解决新添加服务器历史流量被均匀填充为网卡流量导致数据不准确的问题
+ * 2. 功能说明：清空指定服务器的所有历史流量记录，并重新初始化为空值
+ * 3. 影响范围：仅影响指定服务器的流量统计数据，不影响其他配置
+ * @added 2023-12-03
+ */
+svr.post("/admin/servers/:sid/reset-traffic", async(req, res) => {
+    try {
+        const { sid } = req.params;
+        const server = db.servers.get(sid);
+        
+        if (!server) {
+            return res.json(pr(0, '服务器不存在'));
+        }
+        
+        // 删除当前流量记录
+        db.traffic.del(sid);
+        
+        // 删除最后记录的流量值
+        db.lt.del(sid);
+        
+        // 重新初始化流量记录为空值
+        db.traffic.ins(sid);
+        
+        // 记录操作日志
+        console.log(`[${new Date().toISOString()}] 管理员重置了服务器 ${server.name} (${sid}) 的流量数据`);
+        
+        res.json(pr(1, `已成功重置 ${server.name} 的流量数据`));
+    } catch (error) {
+        console.error('重置流量数据失败:', error);
+        res.json(pr(0, '重置失败: ' + error.message));
+    }
+});
+
 svr.get("/admin/servers",(req,res)=>{
     res.render("admin/servers",{
         servers:db.servers.all()
