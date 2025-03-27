@@ -1,0 +1,52 @@
+{%set title = "登录"%}
+{%extends "./base.html"%}
+
+{%block nav%}{%endblock%}
+
+{%block content%}
+<!-- 覆盖容器样式 -->
+<div class="fixed inset-0 -mt-6 -mx-4">
+    <div class="flex items-center justify-center w-full h-full bg-gray-50 dark:bg-gray-900">
+        <!-- 登录卡片 -->
+        <div class="w-full max-w-md p-6 m-4 bg-white rounded-lg shadow-lg dark:bg-gray-800">
+            <!-- 标题区域 -->
+            <div class="mb-6">
+                <h1 class="text-2xl font-medium text-gray-900 dark:text-white">登录</h1>
+                <p class="text-sm text-gray-600 dark:text-gray-400">Login</p>
+            </div>
+            
+            <!-- 输入区域 -->
+            <div class="mb-6">
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3">
+                        <i class="material-icons text-gray-500">lock</i>
+                    </span>
+                    <input type="password" 
+                           id="password"
+                           class="w-full pl-10 pr-10 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                           placeholder="请输入密码">
+                    <span class="absolute inset-y-0 right-0 flex items-center pr-3 cursor-pointer" id="togglePassword">
+                        <i class="material-icons text-gray-500">visibility</i>
+                    </span>
+                </div>
+                <div class="mt-1 text-sm text-gray-500 dark:text-gray-400" id="password-helper"></div>
+            </div>
+
+            <!-- 按钮区域 -->
+            <div>
+                <button id="login" 
+                        class="flex items-center justify-center w-full px-4 py-2 text-white bg-blue-600 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    <i class="material-icons mr-2">done_all</i>
+                    <span>登录</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{%endblock%}
+
+{%block js%}
+<script src="/js/core.js"></script>
+<script src="/js/md5.min.js"></script>
+<script src="/js/login.js"></script>
+{%endblock%}

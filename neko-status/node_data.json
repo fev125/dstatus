@@ -1,0 +1,147 @@
+{
+  "data": {
+    "cpu": {
+      "multi": 0.0495049504830668,
+      "single": [
+        0.07843137250649956,
+        0.02000000001862645
+      ]
+    },
+    "disk": {
+      "free": 31983747072,
+      "total": 42157305856,
+      "used": 8331599872
+    },
+    "disks": [
+      {
+        "device": "/dev/vda1",
+        "free": 31983747072,
+        "fstype": "ext4",
+        "mount": "/",
+        "percent": 20.666075089402064,
+        "total": 42157305856,
+        "used": 8331599872
+      }
+    ],
+    "host": {
+      "hostname": "VM-4-17-debian",
+      "uptime": 521334,
+      "bootTime": 1742116089,
+      "procs": 112,
+      "os": "linux",
+      "platform": "debian",
+      "platformFamily": "debian",
+      "platformVersion": "11.1",
+      "kernelVersion": "5.10.0-33-amd64",
+      "kernelArch": "x86_64",
+      "virtualizationSystem": "",
+      "virtualizationRole": "guest",
+      "hostid": "6fb9ed0e-7f1c-4ef5-a70c-67d169681fd9"
+    },
+    "mem": {
+      "swap": {
+        "total": 1074786304,
+        "used": 233656320,
+        "free": 841129984,
+        "usedPercent": 21.739793215675366,
+        "sin": 46395392,
+        "sout": 309972992,
+        "pgin": 11359850496,
+        "pgout": 170255482880,
+        "pgfault": 3184839286784,
+        "pgmajfault": 122605568
+      },
+      "virtual": {
+        "total": 2065969152,
+        "available": 1057579008,
+        "used": 819798016,
+        "usedPercent": 39.68103856760781,
+        "free": 127905792,
+        "active": 674304000,
+        "inactive": 1086570496,
+        "wired": 0,
+        "laundry": 0,
+        "buffers": 200663040,
+        "cached": 917602304,
+        "writeback": 0,
+        "dirty": 331776,
+        "writebacktmp": 0,
+        "shared": 2318336,
+        "slab": 133378048,
+        "sreclaimable": 103190528,
+        "sunreclaim": 30187520,
+        "pagetables": 8302592,
+        "swapcached": 70160384,
+        "commitlimit": 2107768832,
+        "committedas": 2422407168,
+        "hightotal": 0,
+        "highfree": 0,
+        "lowtotal": 0,
+        "lowfree": 0,
+        "swaptotal": 1074786304,
+        "swapfree": 841129984,
+        "mapped": 193404928,
+        "vmalloctotal": 35184372087808,
+        "vmallocused": 15638528,
+        "vmallocchunk": 0,
+        "hugepagestotal": 0,
+        "hugepagesfree": 0,
+        "hugepagesize": 2097152
+      }
+    },
+    "net": {
+      "delta": {
+        "in": 2728,
+        "out": 8444
+      },
+      "devices": {
+        "br-4b1c686559be": {
+          "delta": {
+            "in": 0,
+            "out": 0
+          },
+          "total": {
+            "in": 0,
+            "out": 0
+          }
+        },
+        "docker0": {
+          "delta": {
+            "in": 0,
+            "out": 0
+          },
+          "total": {
+            "in": 0,
+            "out": 0
+          }
+        },
+        "eth0": {
+          "delta": {
+            "in": 2728,
+            "out": 8444
+          },
+          "total": {
+            "in": 2302698433,
+            "out": 878611793
+          }
+        },
+        "lo": {
+          "delta": {
+            "in": 0,
+            "out": 0
+          },
+          "total": {
+            "in": 18225398,
+            "out": 18225398
+          }
+        }
+      },
+      "total": {
+        "in": 2302698433,
+        "out": 878611793
+      }
+    },
+    "walled": false
+  },
+  "success": true
+}

@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" preserveAspectRatio="none">
+    <defs>
+        <filter id="neon-blur" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="5" result="blur"/>
+            <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+        </filter>
+        <linearGradient id="neon-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#8b5cf6"/>
+            <stop offset="50%" stop-color="#ec4899"/>
+            <stop offset="100%" stop-color="#3b82f6"/>
+        </linearGradient>
+        <linearGradient id="neon-gradient-2" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#3b82f6"/>
+            <stop offset="50%" stop-color="#8b5cf6"/>
+            <stop offset="100%" stop-color="#ec4899"/>
+        </linearGradient>
+        <linearGradient id="bg-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#0c1021"/>
+            <stop offset="100%" stop-color="#0f0f1a"/>
+        </linearGradient>
+        <pattern id="grid-pattern" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">
+            <path d="M 100 0 L 0 0 0 100" fill="none" stroke="#8b5cf6" stroke-width="0.5" opacity="0.3"/>
+        </pattern>
+    </defs>
+    
+    <!-- 背景 -->
+    <rect width="1920" height="1080" fill="url(#bg-gradient)"/>
+    <rect width="1920" height="1080" fill="url(#grid-pattern)"/>
+    
+    <!-- 左上角装饰 -->
+    <path d="M 0,0 L 500,0 L 500,20 L 20,20 L 20,500 L 0,500 Z" 
+          fill="none" stroke="url(#neon-gradient)" stroke-width="4" filter="url(#neon-blur)"/>
+    
+    <!-- 右上角装饰 -->
+    <path d="M 1420,0 L 1920,0 L 1920,500 L 1900,500 L 1900,20 L 1420,20 Z" 
+          fill="none" stroke="url(#neon-gradient)" stroke-width="4" filter="url(#neon-blur)"/>
+    
+    <!-- 左下角装饰 -->
+    <path d="M 0,580 L 20,580 L 20,1060 L 500,1060 L 500,1080 L 0,1080 Z" 
+          fill="none" stroke="url(#neon-gradient)" stroke-width="4" filter="url(#neon-blur)"/>
+    
+    <!-- 右下角装饰 -->
+    <path d="M 1420,1060 L 1900,1060 L 1900,580 L 1920,580 L 1920,1080 L 1420,1080 Z" 
+          fill="none" stroke="url(#neon-gradient)" stroke-width="4" filter="url(#neon-blur)"/>
+    
+    <!-- 四边霓虹装饰线 -->
+    <rect x="60" y="60" width="1800" height="960" rx="10" ry="10" 
+          fill="none" stroke="url(#neon-gradient-2)" stroke-width="2" 
+          filter="url(#neon-blur)" stroke-dasharray="80 40" stroke-linecap="round"/>
+    
+    <!-- 霓虹角标装饰 -->
+    <path d="M 0,0 L 100,100" stroke="#ec4899" stroke-width="4" filter="url(#neon-blur)"/>
+    <path d="M 1920,0 L 1820,100" stroke="#3b82f6" stroke-width="4" filter="url(#neon-blur)"/>
+    <path d="M 0,1080 L 100,980" stroke="#3b82f6" stroke-width="4" filter="url(#neon-blur)"/>
+    <path d="M 1920,1080 L 1820,980" stroke="#ec4899" stroke-width="4" filter="url(#neon-blur)"/>
+    
+    <!-- 中间装饰线条 -->
+    <line x1="0" y1="540" x2="1920" y2="540" stroke="#8b5cf6" stroke-width="1" stroke-dasharray="20 15"/>
+    <line x1="960" y1="0" x2="960" y2="1080" stroke="#8b5cf6" stroke-width="1" stroke-dasharray="20 15"/>
+    
+    <!-- 霓虹光效圆形 -->
+    <circle cx="960" cy="540" r="300" fill="none" stroke="url(#neon-gradient-2)" 
+            stroke-width="4" filter="url(#neon-blur)" opacity="0.4" stroke-dasharray="40 20"/>
+    <circle cx="960" cy="540" r="200" fill="none" stroke="url(#neon-gradient)" 
+            stroke-width="3" filter="url(#neon-blur)" opacity="0.5"/>
+    
+    <!-- 装饰性霓虹光线 -->
+    <path d="M 200,200 L 300,100 L 400,200 L 500,100 L 600,200 L 700,100" 
+          fill="none" stroke="#ec4899" stroke-width="2" filter="url(#neon-blur)" opacity="0.5"/>
+    <path d="M 1720,200 L 1620,100 L 1520,200 L 1420,100 L 1320,200 L 1220,100" 
+          fill="none" stroke="#3b82f6" stroke-width="2" filter="url(#neon-blur)" opacity="0.5"/>
+    
+    <path d="M 200,880 L 300,980 L 400,880 L 500,980 L 600,880 L 700,980" 
+          fill="none" stroke="#3b82f6" stroke-width="2" filter="url(#neon-blur)" opacity="0.5"/>
+    <path d="M 1720,880 L 1620,980 L 1520,880 L 1420,980 L 1320,880 L 1220,980" 
+          fill="none" stroke="#ec4899" stroke-width="2" filter="url(#neon-blur)" opacity="0.5"/>
+    
+    <!-- 点状装饰 -->
+    <g>
+        <circle cx="300" cy="300" r="5" fill="#8b5cf6" filter="url(#neon-blur)"/>
+        <circle cx="400" cy="350" r="3" fill="#ec4899" filter="url(#neon-blur)"/>
+        <circle cx="500" cy="250" r="4" fill="#3b82f6" filter="url(#neon-blur)"/>
+        <circle cx="600" cy="400" r="5" fill="#8b5cf6" filter="url(#neon-blur)"/>
+        <circle cx="700" cy="200" r="3" fill="#ec4899" filter="url(#neon-blur)"/>
+        
+        <circle cx="1620" cy="300" r="5" fill="#8b5cf6" filter="url(#neon-blur)"/>
+        <circle cx="1520" cy="350" r="3" fill="#ec4899" filter="url(#neon-blur)"/>
+        <circle cx="1420" cy="250" r="4" fill="#3b82f6" filter="url(#neon-blur)"/>
+        <circle cx="1320" cy="400" r="5" fill="#8b5cf6" filter="url(#neon-blur)"/>
+        <circle cx="1220" cy="200" r="3" fill="#ec4899" filter="url(#neon-blur)"/>
+        
+        <circle cx="300" cy="780" r="5" fill="#8b5cf6" filter="url(#neon-blur)"/>
+        <circle cx="400" cy="730" r="3" fill="#ec4899" filter="url(#neon-blur)"/>
+        <circle cx="500" cy="830" r="4" fill="#3b82f6" filter="url(#neon-blur)"/>
+        <circle cx="600" cy="680" r="5" fill="#8b5cf6" filter="url(#neon-blur)"/>
+        <circle cx="700" cy="880" r="3" fill="#ec4899" filter="url(#neon-blur)"/>
+        
+        <circle cx="1620" cy="780" r="5" fill="#8b5cf6" filter="url(#neon-blur)"/>
+        <circle cx="1520" cy="730" r="3" fill="#ec4899" filter="url(#neon-blur)"/>
+        <circle cx="1420" cy="830" r="4" fill="#3b82f6" filter="url(#neon-blur)"/>
+        <circle cx="1320" cy="680" r="5" fill="#8b5cf6" filter="url(#neon-blur)"/>
+        <circle cx="1220" cy="880" r="3" fill="#ec4899" filter="url(#neon-blur)"/>
+    </g>
+    
+    <!-- 扫描线效果 -->
+    <g opacity="0.1">
+        <rect x="0" y="100" width="1920" height="2" fill="#8b5cf6"/>
+        <rect x="0" y="300" width="1920" height="2" fill="#ec4899"/>
+        <rect x="0" y="500" width="1920" height="2" fill="#3b82f6"/>
+        <rect x="0" y="700" width="1920" height="2" fill="#ec4899"/>
+        <rect x="0" y="900" width="1920" height="2" fill="#8b5cf6"/>
+    </g>
+</svg>

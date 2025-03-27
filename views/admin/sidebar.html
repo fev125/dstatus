@@ -1,0 +1,213 @@
+<!-- 管理后台侧边栏 -->
+<div class="w-[60%] md:w-60 h-auto md:h-auto md:rounded-lg md:border md:shadow-lg fixed md:sticky top-16 md:top-20 left-0 md:left-auto bottom-0 z-40 transform transition-transform duration-300 bg-slate-800/95 backdrop-blur-md border-r border-slate-700/50 overflow-hidden md:border-slate-700/50 md:self-start md:max-h-[calc(100vh-5rem)]" id="admin-sidebar" style="--safe-top: calc(4rem + env(safe-area-inset-top));">
+    <!-- 侧边栏头部 -->
+    <div class="p-4 border-b border-slate-700/50 bg-slate-700/30">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <span class="text-purple-400">
+                    <i class="material-icons">admin_panel_settings</i>
+                </span>
+                <h2 class="text-lg font-medium text-white">管理控制台</h2>
+            </div>
+            <button id="close-sidebar" class="md:hidden p-2 text-slate-400 hover:text-white rounded-md hover:bg-slate-700/50 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500/40">
+                <i class="material-icons">close</i>
+            </button>
+        </div>
+    </div>
+    
+    <!-- 侧边栏菜单 -->
+    <nav class="py-3 overflow-y-auto" style="max-height: calc(100vh - 10rem); height: calc(100% - 4rem);">
+        <ul class="space-y-1 px-3">
+            <li>
+                <!-- 服务器管理 -->
+                <a href="/admin/servers" class="flex items-center gap-3 px-4 py-2.5 rounded-md text-slate-300 hover:text-white hover:bg-slate-700/50 transition-colors duration-200 group">
+                    <span class="text-slate-400 group-hover:text-purple-400 transition-colors duration-200">
+                        <i class="material-icons">dns</i>
+                    </span>
+                    <span>服务器管理</span>
+                </a>
+            </li>
+            
+            <li>
+                <!-- 分组管理 -->
+                <a href="/admin/groups" class="flex items-center gap-3 px-4 py-2.5 rounded-md text-slate-300 hover:text-white hover:bg-slate-700/50 transition-colors duration-200 group">
+                    <span class="text-slate-400 group-hover:text-purple-400 transition-colors duration-200">
+                        <i class="material-icons">folder</i>
+                    </span>
+                    <span>分组管理</span>
+                </a>
+            </li>
+            
+            <li>
+                <!-- 自动发现管理 -->
+                <a href="/admin/autodiscovery" class="flex items-center gap-3 px-4 py-2.5 rounded-md text-slate-300 hover:text-white hover:bg-slate-700/50 transition-colors duration-200 group">
+                    <span class="text-slate-400 group-hover:text-purple-400 transition-colors duration-200">
+                        <i class="material-icons">devices_other</i>
+                    </span>
+                    <span>自动发现管理</span>
+                </a>
+            </li>
+            
+            <li>
+                <!-- SSH脚本 -->
+                <a href="/admin/ssh_scripts" class="flex items-center gap-3 px-4 py-2.5 rounded-md text-slate-300 hover:text-white hover:bg-slate-700/50 transition-colors duration-200 group">
+                    <span class="text-slate-400 group-hover:text-purple-400 transition-colors duration-200">
+                        <i class="material-icons">format_align_left</i>
+                    </span>
+                    <span>SSH脚本</span>
+                </a>
+            </li>
+            
+            <li>
+                <!-- 通知管理 -->
+                <a href="/admin/notification-logs-page" class="flex items-center gap-3 px-4 py-2.5 rounded-md text-slate-300 hover:text-white hover:bg-slate-700/50 transition-colors duration-200 group">
+                    <span class="text-slate-400 group-hover:text-purple-400 transition-colors duration-200">
+                        <i class="material-icons">notifications_active</i>
+                    </span>
+                    <span>通知管理</span>
+                </a>
+            </li>
+            
+            <li>
+                <!-- 系统管理 -->
+                <div class="py-1">
+                    <div class="flex items-center px-4 py-2 text-sm text-slate-400">
+                        <span>系统管理</span>
+                    </div>
+                    <ul class="space-y-1">
+                        <li>
+                            <a href="/admin/setting" class="flex items-center px-4 py-2 text-sm text-slate-300 hover:bg-slate-700/50 hover:text-white {%if title == '管理设置'%}bg-slate-700/50 text-purple-400{%endif%}">
+                                <span class="text-slate-500 mr-3">
+                                    <i class="material-icons">settings</i>
+                                </span>
+                                <span>系统设置</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/admin/personalization" class="flex items-center px-4 py-2 text-sm text-slate-300 hover:bg-slate-700/50 hover:text-white {%if title == '美化设置'%}bg-slate-700/50 text-purple-400{%endif%}">
+                                <span class="text-slate-500 mr-3">
+                                    <i class="material-icons">brush</i>
+                                </span>
+                                <span>美化设置</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </li>
+            
+            <li class="mt-6 pt-4 border-t border-slate-800/30">
+                <!-- 返回前台 -->
+                <a href="/" class="flex items-center gap-3 px-4 py-2.5 rounded-md text-slate-300 hover:text-white hover:bg-slate-700/50 transition-colors duration-200 group">
+                    <span class="text-slate-400 group-hover:text-purple-400 transition-colors duration-200">
+                        <i class="material-icons">home</i>
+                    </span>
+                    <span>返回前台</span>
+                </a>
+            </li>
+        </ul>
+    </nav>
+</div>
+
+<!-- 移动端菜单按钮 - 移到右侧 -->
+<button id="toggle-sidebar" class="fixed top-20 right-4 md:hidden p-3 bg-purple-500/90 backdrop-blur text-white rounded-lg shadow-lg z-40 hover:bg-purple-600/90 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500" style="top: calc(4.5rem + env(safe-area-inset-top));">
+    <span>
+        <i class="material-icons toggle-icon">menu</i>
+    </span>
+</button>
+
+<!-- 移动端遮罩层 - 增强暗化效果 -->
+<div id="sidebar-overlay" class="fixed inset-0 bg-black opacity-0 pointer-events-none z-20 transition-opacity duration-300"></div>
+
+<!-- 侧边栏控制脚本 -->
+<script>
+// 侧边栏控制脚本
+document.addEventListener('DOMContentLoaded', function() {
+    const sidebar = document.getElementById('admin-sidebar');
+    const toggleButton = document.getElementById('toggle-sidebar');
+    const closeButton = document.getElementById('close-sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    const body = document.body;
+    const toggleIcon = toggleButton.querySelector('.toggle-icon');
+    
+    // 检查是否为移动设备
+    function isMobile() {
+        return window.innerWidth < 768;
+    }
+    
+    // 初始状态设置
+    function setInitialState() {
+        if (isMobile()) {
+            sidebar.classList.add('-translate-x-full');
+            overlay.classList.add('opacity-0', 'pointer-events-none');
+            overlay.classList.remove('opacity-70'); // 确保初始状态下没有遮罩
+            body.classList.remove('overflow-hidden'); // 确保初始状态下可以滚动
+            toggleIcon.textContent = 'menu';
+            // 移动端隐藏侧边栏，使用transform移出视图
+        } else {
+            sidebar.classList.remove('-translate-x-full');
+            overlay.classList.add('opacity-0', 'pointer-events-none');
+            overlay.classList.remove('opacity-70'); // 确保初始状态下没有遮罩
+            body.classList.remove('overflow-hidden'); // 确保初始状态下可以滚动
+            // 桌面端显示侧边栏
+        }
+        
+        // 高亮当前页面
+        highlightCurrentPage();
+    }
+    
+    // 切换侧边栏显示/隐藏
+    function toggleSidebar() {
+        sidebar.classList.toggle('-translate-x-full');
+        
+        // 控制遮罩层
+        if (sidebar.classList.contains('-translate-x-full')) {
+            // 菜单隐藏，移除遮罩层
+            overlay.classList.add('opacity-0', 'pointer-events-none');
+            overlay.classList.remove('opacity-70'); // 明确移除遮罩样式
+            body.classList.remove('overflow-hidden'); // 恢复滚动
+            toggleIcon.textContent = 'menu'; // 更改图标为菜单
+        } else {
+            // 菜单显示，添加遮罩层
+            overlay.classList.remove('opacity-0', 'pointer-events-none');
+            overlay.classList.add('opacity-70'); // 增强遮罩暗度
+            body.classList.add('overflow-hidden'); // 禁止滚动
+            toggleIcon.textContent = 'close'; // 更改图标为关闭
+        }
+    }
+    
+    // 高亮当前页面对应的菜单项
+    function highlightCurrentPage() {
+        const currentPath = window.location.pathname;
+        const menuItems = document.querySelectorAll('#admin-sidebar a');
+        
+        menuItems.forEach(item => {
+            // 移除所有高亮
+            item.classList.remove('bg-slate-700/50', 'text-white');
+            
+            // 检查路径匹配
+            if (item.getAttribute('href') === currentPath ||
+                (currentPath.startsWith(item.getAttribute('href')) && item.getAttribute('href') !== '/')) {
+                item.classList.add('bg-slate-700/50', 'text-white');
+                
+                // 高亮图标
+                const icon = item.querySelector('.material-icons');
+                if (icon) {
+                    icon.classList.remove('text-slate-400');
+                    icon.classList.add('text-purple-400');
+                }
+            }
+        });
+    }
+    
+    // 监听事件
+    if (toggleButton) toggleButton.addEventListener('click', toggleSidebar);
+    if (closeButton) closeButton.addEventListener('click', toggleSidebar);
+    if (overlay) overlay.addEventListener('click', toggleSidebar);
+    
+    // 窗口大小变化时调整
+    window.addEventListener('resize', setInitialState);
+    
+    // 初始化
+    setInitialState();
+});
+</script>

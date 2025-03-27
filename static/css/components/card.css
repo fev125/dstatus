@@ -1,0 +1,254 @@
+/**
+ * 卡片组件样式
+ * @description 统一的卡片样式定义，用于整个应用的卡片展示
+ * @modified 2024-03-xx
+ * 
+ * 更新说明:
+ * 1. 添加模糊效果支持
+ * 2. 使用CSS变量控制模糊参数
+ * 3. 优化性能处理
+ * 4. 添加自定义背景颜色支持
+ * 5. 添加背景图片支持
+ */
+
+/* CSS变量定义 */
+:root {
+    --card-bg-opacity: 0.95;
+    --card-blur-enabled: var(--blur-enabled, 0);
+    --card-blur-amount: var(--blur-amount, 5px);
+    --card-blur-quality: var(--blur-quality, normal);
+    --card-default-bg-color: rgba(20, 30, 50, var(--card-bg-opacity));
+}
+
+/* 卡片基础样式 */
+.card,
+.server-card {
+    position: relative;
+    overflow: hidden;
+    z-index: 1;
+    background-color: var(--card-bg-color, var(--card-default-bg-color));
+    transition: 
+        opacity 0.3s ease-in-out,
+        border-color 0.3s ease-in-out,
+        backdrop-filter 0.3s ease-in-out;
+}
+
+/* 模糊效果支持 */
+.card.blur-enabled,
+.server-card.blur-enabled {
+    --card-bg-opacity: 0.75;
+    backdrop-filter: blur(var(--card-blur-amount));
+    -webkit-backdrop-filter: blur(var(--card-blur-amount));
+}
+
+/* 标准质量模糊 */
+.card.blur-enabled[data-blur-quality="normal"],
+.server-card.blur-enabled[data-blur-quality="normal"] {
+    backdrop-filter: blur(var(--card-blur-amount));
+    -webkit-backdrop-filter: blur(var(--card-blur-amount));
+}
+
+/* 低质量模糊 (性能优化) */
+.card.blur-enabled[data-blur-quality="low"],
+.server-card.blur-enabled[data-blur-quality="low"] {
+    backdrop-filter: blur(var(--card-blur-amount));
+    -webkit-backdrop-filter: blur(var(--card-blur-amount));
+    transform: translateZ(0);
+    will-change: transform;
+}
+
+/* 背景图片支持 */
+.card.has-bg-image,
+.server-card.has-bg-image {
+    position: relative;
+    overflow: hidden;
+    z-index: 0;
+}
+
+.card.has-bg-image::before,
+.server-card.has-bg-image::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: var(--card-bg-image);
+    background-size: cover;
+    background-position: center;
+    opacity: var(--card-bg-image-opacity);
+    z-index: -1;
+    pointer-events: none;
+}
+
+.card.has-bg-image::after,
+.server-card.has-bg-image::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-color: var(--card-bg-color, var(--card-default-bg-color));
+    opacity: var(--card-bg-opacity, 0.95);
+    z-index: -2;
+    pointer-events: none;
+}
+
+.card.has-bg-image > *,
+.server-card.has-bg-image > * {
+    position: relative;
+    z-index: 1;
+}
+
+/* 移动端优化 */
+@media (max-width: 768px) {
+    .card,
+    .server-card {
+        background-color: rgba(20, 30, 50, 0.98);
+    }
+}
+
+/* 暗色模式 */
+.dark .card,
+.dark .server-card {
+    background-color: rgba(20, 30, 50, 0.95);
+}
+
+/* 卡片状态样式 */
+.card.offline,
+.server-card.offline {
+    opacity: 0.6 !important;
+    filter: brightness(0.8);
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+.card.online,
+.server-card.online {
+    opacity: 1 !important;
+    filter: none;
+    border-color: rgba(34, 197, 94, 0.3);
+}
+
+/* 数据缺失状态 */
+.card.data-missing,
+.server-card.data-missing {
+    animation: pulse-alert 1.5s infinite;
+    border-color: rgba(245, 158, 11, 0.3) !important;
+}
+
+/* 动画效果 */
+@keyframes pulse-alert {
+    0%, 100% { opacity: 0.95; }
+    50% { opacity: 0.6; }
+}
+
+/* 性能优化 */
+@media (prefers-reduced-motion: reduce) {
+    .card,
+    .server-card {
+        transition: none;
+        animation: none;
+    }
+}
+
+/* 确保数字等宽显示 */
+.card .tabular-nums,
+.server-card .tabular-nums {
+    font-variant-numeric: tabular-nums;
+}
+
+/* 卡片内部通用间距 */
+.card-padding {
+    padding: 0.75rem 0.75rem 0 0.75rem;
+}
+
+@media (min-width: 768px) {
+    .card-padding {
+        padding: 1.25rem 1.25rem 0 1.25rem;
+    }
+}
+
+/* 卡片边框样式 */
+.card-border {
+    border: 1px solid rgba(51, 65, 85, 0.5);
+    border-radius: 0.5rem;
+}
+
+/* 卡片悬浮效果 */
+.card-hover {
+    transition: border-color 0.2s ease-in-out;
+}
+
+.card-hover:hover {
+    border-color: rgba(51, 65, 85, 0.6);
+}
+
+/* 触摸设备优化 */
+@media (hover: none) {
+    .server-card {
+        touch-action: pan-y;
+    }
+}
+
+/* 卡片操作按钮样式 */
+.card-action {
+    margin: 1rem -0.75rem -1px -0.75rem; /* 添加上边距 */
+    border-top: 1px solid rgba(51, 65, 85, 0.3); /* 弱化边框 */
+    border-radius: 0 0 0.5rem 0.5rem; /* 保持与卡片底部一致的圆角 */
+    overflow: hidden; /* 确保按钮内容不超出圆角 */
+    display: flex; /* 使用flex布局确保内容居中 */
+    justify-content: center; /* 水平居中 */
+}
+
+.card-action a, 
+.card-action button {
+    padding: 0.75rem 0; /* 增加垂直内边距使按钮更高 */
+    width: 100%;
+    text-align: center;
+    color: rgba(156, 163, 175, 0.8); /* 更淡的文字颜色 */
+    font-size: 0.875rem; /* text-sm */
+    transition: all 0.2s ease;
+    display: flex; /* 使用flex布局实现图标和文字的对齐 */
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem; /* 图标和文字之间的间距 */
+    position: relative; /* 为悬浮效果做准备 */
+    font-weight: 400; /* 减轻字体粗细 */
+}
+
+.card-action a:hover,
+.card-action button:hover {
+    color: rgba(209, 213, 219, 1); /* 更柔和的高亮色 */
+    background-color: rgba(255, 255, 255, 0.07); /* 更微妙的hover效果 */
+}
+
+/* 添加按钮前的图标 */
+.card-action a:before,
+.card-action button:before {
+    content: ''; /* 默认无内容，在需要时可以添加 */
+}
+
+/* 详细信息按钮专用样式 */
+.card-action .detail-btn {
+    background: linear-gradient(to right, transparent, rgba(59, 130, 246, 0.05), transparent); /* 更弱的背景 */
+}
+
+.card-action .detail-btn:hover {
+    background: linear-gradient(to right, transparent, rgba(59, 130, 246, 0.15), transparent); /* 更弱的悬停背景 */
+}
+
+/* 平板和桌面响应式调整 */
+@media (min-width: 768px) {
+    .card-action {
+        margin: 1.5rem -1.25rem -1px -1.25rem; /* 大屏幕上有更多上边距 */
+    }
+    
+    .card-action a, 
+    .card-action button {
+        padding: 0.75rem 0; /* 保持一致的按钮高度 */
+    }
+}
+
+/* 在卡片内底部添加固定的操作按钮 */
+.card-bottom-action {
+    margin-top: auto; /* 将按钮推到底部 */
+    margin-left: -0.75rem;
+    margin-right: -0.75rem;
+    margin-bottom: -1px;
+    width: calc(100% + 1.5rem);
+} 

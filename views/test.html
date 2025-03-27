@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>高级服务器监控卡片设计</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #0f0f1a;
+            color: #fff;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .title {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 28px;
+            color: #e2e8f0;
+            text-shadow: 0 0 10px rgba(66, 153, 225, 0.5);
+        }
+        
+        .subtitle {
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 18px;
+            color: #a0aec0;
+        }
+        
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+        }
+        
+        @media (max-width: 768px) {
+            .card-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .mock-content {
+            position: relative;
+            z-index: 10;
+            padding: 12px;
+        }
+        
+        .mock-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background-color: #48bb78;
+            margin-right: 6px;
+        }
+        
+        .mock-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: #e2e8f0;
+        }
+        
+        .resource-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .resource-label {
+            font-size: 10px;
+            color: #a0aec0;
+            margin-right: 6px;
+        }
+        
+        .progress-bar {
+            flex-grow: 1;
+            height: 3px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background-color: #4299e1;
+            width: 45%;
+        }
+        
+        .progress-fill.memory {
+            background-color: #9f7aea;
+            width: 65%;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+            font-size: 10px;
+        }
+        
+        .stats-item {
+            display: flex;
+            align-items: center;
+        }
+        
+        .stats-label {
+            color: #a0aec0;
+            margin-right: 4px;
+        }
+        
+        .stats-value {
+            color: #e2e8f0;
+            font-weight: 500;
+        }
+        
+        .card-wrapper {
+            perspective: 1000px;
+        }
+        
+        /* 赛博朋克风格 */
+        .cyberpunk-card {
+            position: relative;
+            min-height: 150px;
+            background-color: #1a1a2e;
+            border-radius: 4px;
+            overflow: hidden;
+            isolation: isolate;
+            border: 1px solid rgba(252, 211, 77, 0.3);
+            box-shadow: 
+                0 0 5px rgba(252, 211, 77, 0.3),
+                0 0 15px rgba(252, 211, 77, 0.1),
+                inset 0 0 5px rgba(252, 211, 77, 0.1);
+        }
+        
+        .cyberpunk-card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                linear-gradient(90deg, transparent 0%, rgba(252, 211, 77, 0.1) 5%, transparent 10%),
+                linear-gradient(90deg, transparent 20%, rgba(239, 68, 68, 0.1) 30%, transparent 40%),
+                linear-gradient(90deg, transparent 50%, rgba(16, 185, 129, 0.1) 60%, transparent 70%),
+                linear-gradient(90deg, transparent 80%, rgba(59, 130, 246, 0.1) 90%, transparent 100%);
+            background-size: 300% 100%;
+            z-index: 1;
+            animation: cyberpunk-gradient 8s linear infinite;
+        }
+        
+        .cyberpunk-border {
+            position: absolute;
+            width: calc(100% - 2px);
+            height: calc(100% - 2px);
+            top: 1px;
+            left: 1px;
+            z-index: 2;
+            pointer-events: none;
+        }
+        
+        @keyframes cyberpunk-gradient {
+            0% {
+                background-position: 0% 0%;
+            }
+            100% {
+                background-position: 300% 0%;
+            }
+        }
+        
+        /* 霓虹科技风格 */
+        .neon-tech-card {
+            position: relative;
+            min-height: 150px;
+            background-color: #0c1021;
+            border-radius: 4px;
+            overflow: hidden;
+            isolation: isolate;
+        }
+        
+        .neon-tech-glow {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: 1;
+            pointer-events: none;
+            filter: blur(1px);
+        }
+        
+        .neon-grid {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: 1;
+            opacity: 0.15;
+            pointer-events: none;
+        }
+        
+        /* 工业仪表盘风格 */
+        .industrial-card {
+            position: relative;
+            min-height: 150px;
+            background-color: #0f172a;
+            border-radius: 4px;
+            overflow: hidden;
+            isolation: isolate;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+        }
+        
+        .industrial-frame {
+            position: absolute;
+            width: calc(100% - 2px);
+            height: calc(100% - 2px);
+            top: 1px;
+            left: 1px;
+            z-index: 1;
+            pointer-events: none;
+        }
+        
+        .industrial-accents {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: 2;
+            pointer-events: none;
+            opacity: 0.9;
+        }
+        
+        /* 全息科幻风格 */
+        .holographic-card {
+            position: relative;
+            min-height: 150px;
+            background-color: rgba(15, 23, 42, 0.8);
+            border-radius: 4px;
+            overflow: hidden;
+            isolation: isolate;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 0 30px rgba(56, 189, 248, 0.2);
+        }
+        
+        .holographic-border {
+            position: absolute;
+            width: calc(100% - 2px);
+            height: calc(100% - 2px);
+            top: 1px;
+            left: 1px;
+            z-index: 1;
+            pointer-events: none;
+        }
+        
+        .holographic-elements {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: 2;
+            pointer-events: none;
+            opacity: 0.7;
+        }
+        
+        @keyframes holographic-pulse {
+            0%, 100% {
+                filter: hue-rotate(0deg) brightness(1);
+            }
+            50% {
+                filter: hue-rotate(30deg) brightness(1.2);
+            }
+        }
+        
+        .card-title {
+            text-align: center;
+            margin: 20px 0;
+            font-size: 18px;
+            color: #e2e8f0;
+        }
+        
+        .card-description {
+            margin-bottom: 40px;
+            text-align: center;
+            color: #a0aec0;
+            font-size: 14px;
+        }
+        
+        .code-box {
+            margin-top: 15px;
+            background-color: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            overflow-x: auto;
+            color: #a0aec0;
+            position: relative;
+            z-index: 10;
+        }
+        
+        .copy-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background-color: rgba(59, 130, 246, 0.3);
+            border: none;
+            border-radius: 4px;
+            color: white;
+            padding: 3px 8px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .copy-btn:hover {
+            background-color: rgba(59, 130, 246, 0.5);
+        }
+        
+        .style-toggle {
+            display: flex;
+            justify-content: center;
+            margin: 30px 0;
+            gap: 10px;
+        }
+        
+        .style-btn {
+            background-color: rgba(59, 130, 246, 0.2);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            color: #e2e8f0;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .style-btn:hover, .style-btn.active {
+            background-color: rgba(59, 130, 246, 0.4);
+            border-color: rgba(59, 130, 246, 0.6);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="title">高级服务器监控卡片设计</h1>
+        <p class="subtitle">具有强烈视觉风格的卡片边框与背景设计</p>
+        
+        <div class="style-toggle">
+            <button class="style-btn active" data-style="all">所有风格</button>
+            <button class="style-btn" data-style="cyberpunk">赛博朋克</button>
+            <button class="style-btn" data-style="neon">霓虹科技</button>
+            <button class="style-btn" data-style="industrial">工业仪表盘</button>
+            <button class="style-btn" data-style="holographic">全息科幻</button>
+        </div>
+        
+        <div class="card-grid">
+            <!-- 赛博朋克风格 -->
+            <div class="card-wrapper" data-category="cyberpunk">
+                <h2 class="card-title">赛博朋克风格</h2>
+                <p class="card-description">霓虹边框搭配数字电路元素，彰显高科技未来感</p>
+                
+                <div class="cyberpunk-card">
+                    <svg class="cyberpunk-border" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200" preserveAspectRatio="none">
+                        <defs>
+                            <linearGradient id="cyber-edge-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.8"/>
+                                <stop offset="50%" stop-color="#10b981" stop-opacity="0.8"/>
+                                <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.8"/>
+                            </linearGradient>
+                            <filter id="cyber-glow" x="-50%" y="-50%" width="200%" height="200%">
+                                <feGaussianBlur stdDeviation="2" result="blur"/>
+                                <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+                            </filter>
+                        </defs>
+                        
+                        <!-- 上边线条装饰 -->
+                        <path d="M 0,0 L 110,0 L 130,20 L 270,20 L 290,0 L 400,0" fill="none" stroke="url(#cyber-edge-gradient)" stroke-width="2" filter="url(#cyber-glow)"/>
+                        
+                        <!-- 下边线条装饰 -->
+                        <path d="M 0,200 L 90,200 L 110,180 L 290,180 L 310,200 L 400,200" fill="none" stroke="url(#cyber-edge-gradient)" stroke-width="2" filter="url(#cyber-glow)"/>
+                        
+                        <!-- 左边切角装饰 -->
+                        <path d="M 0,0 L 0,40 L 15,55 L 15,145 L 0,160 L 0,200" fill="none" stroke="url(#cyber-edge-gradient)" stroke-width="2" filter="url(#cyber-glow)"/>
+                        
+                        <!-- 右边切角装饰 -->
+                        <path d="M 400,0 L 400,40 L 385,55 L 385,145 L 400,160 L 400,200" fill="none" stroke="url(#cyber-edge-gradient)" stroke-width="2" filter="url(#cyber-glow)"/>
+                        
+                        <!-- 电路图案装饰 -->
+                        <path d="M 15,55 L 60,55 L 60,35 M 60,55 L 60,75 L 40,75 L 40,125 L 60,125 L 60,145" fill="none" stroke="#f59e0b" stroke-width="1" stroke-opacity="0.5"/>
+                        <path d="M 385,55 L 340,55 L 340,35 M 340,55 L 340,75 L 360,75 L 360,125 L 340,125 L 340,145" fill="none" stroke="#3b82f6" stroke-width="1" stroke-opacity="0.5"/>
+                        
+                        <!-- 装饰性角落点 -->
+                        <circle cx="15" cy="55" r="3" fill="#f59e0b" filter="url(#cyber-glow)"/>
+                        <circle cx="15" cy="145" r="3" fill="#f59e0b" filter="url(#cyber-glow)"/>
+                        <circle cx="385" cy="55" r="3" fill="#3b82f6" filter="url(#cyber-glow)"/>
+                        <circle cx="385" cy="145" r="3" fill="#3b82f6" filter="url(#cyber-glow)"/>
+                        
+                        <!-- 小技术节点 -->
+                        <circle cx="60" cy="35" r="2" fill="#f59e0b" filter="url(#cyber-glow)"/>
+                        <circle cx="60" cy="55" r="2" fill="#f59e0b" filter="url(#cyber-glow)"/>
+                        <circle cx="60" cy="75" r="2" fill="#f59e0b" filter="url(#cyber-glow)"/>
+                        <circle cx="40" cy="75" r="2" fill="#f59e0b" filter="url(#cyber-glow)"/>
+                        <circle cx="40" cy="125" r="2" fill="#f59e0b" filter="url(#cyber-glow)"/>
+                        <circle cx="60" cy="125" r="2" fill="#f59e0b" filter="url(#cyber-glow)"/>
+                        <circle cx="60" cy="145" r="2" fill="#f59e0b" filter="url(#cyber-glow)"/>
+                        
+                        <circle cx="340" cy="35" r="2" fill="#3b82f6" filter="url(#cyber-glow)"/>
+                        <circle cx="340" cy="55" r="2" fill="#3b82f6" filter="url(#cyber-glow)"/>
+                        <circle cx="340" cy="75" r="2" fill="#3b82f6" filter="url(#cyber-glow)"/>
+                        <circle cx="360" cy="75" r="2" fill="#3b82f6" filter="url(#cyber-glow)"/>
+                        <circle cx="360" cy="125" r="2" fill="#3b82f6" filter="url(#cyber-glow)"/>
+                        <circle cx="340" cy="125" r="2" fill="#3b82f6" filter="url(#cyber-glow)"/>
+                        <circle cx="340" cy="145" r="2" fill="#3b82f6" filter="url(#cyber-glow)"/>
+                    </svg>
+                    
+                    <div class="mock-content">
+                        <div class="mock-header">
+                            <div class="status-dot"></div>
+                            <div class="mock-title">服务器节点 C-137</div>
+                        </div>
+                        <div class="resource-row">
+                            <span class="resource-label">CPU</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill"></div>
+                            </div>
+                        </div>
+                        <div class="resource-row">
+                            <span class="resource-label">内存</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill memory"></div>
+                            </div>
+                        </div>
+                        <div class="stats-grid">
+                            <div class="stats-item">
+                                <span class="stats-label">↓</span>
+                                <span class="stats-value">23 Mbps</span>
+                            </div>
+                            <div class="stats-item">
+                                <span class="stats-label">↑</span>
+                                <span class="stats-value">15 Mbps</span>
+                            </div>
+                            <div class="stats-item">
+                                <span class="stats-label">⬇</span>
+                                <span class="stats-value">1.2 TB</span>
+                            </div>
+                            <div class="stats-item">
+                                <span class="stats-label">⬆</span>
+                                <span class="stats-value">0.7 TB</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="code-box">
+                    <button class="copy-btn" data-code="cyberpunk">复制</button>
+<svg class="card-border" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200" preserveAspectRatio="none">
+    <defs>
+        <linearGradient id="cyber-edge-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.8"/>
+            <stop offset="50%" stop-color="#10b981" stop-opacity="0.8"/>
+            <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.8"/>
+        </linearGradient>
+        <filter id="cyber-glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="2" result="blur"/>
+            <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+        </filter>
+    </defs>
+    
+    <!-- 上边线条装饰 -->
+    <path d="M 0,0 L 110,0 L 130,20 L 270,20 L 290,0 L 400,0" fill="none" stroke="url(#cyber-edge-gradient)" stroke-width="2" filter="url(#cyber-glow)"/>
+    
+    <!-- 下边线条装饰 -->
+    <path d="M 0,200 L 90,200 L 110,180 L 290,180 L 310,200 L 400,200" fill="none" stroke="url(#cyber-edge-gradient)" stroke-width="2" filter="url(#cyber-glow)"/>
+    
+    <!-- 左边切角装饰 -->
+    <path d="M 0,0 L 0,40 L 15,55 L 15,145 L 0,160 L 0,200" fill="none" stroke="url(#cyber-edge-gradient)" stroke-width="2" filter="url(#cyber-glow)"/>
+    
+    <!-- 右边切角装饰 -->
+    <path d="M 400,0 L 400,40 L 385,55 L 385,145 L 400,160 L 400,200" fill="none" stroke="url(#cyber-edge-gradient)" stroke-width="2" filter="url(#cyber-glow)"/>
+    
+    <!-- 电路图案装饰 -->
+    <path d="M 15,55 L 60,55 L 60,35 M 60,55 L 60,75 L 40,75 L 40,125 L 60,125 L 60,145" fill="none" stroke="#f59e0b" stroke-width="1" stroke-opacity="0.5"/>
+    <path d="M 385,55 L 340,55 L 340,35 M 340,55 L 340,75 L 360,75 L 360,125 L 340,125 L 340,145" fill="none" stroke="#3b82f6" stroke-width="1" stroke-opacity="0.5"/>
+    
+    <!-- 装饰性角落点 -->
+    <circle cx="15" cy="55" r="3" fill="#f59e0b" filter="url(#cyber-glow)"/>
+    <circle cx="15" cy="145" r="3" fill="#f59e0b" filter="url(#cyber-glow)"/>
+    <circle cx="385" cy="55" r="3" fill="#3b82f6" filter="url(#cyber-glow)"/>
+    <circle cx="385" cy="145" r="3" fill="#3b82f6" filter="url(#cyber-glow)"/>
+    
+    <!-- 小技术节点 -->
+    <circle cx="60" cy="35" r="2" fill="#f59e0b" filter="url(#cyber-glow)"/>
+    <circle cx="60" cy="55" r="2" fill="#f59e0b" filter="url(#cyber-glow)"/>
+    <circle cx="60" cy="75" r="2" fill="#f59e0b" filter="url(#cyber-glow)"/>
+    <circle cx="40" cy="75" r="2" fill="#f59e0b" filter="url(#cyber-glow)"/>
+    <circle cx="40" cy="125" r="2" fill="#f59e0b" filter="url(#cyber-glow)"/>
+    <circle cx="60" cy="125" r="2" fill="#f59e0b" filter="url(#cyber-glow)"/>
+    <circle cx="60" cy="145" r="2" fill="#f59e0b" filter="url(#cyber-glow)"/>
+    
+    <circle cx="340" cy="35" r="2" fill="#3b82f6" filter="url(#cyber-glow)"/>
+    <circle cx="340" cy="55" r="2" fill="#3b82f6" filter="url(#cyber-glow)"/>
+    <circle cx="340" cy="75" r="2" fill="#3b82f6" filter="url(#cyber-glow)"/>
+    <circle cx="360" cy="75" r="2" fill="#3b82f6" filter="url(#cyber-glow)"/>
+    <circle cx="360" cy="125" r="2" fill="#3b82f6" filter="url(#cyber-glow)"/>
+    <circle cx="340" cy="125" r="2" fill="#3b82f6" filter="url(#cyber-glow)"/>
+    <circle cx="340" cy="145" r="2" fill="#3b82f6" filter="url(#cyber-glow)"/>
+</svg>
+                </div>
+            </div>
+            
+            <!-- 霓虹科技风格 -->
+            <div class="card-wrapper" data-category="neon">
+                <h2 class="card-title">霓虹科技风格</h2>
+                <p class="card-description">亮丽的霓虹灯效果搭配科技线条，营造未来感</p>
+                
+                <div class="neon-tech-card">
+                    <svg class="neon-grid" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200" preserveAspectRatio="none">
+                        <defs>
+                            <pattern id="grid-pattern" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+                                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#8b5cf6" stroke-width="0.5"/>
+                            </pattern>
+                        </defs>
+                        <rect width="100%" height="100%" fill="url(#grid-pattern)"/>
+                    </svg>
+                    
+                    <svg class="neon-tech-glow" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200" preserveAspectRatio="none">
+                        <defs>
+                            <filter id="neon-blur" x="-50%" y="-50%" width="200%" height="200%">
+                                <feGaussianBlur stdDeviation="3" result="blur"/>
+                                <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+                            </filter>
+                            <linearGradient id="neon-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stop-color="#8b5cf6"/>
+                                <stop offset="50%" stop-color="#ec4899"/>
+                                <stop offset="100%" stop-color="#3b82f6"/>
+                            </linearGradient>
+                            <linearGradient id="neon-gradient-2" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="#3b82f6"/>
+                                <stop offset="50%" stop-color="#8b5cf6"/>
+                                <stop offset="100%" stop-color="#ec4899"/>
+                            </linearGradient>
+                        </defs>
+                        
+                        <!-- 左上角装饰 -->
+                        <path d="M 0,0 L 100,0 L 100,5 L 5,5 L 5,100 L 0,100 Z" fill="none" stroke="url(#neon-gradient)" stroke-width="2" filter="url(#neon-blur)"/>
+                        
+                        <!-- 右上角装饰 -->
+                        <path d="M 300,0 L 400,0 L 400,100 L 395,100 L 395,5 L 300,5 Z" fill="none" stroke="url(#neon-gradient)" stroke-width="2" filter="url(#neon-blur)"/>
+                        
+                        <!-- 左下角装饰 -->
+                        <path d="M 0,100 L 5,100 L 5,195 L 100,195 L 100,200 L 0,200 Z" fill="none" stroke="url(#neon-gradient)" stroke-width="2" filter="url(#neon-blur)"/>
+                        
+                        <!-- 右下角装饰 -->
+                        <path d="M 300,195 L 395,195 L 395,100 L 400,100 L 400,200 L 300,200 Z" fill="none" stroke="url(#neon-gradient)" stroke-width="2" filter="url(#neon-blur)"/>
+                        
+                        <!-- 四边霓虹装饰线 -->
+                        <rect x="10" y="10" width="380" height="180" rx="5" ry="5" fill="none" stroke="url(#neon-gradient-2)" stroke-width="1" filter="url(#neon-blur)" stroke-dasharray="30 15" stroke-linecap="round"/>
+                        
+                        <!-- 霓虹角标装饰 -->
+                        <path d="M 0,0 L 20,20" stroke="#ec4899" stroke-width="2" filter="url(#neon-blur)"/>
+                        <path d="M 400,0 L 380,20" stroke="#3b82f6" stroke-width="2" filter="url(#neon-blur)"/>
+                        <path d="M 0,200 L 20,180" stroke="#3b82f6" stroke-width="2" filter="url(#neon-blur)"/>
+                        <path d="M 400,200 L 380,180" stroke="#ec4899" stroke-width="2" filter="url(#neon-blur)"/>
+                        
+                        <!-- 中间装饰线条 -->
+                        <line x1="0" y1="100" x2="400" y2="100" stroke="#8b5cf6" stroke-width="0.5" stroke-dasharray="5 3"/>
+                        <line x1="200" y1="0" x2="200" y2="200" stroke="#8b5cf6" stroke-width="0.5" stroke-dasharray="5 3"/>
+                    </svg>
+                    
+                    <div class="mock-content">
+                        <div class="mock-header">
+                            <div class="status-dot"></div>
+                            <div class="mock-title">服务器节点 N-X12</div>
+                        </div>
+                        <div class="resource-row">
+                            <span class="resource-label">CPU</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill"></div>
+                            </div>
+                        </div>
+                        <div class="resource-row">
+                            <span class="resource-label">内存</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill memory"></div>
+                            </div>
+                        </div>
+                        <div class="stats-grid">
+                            <div class="stats-item">
+                                <span class="stats-label">↓</span>
+                                <span class="stats-value">23 Mbps</span>
+                            </div>
+                            <div class="stats-item">
+                                <span class="stats-label">↑</span>
+                                <span class="stats-value">15 Mbps</span>
+                            </div>
+                            <div class="stats-item">
+                                <span class="stats-label">⬇</span>
+                                <span class="stats-value">1.2 TB</span>
+                            </div>
+                            <div class="stats-item">
+                                <span class="stats-label">⬆</span>
+                                <span class="stats-value">0.7 TB</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="code-box">
+                    <button class="copy-btn" data-code="neon">复制</button>
+<svg class="card-border" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200" preserveAspectRatio="none">
+    <defs>
+        <filter id="neon-blur" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="3" result="blur"/>
+            <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+        </filter>
+        <linearGradient id="neon-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#8b5cf6"/>
+            <stop offset="50%" stop-color="#ec4899"/>
+            <stop offset="100%" stop-color="#3b82f6"/>
+        </linearGradient>
+        <linearGradient id="neon-gradient-2" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#3b82f6"/>
+            <stop offset="50%" stop-color="#8b5cf6"/>
+            <stop offset="100%" stop-color="#ec4899"/>
+        </linearGradient>
+        <pattern id="grid-pattern" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+            <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#8b5cf6" stroke-width="0.5"/>
+        </pattern>
+    </defs>
+    
+    <!-- 背景网格 -->
+    <rect width="100%" height="100%" fill="url(#grid-pattern)" opacity="0.15"/>
+    
+    <!-- 左上角装饰 -->
+    <path d="M 0,0 L 100,0 L 100,5 L 5,5 L 5,100 L 0,100 Z" fill="none" stroke="url(#neon-gradient)" stroke-width="2" filter="url(#neon-blur)"/>
+    
+    <!-- 右上角装饰 -->
+    <path d="M 300,0 L 400,0 L 400,100 L 395,100 L 395,5 L 300,5 Z" fill="none" stroke="url(#neon-gradient)" stroke-width="2" filter="url(#neon-blur)"/>
+    
+    <!-- 左下角装饰 -->
+    <path d="M 0,100 L 5,100 L 5,195 L 100,195 L 100,200 L 0,200 Z" fill="none" stroke="url(#neon-gradient)" stroke-width="2" filter="url(#neon-blur)"/>
+    
+    <!-- 右下角装饰 -->
+    <path d="M 300,195 L 395,195 L 395,100 L 400,100 L 400,200 L 300,200 Z" fill="none" stroke="url(#neon-gradient)" stroke-width="2" filter="url(#neon-blur)"/>
+    
+    <!-- 四边霓虹装饰线 -->
+    <rect x="10" y="10" width="380" height="180" rx="5" ry="5" fill="none" stroke="url(#neon-gradient-2)" stroke-width="1" filter="url(#neon-blur)" stroke-dasharray="30 15" stroke-linecap="round"/>
+    
+    <!-- 霓虹角标装饰 -->
+    <path d="M 0,0 L 20,20" stroke="#ec4899" stroke-width="2" filter="url(#neon-blur)"/>
+    <path d="M 400,0 L 380,20" stroke="#3b82f6" stroke-width="2" filter="url(#neon-blur)"/>
+    <path d="M 0,200 L 20,180" stroke="#3b82f6" stroke-width="2" filter="url(#neon-blur)"/>
+    <path d="M 400,200 L 380,180" stroke="#ec4899" stroke-width="2" filter="url(#neon-blur)"/>
+    
+    <!-- 中间装饰线条 -->
+    <line x1="0" y1="100" x2="400" y2="100" stroke="#8b5cf6" stroke-width="0.5" stroke-dasharray="5 3"/>
+    <line x1="200" y1="0" x2="200" y2="200" stroke="#8b5cf6" stroke-width="0.5" stroke-dasharray="5 3"/>
+</svg>
+                </div>
+            </div>
+            
+            <!-- 工业仪表盘风格 -->
+            <div class="card-wrapper" data-category="industrial">
+                <h2 class="card-title">工业仪表盘风格</h2>
+                <p class="card-description">强调工业质感和技术细节，适合系统监控界面</p>
+                
+                <div class="industrial-card">
+                    <svg class="industrial-frame" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200" preserveAspectRatio="none">
+                        <defs>
+                            <linearGradient id="steel-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stop-color="#64748b"/>
+                                <stop offset="50%" stop-color="#334155"/>
+                                <stop offset="100%" stop-color="#1e293b"/>
+                            </linearGradient>
+                            <pattern id="dot-pattern" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse">
+                                <circle cx="5" cy="5" r="1" fill="#64748b" fill-opacity="0.5"/>
+                            </pattern>
+                        </defs>
+                        
+                        <!-- 工业风边框 -->
+                        <path d="M 0,0 L 20,0 L 25,5 L 375,5 L 380,0 L 400,0 L 400,20 L 395,25 L 395,175 L 400,180 L 400,200 L 380,200 L 375,195 L 25,195 L 20,200 L 0,200 L 0,180 L 5,175 L 5,25 L 0,20 Z" fill="none" stroke="#64748b" stroke-width="2"/>
+                        
+                        <!-- 边角金属螺丝装饰 -->
+                        <circle cx="20" cy="20" r="6" fill="url(#steel-gradient)" stroke="#94a3b8" stroke-width="1"/>
+                        <circle cx="20" cy="20" r="3" fill="none" stroke="#94a3b8" stroke-width="1"/>
+                        <circle cx="20" cy="20" r="1" fill="#94a3b8"/>
+                        
+                        <circle cx="380" cy="20" r="6" fill="url(#steel-gradient)" stroke="#94a3b8" stroke-width="1"/>
+                        <circle cx="380" cy="20" r="3" fill="none" stroke="#94a3b8" stroke-width="1"/>
+                        <circle cx="380" cy="20" r="1" fill="#94a3b8"/>
+                        
+                        <circle cx="20" cy="180" r="6" fill="url(#steel-gradient)" stroke="#94a3b8" stroke-width="1"/>
+                        <circle cx="20" cy="180" r="3" fill="none" stroke="#94a3b8" stroke-width="1"/>
+                        <circle cx="20" cy="180" r="1" fill="#94a3b8"/>
+                        
+                        <circle cx="380" cy="180" r="6" fill="url(#steel-gradient)" stroke="#94a3b8" stroke-width="1"/>
+                        <circle cx="380" cy="180" r="3" fill="none" stroke="#94a3b8" stroke-width="1"/>
+                        <circle cx="380" cy="180" r="1" fill="#94a3b8"/>
+                        
+                        <!-- 金属面板纹理 -->
+                        <rect x="30" y="30" width="340" height="140" fill="url(#dot-pattern)" stroke="#334155" stroke-width="1"/>
+                        
+                        <!-- 工业指示标签 -->
+                        <path d="M 400,60 L 385,60 L 380,65 L 380,75 L 385,80 L 400,80" fill="none" stroke="#64748b" stroke-width="1.5"/>
+                        <path d="M 400,120 L 385,120 L 380,125 L 380,135 L 385,140 L 400,140" fill="none" stroke="#64748b" stroke-width="1.5"/>
+                        
+                        <path d="M 0,60 L 15,60 L 20,65 L 20,75 L 15,80 L 0,80" fill="none" stroke="#64748b" stroke-width="1.5"/>
+                        <path d="M 0,120 L 15,120 L 20,125 L 20,135 L 15,140 L 0,140" fill="none" stroke="#64748b" stroke-width="1.5"/>
+                    </svg>
+                    
+                    <svg class="industrial-accents" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200" preserveAspectRatio="none">
+                        <defs>
+                            <linearGradient id="warning-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="#f59e0b"/>
+                                <stop offset="100%" stop-color="#d97706"/>
+                            </linearGradient>
+                        </defs>
+                        
+                        <!-- 警示条纹 -->
+                        <rect x="40" y="155" width="80" height="10" fill="url(#warning-gradient)"/>
+                        <rect x="140" y="155" width="80" height="10" fill="url(#warning-gradient)"/>
+                        <rect x="240" y="155" width="80" height="10" fill="url(#warning-gradient)"/>
+                        
+                        <!-- 辅助技术参数线 -->
+                        <path d="M 40,145 L 320,145" stroke="#64748b" stroke-width="0.5" stroke-dasharray="5 2"/>
+                        <path d="M 40,130 L 320,130" stroke="#64748b" stroke-width="0.5" stroke-dasharray="5 2"/>
+                        <path d="M 40,115 L 320,115" stroke="#64748b" stroke-width="0.5" stroke-dasharray="5 2"/>
+                        <path d="M 40,100 L 320,100" stroke="#64748b" stroke-width="0.5" stroke-dasharray="5 2"/>
+                    </svg>
+                    
+                    <div class="mock-content">
+                        <div class="mock-header">
+                            <div class="status-dot"></div>
+                            <div class="mock-title">服务器节点 ID-629</div>
+                        </div>
+                        <div class="resource-row">
+                            <span class="resource-label">CPU</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill"></div>
+                            </div>
+                        </div>
+                        <div class="resource-row">
+                            <span class="resource-label">内存</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill memory"></div>
+                            </div>
+                        </div>
+                        <div class="stats-grid">
+                            <div class="stats-item">
+                                <span class="stats-label">↓</span>
+                                <span class="stats-value">23 Mbps</span>
+                            </div>
+                            <div class="stats-item">
+                                <span class="stats-label">↑</span>
+                                <span class="stats-value">15 Mbps</span>
+                            </div>
+                            <div class="stats-item">
+                                <span class="stats-label">⬇</span>
+                                <span class="stats-value">1.2 TB</span>
+                            </div>
+                            <div class="stats-item">
+                                <span class="stats-label">⬆</span>
+                                <span class="stats-value">0.7 TB</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="code-box">
+                    <button class="copy-btn" data-code="industrial">复制</button>
+<svg class="card-border" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200" preserveAspectRatio="none">
+    <defs>
+        <linearGradient id="steel-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#64748b"/>
+            <stop offset="50%" stop-color="#334155"/>
+            <stop offset="100%" stop-color="#1e293b"/>
+        </linearGradient>
+        <pattern id="dot-pattern" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse">
+            <circle cx="5" cy="5" r="1" fill="#64748b" fill-opacity="0.5"/>
+        </pattern>
+        <linearGradient id="warning-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#f59e0b"/>
+            <stop offset="100%" stop-color="#d97706"/>
+        </linearGradient>
+    </defs>
+    
+    <!-- 工业风边框 -->
+    <path d="M 0,0 L 20,0 L 25,5 L 375,5 L 380,0 L 400,0 L 400,20 L 395,25 L 395,175 L 400,180 L 400,200 L 380,200 L 375,195 L 25,195 L 20,200 L 0,200 L 0,180 L 5,175 L 5,25 L 0,20 Z" fill="none" stroke="#64748b" stroke-width="2"/>
+    
+    <!-- 边角金属螺丝装饰 -->
+    <circle cx="20" cy="20" r="6" fill="url(#steel-gradient)" stroke="#94a3b8" stroke-width="1"/>
+    <circle cx="20" cy="20" r="3" fill="none" stroke="#94a3b8" stroke-width="1"/>
+    <circle cx="20" cy="20" r="1" fill="#94a3b8"/>
+    
+    <circle cx="380" cy="20" r="6" fill="url(#steel-gradient)" stroke="#94a3b8" stroke-width="1"/>
+    <circle cx="380" cy="20" r="3" fill="none" stroke="#94a3b8" stroke-width="1"/>
+    <circle cx="380" cy="20" r="1" fill="#94a3b8"/>
+    
+    <circle cx="20" cy="180" r="6" fill="url(#steel-gradient)" stroke="#94a3b8" stroke-width="1"/>
+    <circle cx="20" cy="180" r="3" fill="none" stroke="#94a3b8" stroke-width="1"/>
+    <circle cx="20" cy="180" r="1" fill="#94a3b8"/>
+    
+    <circle cx="380" cy="180" r="6" fill="url(#steel-gradient)" stroke="#94a3b8" stroke-width="1"/>
+    <circle cx="380" cy="180" r="3" fill="none" stroke="#94a3b8" stroke-width="1"/>
+    <circle cx="380" cy="180" r="1" fill="#94a3b8"/>
+    
+    <!-- 金属面板纹理 -->
+    <rect x="30" y="30" width="340" height="140" fill="url(#dot-pattern)" stroke="#334155" stroke-width="1"/>
+    
+    <!-- 工业指示标签 -->
+    <path d="M 400,60 L 385,60 L 380,65 L 380,75 L 385,80 L 400,80" fill="none" stroke="#64748b" stroke-width="1.5"/>
+    <path d="M 400,120 L 385,120 L 380,125 L 380,135 L 385,140 L 400,140" fill="none" stroke="#64748b" stroke-width="1.5"/>
+    
+    <path d="M 0,60 L 15,60 L 20,65 L 20,75 L 15,80 L 0,80" fill="none" stroke="#64748b" stroke-width="1.5"/>
+    <path d="M 0,120 L 15,120 L 20,125 L 20,135 L 15,140 L 0,140" fill="none" stroke="#64748b" stroke-width="1.5"/>
+    
+    <!-- 警示条纹 -->
+    <rect x="40" y="155" width="80" height="10" fill="url(#warning-gradient)"/>
+    <rect x="140" y="155" width="80" height="10" fill="url(#warning-gradient)"/>
+    <rect x="240" y="155" width="80" height="10" fill="url(#warning-gradient)"/>
+    
+    <!-- 辅助技术参数线 -->
+    <path d="M 40,145 L 320,145" stroke="#64748b" stroke-width="0.5" stroke-dasharray="5 2"/>
+    <path d="M 40,130 L 320,130" stroke="#64748b" stroke-width="0.5" stroke-dasharray="5 2"/>
+    <path d="M 40,115 L 320,115" stroke="#64748b" stroke-width="0.5" stroke-dasharray="5 2"/>
+    <path d="M 40,100 L 320,100" stroke="#64748b" stroke-width="0.5" stroke-dasharray="5 2"/>
+</svg>
+                </div>
+            </div>
+            
+            <!-- 全息科幻风格 -->
+            <div class="card-wrapper" data-category="holographic">
+                <h2 class="card-title">全息科幻风格</h2>
+                <p class="card-description">半透明全息效果，展现高科技视觉冲击力</p>
+                
+                <div class="holographic-card">
+                    <svg class="holographic-border" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200" preserveAspectRatio="none">
+                        <defs>
+                            <linearGradient id="holo-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.7"/>
+                                <stop offset="50%" stop-color="#8b5cf6" stop-opacity="0.5"/>
+                                <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.7"/>
+                            </linearGradient>
+                            <filter id="holo-glow" x="-50%" y="-50%" width="200%" height="200%">
+                                <feGaussianBlur stdDeviation="5" result="blur"/>
+                                <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+                            </filter>
+                            <filter id="holo-noise" x="0%" y="0%" width="100%" height="100%">
+                                <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch" result="noise"/>
+                                <feComposite in="SourceGraphic" in2="noise" operator="arithmetic" k1="0" k2="0.1" k3="0.1" k4="0"/>
+                            </filter>
+                        </defs>
+                        
+                        <!-- 全息外框 -->
+                        <rect x="2" y="2" width="396" height="196" rx="6" ry="6" fill="none" stroke="url(#holo-gradient)" stroke-width="2" filter="url(#holo-glow)"/>
+                        
+                        <!-- 棱角化边框装饰 -->
+                        <path d="M 0,0 L 50,0 L 70,20 L 330,20 L 350,0 L 400,0" fill="none" stroke="#38bdf8" stroke-width="1" stroke-opacity="0.5" filter="url(#holo-glow)"/>
+                        <path d="M 0,200 L 50,200 L 70,180 L 330,180 L 350,200 L 400,200" fill="none" stroke="#38bdf8" stroke-width="1" stroke-opacity="0.5" filter="url(#holo-glow)"/>
+                        
+                        <!-- 水平中轴线 -->
+                        <line x1="0" y1="100" x2="400" y2="100" stroke="#38bdf8" stroke-width="0.5" stroke-dasharray="5 3" stroke-opacity="0.3"/>
+                        
+                        <!-- 全息交叉线条 -->
+                        <path d="M 50,0 L 350,200" stroke="#38bdf8" stroke-width="0.5" stroke-opacity="0.2"/>
+                        <path d="M 350,0 L 50,200" stroke="#38bdf8" stroke-width="0.5" stroke-opacity="0.2"/>
+                    </svg>
+                    
+                    <svg class="holographic-elements" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200" preserveAspectRatio="none">
+                        <defs>
+                            <radialGradient id="circle-glow" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+                                <stop offset="0%" stop-color="#0ea5e9" stop-opacity="0.8"/>
+                                <stop offset="100%" stop-color="#0ea5e9" stop-opacity="0"/>
+                            </radialGradient>
+                            <filter id="holo-distort" x="0%" y="0%" width="100%" height="100%">
+                                <feTurbulence type="fractalNoise" baseFrequency="0.01" numOctaves="1" result="noise"/>
+                                <feDisplacementMap in="SourceGraphic" in2="noise" scale="5" xChannelSelector="R" yChannelSelector="G"/>
+                            </filter>
+                        </defs>
+                        
+                        <!-- 全息装饰圆形 -->
+                        <circle cx="50" cy="50" r="30" fill="url(#circle-glow)" filter="url(#holo-distort)" opacity="0.15"/>
+                        <circle cx="350" cy="150" r="40" fill="url(#circle-glow)" filter="url(#holo-distort)" opacity="0.15"/>
+                        
+                        <!-- 扫描线效果 -->
+                        <g opacity="0.1">
+                            <rect x="0" y="20" width="400" height="1" fill="#38bdf8"/>
+                            <rect x="0" y="40" width="400" height="1" fill="#38bdf8"/>
+                            <rect x="0" y="60" width="400" height="1" fill="#38bdf8"/>
+                            <rect x="0" y="80" width="400" height="1" fill="#38bdf8"/>
+                            <rect x="0" y="100" width="400" height="1" fill="#38bdf8"/>
+                            <rect x="0" y="120" width="400" height="1" fill="#38bdf8"/>
+                            <rect x="0" y="140" width="400" height="1" fill="#38bdf8"/>
+                            <rect x="0" y="160" width="400" height="1" fill="#38bdf8"/>
+                            <rect x="0" y="180" width="400" height="1" fill="#38bdf8"/>
+                        </g>
+                        
+                        <!-- 数据可视化风格装饰 -->
+                        <path d="M 30,160 L 60,130 L 90,150 L 120,110 L 150,140 L 180,90 L 210,120 L 240,80 L 270,130 L 300,70 L 330,110 L 360,60" 
+                              fill="none" stroke="#38bdf8" stroke-width="1" stroke-opacity="0.3"/>
+                    </svg>
+                    
+                    <div class="mock-content">
+                        <div class="mock-header">
+                            <div class="status-dot"></div>
+                            <div class="mock-title">服务器节点 H-782</div>
+                        </div>
+                        <div class="resource-row">
+                            <span class="resource-label">CPU</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill"></div>
+                            </div>
+                        </div>
+                        <div class="resource-row">
+                            <span class="resource-label">内存</span>
+                            <div class="progress-bar">
+                                <div class="progress-fill memory"></div>
+                            </div>
+                        </div>
+                        <div class="stats-grid">
+                            <div class="stats-item">
+                                <span class="stats-label">↓</span>
+                                <span class="stats-value">23 Mbps</span>
+                            </div>
+                            <div class="stats-item">
+                                <span class="stats-label">↑</span>
+                                <span class="stats-value">15 Mbps</span>
+                            </div>
+                            <div class="stats-item">
+                                <span class="stats-label">⬇</span>
+                                <span class="stats-value">1.2 TB</span>
+                            </div>
+                            <div class="stats-item">
+                                <span class="stats-label">⬆</span>
+                                <span class="stats-value">0.7 TB</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="code-box">
+                    <button class="copy-btn" data-code="holographic">复制</button>
+<svg class="card-border" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200" preserveAspectRatio="none">
+    <defs>
+        <linearGradient id="holo-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.7"/>
+            <stop offset="50%" stop-color="#8b5cf6" stop-opacity="0.5"/>
+            <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.7"/>
+        </linearGradient>
+        <filter id="holo-glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="5" result="blur"/>
+            <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+        </filter>
+        <radialGradient id="circle-glow" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+            <stop offset="0%" stop-color="#0ea5e9" stop-opacity="0.8"/>
+            <stop offset="100%" stop-color="#0ea5e9" stop-opacity="0"/>
+        </radialGradient>
+    </defs>
+    
+    <!-- 全息外框 -->
+    <rect x="2" y="2" width="396" height="196" rx="6" ry="6" fill="none" stroke="url(#holo-gradient)" stroke-width="2" filter="url(#holo-glow)"/>
+    
+    <!-- 棱角化边框装饰 -->
+    <path d="M 0,0 L 50,0 L 70,20 L 330,20 L 350,0 L 400,0" fill="none" stroke="#38bdf8" stroke-width="1" stroke-opacity="0.5" filter="url(#holo-glow)"/>
+    <path d="M 0,200 L 50,200 L 70,180 L 330,180 L 350,200 L 400,200" fill="none" stroke="#38bdf8" stroke-width="1" stroke-opacity="0.5" filter="url(#holo-glow)"/>
+    
+    <!-- 水平中轴线 -->
+    <line x1="0" y1="100" x2="400" y2="100" stroke="#38bdf8" stroke-width="0.5" stroke-dasharray="5 3" stroke-opacity="0.3"/>
+    
+    <!-- 全息交叉线条 -->
+    <path d="M 50,0 L 350,200" stroke="#38bdf8" stroke-width="0.5" stroke-opacity="0.2"/>
+    <path d="M 350,0 L 50,200" stroke="#38bdf8" stroke-width="0.5" stroke-opacity="0.2"/>
+    
+    <!-- 全息装饰圆形 -->
+    <circle cx="50" cy="50" r="30" fill="url(#circle-glow)" opacity="0.15"/>
+    <circle cx="350" cy="150" r="40" fill="url(#circle-glow)" opacity="0.15"/>
+    
+    <!-- 扫描线效果 (部分) -->
+    <g opacity="0.1">
+        <rect x="0" y="40" width="400" height="1" fill="#38bdf8"/>
+        <rect x="0" y="80" width="400" height="1" fill="#38bdf8"/>
+        <rect x="0" y="120" width="400" height="1" fill="#38bdf8"/>
+        <rect x="0" y="160" width="400" height="1" fill="#38bdf8"/>
+    </g>
+    
+    <!-- 数据可视化风格装饰 -->
+    <path d="M 30,160 L 60,130 L 90,150 L 120,110 L 150,140 L 180,90 L 210,120 L 240,80 L 270,130 L 300,70 L 330,110 L 360,60" 
+          fill="none" stroke="#38bdf8" stroke-width="1" stroke-opacity="0.3"/>
+</svg>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 复制按钮功能
+        document.querySelectorAll('.copy-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const code = this.closest('.code-box').textContent;
+                navigator.clipboard.writeText(code)
+                    .then(() => {
+                        const originalText = this.textContent;
+                        this.textContent = '已复制!';
+                        setTimeout(() => {
+                            this.textContent = originalText;
+                        }, 2000);
+                    })
+                    .catch(err => {
+                        console.error('复制失败: ', err);
+                        alert('复制失败，请手动复制代码。');
+                    });
+            });
+        });
+        
+        // 风格切换功能
+        document.querySelectorAll('.style-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const style = this.dataset.style;
+                
+                // 更新按钮状态
+                document.querySelectorAll('.style-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                this.classList.add('active');
+                
+                // 更新卡片显示
+                if (style === 'all') {
+                    document.querySelectorAll('.card-wrapper').forEach(card => {
+                        card.style.display = 'block';
+                    });
+                } else {
+                    document.querySelectorAll('.card-wrapper').forEach(card => {
+                        if (card.dataset.category === style) {
+                            card.style.display = 'block';
+                        } else {
+                            card.style.display = 'none';
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

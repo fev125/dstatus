@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  web:
+    image: ghcr.io/fev125/dstatus:latest  # 使用 latest 标签
+    container_name: dstatus
+    user: "${UID:-1000}:${GID:-1000}"  # 使用当前用户权限
+    ports:
+      - "0.0.0.0:${WEB_PORT:-5555}:5555"      # Web 管理界面端口
+    volumes:
+      - /root/dstatus/database:/app/database
+      - /root/dstatus/logs:/app/logs
+    environment:
+      - NODE_ENV=production
+      - TZ=Asia/Shanghai
+      # 禁用 Telegram Bot，除非配置了 HTTPS
+      - BOT_ENABLED=false
+    restart: unless-stopped  # 添加自动重启策略
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5555"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"  # 开启Watchtower监控
+
+  # 添加Watchtower容器用于自动更新
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_CLEANUP=true                # 清理旧镜像
+      - WATCHTOWER_POLL_INTERVAL=86400         # 每24小时检查一次更新(秒)
+      - WATCHTOWER_NOTIFICATION_REPORT=false   # 禁用更新报告
+      - WATCHTOWER_INCLUDE_STOPPED=false       # 不更新已停止的容器
+      - TZ=Asia/Shanghai
+    restart: unless-stopped
+    command: --label-enable  # 只更新带有特定标签的容器
+
+volumes:
+  dstatus-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /root/dstatus/database
+  dstatus-logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /root/dstatus/logs

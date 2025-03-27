@@ -1,0 +1,170 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" preserveAspectRatio="none">
+    <defs>
+        <linearGradient id="steel-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#64748b"/>
+            <stop offset="50%" stop-color="#334155"/>
+            <stop offset="100%" stop-color="#1e293b"/>
+        </linearGradient>
+        <linearGradient id="bg-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#0f172a"/>
+            <stop offset="100%" stop-color="#1e293b"/>
+        </linearGradient>
+        <pattern id="dot-pattern" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+            <circle cx="10" cy="10" r="1" fill="#64748b" fill-opacity="0.5"/>
+        </pattern>
+        <linearGradient id="warning-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#f59e0b"/>
+            <stop offset="100%" stop-color="#d97706"/>
+        </linearGradient>
+        <filter id="slight-blur" x="-5%" y="-5%" width="110%" height="110%">
+            <feGaussianBlur stdDeviation="2"/>
+        </filter>
+    </defs>
+    
+    <!-- 背景 -->
+    <rect width="1920" height="1080" fill="url(#bg-gradient)"/>
+    
+    <!-- 工业风边框 -->
+    <path d="M 0,0 L 100,0 L 120,20 L 1800,20 L 1820,0 L 1920,0 L 1920,100 L 1900,120 L 1900,960 L 1920,980 L 1920,1080 L 1820,1080 L 1800,1060 L 120,1060 L 100,1080 L 0,1080 L 0,980 L 20,960 L 20,120 L 0,100 Z" 
+          fill="none" stroke="#64748b" stroke-width="5"/>
+    
+    <!-- 边角金属螺丝装饰 -->
+    <circle cx="100" cy="100" r="30" fill="url(#steel-gradient)" stroke="#94a3b8" stroke-width="2"/>
+    <circle cx="100" cy="100" r="15" fill="none" stroke="#94a3b8" stroke-width="2"/>
+    <circle cx="100" cy="100" r="5" fill="#94a3b8"/>
+    
+    <circle cx="1820" cy="100" r="30" fill="url(#steel-gradient)" stroke="#94a3b8" stroke-width="2"/>
+    <circle cx="1820" cy="100" r="15" fill="none" stroke="#94a3b8" stroke-width="2"/>
+    <circle cx="1820" cy="100" r="5" fill="#94a3b8"/>
+    
+    <circle cx="100" cy="980" r="30" fill="url(#steel-gradient)" stroke="#94a3b8" stroke-width="2"/>
+    <circle cx="100" cy="980" r="15" fill="none" stroke="#94a3b8" stroke-width="2"/>
+    <circle cx="100" cy="980" r="5" fill="#94a3b8"/>
+    
+    <circle cx="1820" cy="980" r="30" fill="url(#steel-gradient)" stroke="#94a3b8" stroke-width="2"/>
+    <circle cx="1820" cy="980" r="15" fill="none" stroke="#94a3b8" stroke-width="2"/>
+    <circle cx="1820" cy="980" r="5" fill="#94a3b8"/>
+    
+    <!-- 金属面板纹理区域 -->
+    <rect x="160" y="160" width="1600" height="760" fill="url(#dot-pattern)" stroke="#334155" stroke-width="2"/>
+    
+    <!-- 工业指示标签 - 右侧 -->
+    <path d="M 1920,300 L 1860,300 L 1840,320 L 1840,380 L 1860,400 L 1920,400" fill="none" stroke="#64748b" stroke-width="3"/>
+    <path d="M 1920,500 L 1860,500 L 1840,520 L 1840,580 L 1860,600 L 1920,600" fill="none" stroke="#64748b" stroke-width="3"/>
+    <path d="M 1920,700 L 1860,700 L 1840,720 L 1840,780 L 1860,800 L 1920,800" fill="none" stroke="#64748b" stroke-width="3"/>
+    
+    <!-- 工业指示标签 - 左侧 -->
+    <path d="M 0,300 L 60,300 L 80,320 L 80,380 L 60,400 L 0,400" fill="none" stroke="#64748b" stroke-width="3"/>
+    <path d="M 0,500 L 60,500 L 80,520 L 80,580 L 60,600 L 0,600" fill="none" stroke="#64748b" stroke-width="3"/>
+    <path d="M 0,700 L 60,700 L 80,720 L 80,780 L 60,800 L 0,800" fill="none" stroke="#64748b" stroke-width="3"/>
+    
+    <!-- 警示条纹 -->
+    <rect x="200" y="880" width="300" height="40" fill="url(#warning-gradient)"/>
+    <rect x="550" y="880" width="300" height="40" fill="url(#warning-gradient)"/>
+    <rect x="900" y="880" width="300" height="40" fill="url(#warning-gradient)"/>
+    <rect x="1250" y="880" width="300" height="40" fill="url(#warning-gradient)"/>
+    
+    <!-- 工业仪表盘元素 -->
+    <circle cx="960" cy="400" r="180" fill="none" stroke="#64748b" stroke-width="4"/>
+    <circle cx="960" cy="400" r="160" fill="none" stroke="#64748b" stroke-width="1" stroke-dasharray="5 2"/>
+    <circle cx="960" cy="400" r="140" fill="none" stroke="#64748b" stroke-width="1" stroke-dasharray="5 2"/>
+    <circle cx="960" cy="400" r="120" fill="none" stroke="#64748b" stroke-width="1" stroke-dasharray="5 2"/>
+    <circle cx="960" cy="400" r="100" fill="none" stroke="#64748b" stroke-width="1" stroke-dasharray="5 2"/>
+    
+    <!-- 刻度线 -->
+    <g>
+        <!-- 0度 -->
+        <line x1="960" y1="400" x2="960" y2="240" stroke="#64748b" stroke-width="2"/>
+        <text x="960" y="230" text-anchor="middle" fill="#94a3b8" font-family="monospace" font-size="12">0</text>
+        
+        <!-- 30度 -->
+        <line x1="960" y1="400" x2="1050" y2="280" stroke="#64748b" stroke-width="1"/>
+        <text x="1060" y="270" text-anchor="middle" fill="#94a3b8" font-family="monospace" font-size="12">30</text>
+        
+        <!-- 60度 -->
+        <line x1="960" y1="400" x2="1116" y2="320" stroke="#64748b" stroke-width="1"/>
+        <text x="1126" y="320" text-anchor="middle" fill="#94a3b8" font-family="monospace" font-size="12">60</text>
+        
+        <!-- 90度 -->
+        <line x1="960" y1="400" x2="1140" y2="400" stroke="#64748b" stroke-width="2"/>
+        <text x="1150" y="400" text-anchor="middle" fill="#94a3b8" font-family="monospace" font-size="12">90</text>
+        
+        <!-- 120度 -->
+        <line x1="960" y1="400" x2="1116" y2="480" stroke="#64748b" stroke-width="1"/>
+        <text x="1126" y="480" text-anchor="middle" fill="#94a3b8" font-family="monospace" font-size="12">120</text>
+        
+        <!-- 150度 -->
+        <line x1="960" y1="400" x2="1050" y2="520" stroke="#64748b" stroke-width="1"/>
+        <text x="1060" y="530" text-anchor="middle" fill="#94a3b8" font-family="monospace" font-size="12">150</text>
+        
+        <!-- 180度 -->
+        <line x1="960" y1="400" x2="960" y2="560" stroke="#64748b" stroke-width="2"/>
+        <text x="960" y="570" text-anchor="middle" fill="#94a3b8" font-family="monospace" font-size="12">180</text>
+        
+        <!-- 210度 -->
+        <line x1="960" y1="400" x2="870" y2="520" stroke="#64748b" stroke-width="1"/>
+        <text x="860" y="530" text-anchor="middle" fill="#94a3b8" font-family="monospace" font-size="12">210</text>
+        
+        <!-- 240度 -->
+        <line x1="960" y1="400" x2="804" y2="480" stroke="#64748b" stroke-width="1"/>
+        <text x="794" y="480" text-anchor="middle" fill="#94a3b8" font-family="monospace" font-size="12">240</text>
+        
+        <!-- 270度 -->
+        <line x1="960" y1="400" x2="780" y2="400" stroke="#64748b" stroke-width="2"/>
+        <text x="770" y="400" text-anchor="middle" fill="#94a3b8" font-family="monospace" font-size="12">270</text>
+        
+        <!-- 300度 -->
+        <line x1="960" y1="400" x2="804" y2="320" stroke="#64748b" stroke-width="1"/>
+        <text x="794" y="320" text-anchor="middle" fill="#94a3b8" font-family="monospace" font-size="12">300</text>
+        
+        <!-- 330度 -->
+        <line x1="960" y1="400" x2="870" y2="280" stroke="#64748b" stroke-width="1"/>
+        <text x="860" y="270" text-anchor="middle" fill="#94a3b8" font-family="monospace" font-size="12">330</text>
+    </g>
+    
+    <!-- 指针 -->
+    <path d="M 960,400 L 940,390 L 880,390 L 880,410 L 940,410 Z" fill="url(#warning-gradient)" stroke="#64748b" stroke-width="1"/>
+    <circle cx="960" cy="400" r="10" fill="url(#steel-gradient)" stroke="#94a3b8" stroke-width="1"/>
+    
+    <!-- 辅助技术参数线 -->
+    <path d="M 200,800 L 1720,800" stroke="#64748b" stroke-width="1" stroke-dasharray="10 5"/>
+    <path d="M 200,750 L 1720,750" stroke="#64748b" stroke-width="1" stroke-dasharray="10 5"/>
+    <path d="M 200,700 L 1720,700" stroke="#64748b" stroke-width="1" stroke-dasharray="10 5"/>
+    <path d="M 200,650 L 1720,650" stroke="#64748b" stroke-width="1" stroke-dasharray="10 5"/>
+    <path d="M 200,600 L 1720,600" stroke="#64748b" stroke-width="1" stroke-dasharray="10 5"/>
+    
+    <!-- 底部控制面板 -->
+    <rect x="400" y="950" width="1120" height="60" fill="url(#steel-gradient)" stroke="#64748b" stroke-width="2" rx="5" ry="5"/>
+    <circle cx="500" cy="980" r="15" fill="#0f172a" stroke="#64748b" stroke-width="1"/>
+    <circle cx="600" cy="980" r="15" fill="#0f172a" stroke="#64748b" stroke-width="1"/>
+    <circle cx="700" cy="980" r="15" fill="#0f172a" stroke="#64748b" stroke-width="1"/>
+    <rect x="800" y="965" width="100" height="30" rx="5" ry="5" fill="#0f172a" stroke="#64748b" stroke-width="1"/>
+    <rect x="950" y="965" width="100" height="30" rx="5" ry="5" fill="#0f172a" stroke="#64748b" stroke-width="1"/>
+    <rect x="1100" y="965" width="100" height="30" rx="5" ry="5" fill="#0f172a" stroke="#64748b" stroke-width="1"/>
+    <circle cx="1300" cy="980" r="15" fill="#f59e0b" stroke="#64748b" stroke-width="1"/>
+    <circle cx="1400" cy="980" r="15" fill="#10b981" stroke="#64748b" stroke-width="1"/>
+    
+    <!-- 左侧控制面板 -->
+    <rect x="50" y="160" width="60" height="760" fill="url(#steel-gradient)" stroke="#64748b" stroke-width="2" rx="5" ry="5"/>
+    <circle cx="80" cy="200" r="15" fill="#0f172a" stroke="#64748b" stroke-width="1"/>
+    <circle cx="80" cy="250" r="15" fill="#0f172a" stroke="#64748b" stroke-width="1"/>
+    <rect x="65" y="300" width="30" height="60" rx="5" ry="5" fill="#0f172a" stroke="#64748b" stroke-width="1"/>
+    <rect x="65" y="400" width="30" height="60" rx="5" ry="5" fill="#0f172a" stroke="#64748b" stroke-width="1"/>
+    <rect x="65" y="500" width="30" height="60" rx="5" ry="5" fill="#0f172a" stroke="#64748b" stroke-width="1"/>
+    <circle cx="80" cy="600" r="15" fill="#f59e0b" stroke="#64748b" stroke-width="1"/>
+    <circle cx="80" cy="650" r="15" fill="#10b981" stroke="#64748b" stroke-width="1"/>
+    <circle cx="80" cy="700" r="15" fill="#3b82f6" stroke="#64748b" stroke-width="1"/>
+    
+    <!-- 右侧数据面板 -->
+    <rect x="1810" y="160" width="60" height="760" fill="url(#steel-gradient)" stroke="#64748b" stroke-width="2" rx="5" ry="5"/>
+    <rect x="1825" y="180" width="30" height="100" rx="5" ry="5" fill="#0f172a" stroke="#64748b" stroke-width="1"/>
+    <rect x="1825" y="300" width="30" height="100" rx="5" ry="5" fill="#0f172a" stroke="#64748b" stroke-width="1"/>
+    <rect x="1825" y="420" width="30" height="100" rx="5" ry="5" fill="#0f172a" stroke="#64748b" stroke-width="1"/>
+    <rect x="1825" y="540" width="30" height="100" rx="5" ry="5" fill="#0f172a" stroke="#64748b" stroke-width="1"/>
+    <rect x="1825" y="660" width="30" height="100" rx="5" ry="5" fill="#0f172a" stroke="#64748b" stroke-width="1"/>
+    <rect x="1825" y="780" width="30" height="100" rx="5" ry="5" fill="#0f172a" stroke="#64748b" stroke-width="1"/>
+    
+    <!-- 中心图表区域 -->
+    <path d="M 300,650 L 500,550 L 700,600 L 900,500 L 1100,580 L 1300,480 L 1500,530 L 1700,450" 
+          fill="none" stroke="#10b981" stroke-width="3" filter="url(#slight-blur)"/>
+</svg>

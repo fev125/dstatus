@@ -1,0 +1,113 @@
+FROM golang:1.18
+
+WORKDIR /app
+
+# 设置Go代理解决网络问题
+ENV GOPROXY=https://goproxy.cn,direct
+
+# 复制源代码
+COPY . .
+
+# 备份原始go.mod
+RUN cp go.mod go.mod.backup
+
+# 创建与Go 1.18兼容的go.mod文件
+RUN echo 'module neko-status' > go.mod && \
+    echo '' >> go.mod && \
+    echo 'go 1.18' >> go.mod && \
+    echo '' >> go.mod && \
+    echo 'require (' >> go.mod && \
+    echo '	github.com/gin-gonic/gin v1.7.7' >> go.mod && \
+    echo '	github.com/gorilla/websocket v1.5.0' >> go.mod && \
+    echo '	github.com/shirou/gopsutil v3.20.10+incompatible' >> go.mod && \
+    echo '	gopkg.in/yaml.v2 v2.4.0' >> go.mod && \
+    echo ')' >> go.mod && \
+    echo '' >> go.mod && \
+    echo 'replace golang.org/x/net => golang.org/x/net v0.0.0-20210610132358-84b48f89b13b' >> go.mod && \
+    echo '' >> go.mod && \
+    echo 'replace golang.org/x/sys => golang.org/x/sys v0.0.0-20210423082822-04245dca01da' >> go.mod && \
+    echo '' >> go.mod && \
+    echo 'replace github.com/shirou/gopsutil => github.com/shirou/gopsutil v3.20.10+incompatible' >> go.mod
+
+# 创建简化版的mtr_simple.go文件，避免依赖github.com/tonobo/mtr
+RUN echo 'package main' > mtr_simple.go && \
+    echo '' >> mtr_simple.go && \
+    echo 'import (' >> mtr_simple.go && \
+    echo '    "strconv"' >> mtr_simple.go && \
+    echo '    "github.com/gin-gonic/gin"' >> mtr_simple.go && \
+    echo ')' >> mtr_simple.go && \
+    echo '' >> mtr_simple.go && \
+    echo 'func MTR(c *gin.Context) {' >> mtr_simple.go && \
+    echo '    host := c.Query("host")' >> mtr_simple.go && \
+    echo '    count := c.Query("count")' >> mtr_simple.go && \
+    echo '    if count == "" {' >> mtr_simple.go && \
+    echo '        count = "5"' >> mtr_simple.go && \
+    echo '    }' >> mtr_simple.go && \
+    echo '    _count, _ := strconv.Atoi(count)' >> mtr_simple.go && \
+    echo '    ' >> mtr_simple.go && \
+    echo '    resp(c, true, map[string]interface{}{' >> mtr_simple.go && \
+    echo '        "host": host,' >> mtr_simple.go && \
+    echo '        "count": _count,' >> mtr_simple.go && \
+    echo '        "message": "MTR功能暂时禁用，等待依赖问题解决",' >> mtr_simple.go && \
+    echo '    }, 200)' >> mtr_simple.go && \
+    echo '}' >> mtr_simple.go
+
+# 创建简化版的iperf3.go文件
+RUN echo 'package main' > iperf3_simple.go && \
+    echo '' >> iperf3_simple.go && \
+    echo 'import (' >> iperf3_simple.go && \
+    echo '    "strconv"' >> iperf3_simple.go && \
+    echo '    "github.com/gin-gonic/gin"' >> iperf3_simple.go && \
+    echo ')' >> iperf3_simple.go && \
+    echo '' >> iperf3_simple.go && \
+    echo 'func Iperf3(c *gin.Context) {' >> iperf3_simple.go && \
+    echo '    host := c.Query("host")' >> iperf3_simple.go && \
+    echo '    port, _ := strconv.Atoi(c.Query("port"))' >> iperf3_simple.go && \
+    echo '    if port == 0 {' >> iperf3_simple.go && \
+    echo '        port = 5201' >> iperf3_simple.go && \
+    echo '    }' >> iperf3_simple.go && \
+    echo '    ' >> iperf3_simple.go && \
+    echo '    resp(c, true, map[string]interface{}{' >> iperf3_simple.go && \
+    echo '        "host": host,' >> iperf3_simple.go && \
+    echo '        "port": port,' >> iperf3_simple.go && \
+    echo '        "message": "Iperf3功能暂时禁用，等待依赖问题解决",' >> iperf3_simple.go && \
+    echo '    }, 200)' >> iperf3_simple.go && \
+    echo '}' >> iperf3_simple.go && \
+    echo '' >> iperf3_simple.go && \
+    echo 'func Iperf3Ws(c *gin.Context) {' >> iperf3_simple.go && \
+    echo '    host := c.Query("host")' >> iperf3_simple.go && \
+    echo '    port, _ := strconv.Atoi(c.Query("port"))' >> iperf3_simple.go && \
+    echo '    if port == 0 {' >> iperf3_simple.go && \
+    echo '        port = 5201' >> iperf3_simple.go && \
+    echo '    }' >> iperf3_simple.go && \
+    echo '    ' >> iperf3_simple.go && \
+    echo '    resp(c, true, map[string]interface{}{' >> iperf3_simple.go && \
+    echo '        "host": host,' >> iperf3_simple.go && \
+    echo '        "port": port,' >> iperf3_simple.go && \
+    echo '        "message": "Iperf3 WebSocket功能暂时禁用，等待依赖问题解决",' >> iperf3_simple.go && \
+    echo '    }, 200)' >> iperf3_simple.go && \
+    echo '}' >> iperf3_simple.go
+
+# 更新依赖
+RUN go mod tidy
+
+# 构建多平台二进制文件
+RUN mkdir -p /app/build && \
+    # Linux AMD64
+    CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-w -s" -o /app/build/neko-status_linux_amd64 && \
+    # Darwin AMD64
+    CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -ldflags="-w -s" -o /app/build/neko-status_darwin_amd64 && \
+    # Darwin ARM64 (M1)
+    CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags="-w -s" -o /app/build/neko-status_darwin_arm64 && \
+    # Linux ARM64
+    CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags="-w -s" -o /app/build/neko-status_linux_arm64 && \
+    # Linux ARM
+    CGO_ENABLED=0 GOOS=linux GOARCH=arm GOARM=7 go build -ldflags="-w -s" -o /app/build/neko-status_linux_arm7 && \
+    # Linux 386
+    CGO_ENABLED=0 GOOS=linux GOARCH=386 go build -ldflags="-w -s" -o /app/build/neko-status_linux_386
+
+# 恢复原始go.mod
+RUN cp go.mod.backup go.mod
+
+# 显示构建结果
+CMD ["sh", "-c", "ls -la /app/build && echo '构建完成！'"] 

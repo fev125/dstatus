@@ -1,0 +1,1546 @@
+{% set title = "个性化设置" %}
+{%set admin = true%}
+{% extends "../base.html" %}
+
+{%block styles%}
+<style>
+/* 
+ * 自定义背景样式分离
+ * 使用CSS变量隔离全局背景和卡片背景
+ */
+:root {
+  /* 使用全局CSS变量 */
+  --global-bg-color: var(--bg-color);
+  --global-bg-image: var(--bg-image);
+  --global-bg-size: var(--bg-size);
+  --global-bg-position: var(--bg-position);
+  --global-bg-repeat: var(--bg-repeat);
+  --global-bg-overlay: var(--bg-overlay);
+  
+  --card-bg-color: #1e293b;
+  --card-bg-image: none;
+  --card-overlay-opacity: 0.6;
+}
+
+/* 背景预览区域 */
+.bg-preview {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  background-color: var(--global-bg-color);
+  margin-bottom: 1rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  transition: all 0.3s ease;
+}
+
+.bg-preview::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--global-bg-image);
+  background-size: var(--global-bg-size);
+  background-position: var(--global-bg-position);
+  background-repeat: var(--global-bg-repeat);
+  transition: all 0.3s ease;
+}
+
+.bg-preview::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-color: var(--global-bg-overlay);
+  transition: all 0.3s ease;
+}
+
+/* 预览标签 */
+.preview-label {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  background-color: rgba(30, 41, 59, 0.8);
+  color: rgba(255, 255, 255, 0.8);
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  z-index: 10;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* 壁纸预设样式 */
+.wallpaper-preset-item {
+  transition: all 0.2s ease;
+}
+
+.wallpaper-preset-item:hover {
+  transform: translateY(-2px);
+}
+
+.wallpaper-preset-item.active {
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.3);
+}
+
+/* 卡片样式 */
+.server-card {
+  position: relative;
+  z-index: 1;
+  background-color: var(--card-bg-color);
+}
+
+.server-card.has-bg-image::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--card-bg-image);
+  background-size: cover;
+  background-position: center;
+  opacity: 1;
+  z-index: -2;
+}
+
+.server-card.has-bg-image::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-color: rgba(0, 0, 0, var(--card-overlay-opacity));
+  z-index: -1;
+}
+
+/* 输入控件样式 */
+input, select, textarea {
+  @apply bg-slate-800/50 border-slate-700/50;
+}
+
+input:focus, select:focus, textarea:focus {
+  @apply border-purple-500/50 ring-2 ring-purple-500/25;
+}
+
+/* 确保SVG图标不受强调色影响 */
+.material-icons {
+  color: inherit !important;
+}
+
+/* 正确设置强调色图标 */
+.text-purple-400 .material-icons,
+.text-purple-500 .material-icons {
+  color: inherit !important;
+}
+</style>
+{%endblock%}
+
+{%block content%}
+<!-- 页面容器 -->
+<div class="container mx-auto px-2 sm:px-4 flex flex-col md:flex-row gap-3 md:gap-6 justify-center" style="padding-top: calc(1.5rem + env(safe-area-inset-top));">
+<!-- 引入侧边栏 -->
+{% include "admin/sidebar.html" %}
+
+<!-- 主内容区域 -->
+    <div class="flex-1 md:max-w-4xl">
+        <div class="bg-slate-900/80 backdrop-blur rounded-lg border border-slate-700/50">
+            <!-- 卡片标题 -->
+            <div class="flex items-center justify-between p-4 border-b border-slate-700/50">
+            <div class="flex items-center gap-3">
+                    <i class="material-icons text-purple-500">palette</i>
+                <div>
+                        <h3 class="text-lg font-medium text-white">个性化设置</h3>
+                    <p class="text-sm text-slate-400">Personalization Settings</p>
+                </div>
+            </div>
+        </div>
+
+            <!-- 卡片内容 -->
+            <div class="p-6 space-y-8">
+                <!-- 背景预览 -->
+                <div class="bg-preview" id="bgPreview">
+                    <div class="preview-label">壁纸预览</div>
+                </div>
+
+            <!-- 壁纸设置 -->
+                <div class="bg-blur-card p-6 rounded-lg space-y-4">
+                    <h4 class="text-base font-medium text-slate-200">壁纸设置</h4>
+                    <div class="space-y-6">
+                        <!-- 启用壁纸 -->
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" 
+                                           id="wallpaper-enabled"
+                                           {%if personalization and personalization.wallpaper and personalization.wallpaper.enabled%}checked{%endif%}
+                                           class="sr-only peer">
+                                    <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-500"></div>
+                                </label>
+                                <span class="text-sm text-slate-400">启用壁纸</span>
+                            </div>
+                        </div>
+
+                        <!-- 壁纸设置区域 -->
+                        <div id="wallpaper-settings" class="space-y-6" {%if not personalization or not personalization.wallpaper or not personalization.wallpaper.enabled%}style="display:none"{%endif%}>
+                            <!-- 壁纸URL -->
+                            <div>
+                                <label class="block text-sm font-medium text-slate-400 mb-2">壁纸URL</label>
+                                <input type="text" 
+                                       id="wallpaper-url"
+                                       value="{%if personalization and personalization.wallpaper and personalization.wallpaper.url%}{{personalization.wallpaper.url}}{%endif%}" 
+                                       class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                       placeholder="请输入壁纸图片URL">
+                            </div>
+                            
+                            <!-- 预设壁纸选择 -->
+                            <div>
+                                <label class="block text-sm font-medium text-slate-400 mb-2">预设壁纸</label>
+                                <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                                    <div class="wallpaper-preset-item p-1 border border-slate-700 rounded-md cursor-pointer hover:border-purple-500 transition-all" data-url="/bgsvg/bg%201.svg">
+                                        <div class="bg-slate-800 p-0 rounded h-16 flex items-center justify-center overflow-hidden">
+                                            <img src="/bgsvg/bg%201.svg" alt="星空壁纸" class="w-full h-full object-cover">
+                                        </div>
+                                        <div class="text-xs text-center text-slate-400 mt-1">星空背景</div>
+                                    </div>
+                                    <div class="wallpaper-preset-item p-1 border border-slate-700 rounded-md cursor-pointer hover:border-purple-500 transition-all" data-url="/bgsvg/bg%202.svg">
+                                        <div class="bg-slate-800 p-0 rounded h-16 flex items-center justify-center overflow-hidden">
+                                            <img src="/bgsvg/bg%202.svg" alt="全息壁纸" class="w-full h-full object-cover">
+                                        </div>
+                                        <div class="text-xs text-center text-slate-400 mt-1">全息风格</div>
+                                    </div>
+                                    <div class="wallpaper-preset-item p-1 border border-slate-700 rounded-md cursor-pointer hover:border-purple-500 transition-all" data-url="/bgsvg/bg%203.svg">
+                                        <div class="bg-slate-800 p-0 rounded h-16 flex items-center justify-center overflow-hidden">
+                                            <img src="/bgsvg/bg%203.svg" alt="金属壁纸" class="w-full h-full object-cover">
+                                        </div>
+                                        <div class="text-xs text-center text-slate-400 mt-1">工业风格</div>
+                                    </div>
+                                    <div class="wallpaper-preset-item p-1 border border-slate-700 rounded-md cursor-pointer hover:border-purple-500 transition-all" data-url="/bgsvg/bg%204.svg">
+                                        <div class="bg-slate-800 p-0 rounded h-16 flex items-center justify-center overflow-hidden">
+                                            <img src="/bgsvg/bg%204.svg" alt="霓虹壁纸" class="w-full h-full object-cover">
+                                        </div>
+                                        <div class="text-xs text-center text-slate-400 mt-1">霓虹风格</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 背景填充模式 -->
+                            <div>
+                                <label class="block text-sm font-medium text-slate-400 mb-2">背景填充模式</label>
+                                <select id="wallpaper-size" 
+                                        class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                                    <option value="cover" {%if personalization and personalization.wallpaper and personalization.wallpaper.size == 'cover'%}selected{%endif%}>等比例填充</option>
+                                    <option value="100% 100%" {%if personalization and personalization.wallpaper and personalization.wallpaper.size == '100% 100%'%}selected{%endif%}>拉伸填充</option>
+                                    <option value="repeat" {%if personalization and personalization.wallpaper and personalization.wallpaper.size == 'repeat'%}selected{%endif%}>平铺填充</option>
+                                </select>
+                            </div>
+
+                            <!-- 平铺方向 -->
+                            <div id="repeat-direction" class="hidden">
+                                <label class="block text-sm font-medium text-slate-400 mb-2">平铺方向</label>
+                                <div class="flex gap-4">
+                                    <label class="inline-flex items-center">
+                                        <input type="radio" 
+                                               name="wallpaper-repeat"
+                                               value="repeat"
+                                               {%if personalization and personalization.wallpaper and personalization.wallpaper.repeat == 'repeat'%}checked{%endif%}
+                                               class="form-radio h-4 w-4 text-purple-500 bg-slate-800 border-slate-700">
+                                        <span class="ml-2 text-sm text-slate-400">双向平铺</span>
+                                    </label>
+                                    <label class="inline-flex items-center">
+                                        <input type="radio" 
+                                               name="wallpaper-repeat"
+                                               value="repeat-x"
+                                               {%if personalization and personalization.wallpaper and personalization.wallpaper.repeat == 'repeat-x'%}checked{%endif%}
+                                               class="form-radio h-4 w-4 text-purple-500 bg-slate-800 border-slate-700">
+                                        <span class="ml-2 text-sm text-slate-400">水平平铺</span>
+                                    </label>
+                                    <label class="inline-flex items-center">
+                                        <input type="radio" 
+                                               name="wallpaper-repeat"
+                                               value="repeat-y"
+                                               {%if personalization and personalization.wallpaper and personalization.wallpaper.repeat == 'repeat-y'%}checked{%endif%}
+                                               class="form-radio h-4 w-4 text-purple-500 bg-slate-800 border-slate-700">
+                                        <span class="ml-2 text-sm text-slate-400">垂直平铺</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- 亮度调整 -->
+                            <div>
+                                <label class="block text-sm font-medium text-slate-400 mb-2">亮度调整</label>
+                                <div class="flex items-center gap-2">
+                                    <input type="range" 
+                                           id="wallpaper-brightness"
+                                           min="10" 
+                                           max="100" 
+                                           step="5" 
+                                           value="{%if personalization and personalization.wallpaper and personalization.wallpaper.brightness%}{{personalization.wallpaper.brightness}}{%else%}75{%endif%}" 
+                                           class="w-full">
+                                    <output class="text-sm text-slate-400">{%if personalization and personalization.wallpaper and personalization.wallpaper.brightness%}{{personalization.wallpaper.brightness}}{%else%}75{%endif%}%</output>
+                                </div>
+                            </div>
+
+                            <!-- 固定背景 -->
+                            <div>
+                                <label class="inline-flex items-center">
+                                    <input type="checkbox" 
+                                           id="wallpaper-fixed"
+                                           {%if personalization and personalization.wallpaper and personalization.wallpaper.fixed%}checked{%endif%}
+                                           class="form-checkbox h-4 w-4 text-purple-500 bg-slate-800 border-slate-700 rounded focus:ring-purple-500">
+                                    <span class="ml-2 text-sm text-slate-400">固定背景 (不随页面滚动)</span>
+                                </label>
+                            </div>
+
+                            <!-- 壁纸模糊效果 -->
+                            <div class="space-y-4">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-2">
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" 
+                                                   id="wallpaper_blur_enabled"
+                                                   name="wallpaper_blur_enabled"
+                                                   class="sr-only peer"
+                                                   {% if personalization and personalization.wallpaper and personalization.wallpaper.blur and personalization.wallpaper.blur.enabled %}checked{% endif %}>
+                                            <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-500"></div>
+                                        </label>
+                                        <span class="text-sm text-slate-400">启用壁纸模糊效果</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- 模糊强度 -->
+                                <div class="space-y-2" id="wallpaper_blur_settings" {% if not personalization or not personalization.wallpaper or not personalization.wallpaper.blur or not personalization.wallpaper.blur.enabled %}style="display:none"{% endif %}>
+                                    <div class="flex items-center justify-between">
+                                        <label class="text-sm text-slate-400">模糊强度</label>
+                                        <span class="text-xs text-slate-500" id="wallpaper_blur_amount_value">
+                                            {{personalization.wallpaper.blur.amount|default(5)}}px
+                                        </span>
+                                    </div>
+                                    <input type="range" 
+                                           id="wallpaper_blur_amount"
+                                           name="wallpaper_blur_amount"
+                                           min="0" 
+                                           max="20" 
+                                           step="1" 
+                                           value="{{personalization.wallpaper.blur.amount|default(5)}}"
+                                           class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 模糊效果设置 -->
+            <div class="bg-blur-card p-6 rounded-lg space-y-4">
+                <h4 class="text-base font-medium text-slate-200">模糊效果设置</h4>
+                <div class="space-y-6">
+                    <!-- 启用模糊效果 -->
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" 
+                                       id="blur_enabled"
+                                       name="blur_enabled"
+                                       class="sr-only peer"
+                                       {% if personalization and personalization.blur and personalization.blur.enabled %}checked{% endif %}>
+                                <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-500"></div>
+                            </label>
+                            <span class="text-sm text-slate-400">启用卡片模糊效果</span>
+                        </div>
+                        <div class="text-xs text-slate-500">
+                            <i class="material-icons text-base align-text-bottom">info</i>
+                            可能影响性能
+                        </div>
+                    </div>
+                    
+                    <!-- 模糊强度 -->
+                    <div class="space-y-2" id="blur_settings" {% if not personalization or not personalization.blur or not personalization.blur.enabled %}style="display:none"{% endif %}>
+                        <div class="flex items-center justify-between">
+                            <label class="text-sm text-slate-400">模糊强度</label>
+                            <span class="text-xs text-slate-500" id="blur_amount_value">
+                                {{personalization.blur.amount|default(5)}}px
+                            </span>
+                        </div>
+                        <input type="range" 
+                               id="blur_amount"
+                               name="blur_amount"
+                               min="0" 
+                               max="20" 
+                               step="1" 
+                               value="{{personalization.blur.amount|default(5)}}"
+                               class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer">
+                        
+                        <!-- 性能模式选择 -->
+                        <div class="mt-4">
+                            <label class="text-sm text-slate-400 block mb-2">性能模式</label>
+                                                <div class="space-y-2">
+                                <label class="flex items-center">
+                                    <input type="radio" 
+                                           name="blur_quality" 
+                                           value="normal" 
+                                           {% if personalization.blur.quality != 'low' %}checked{% endif %}
+                                           class="form-radio h-4 w-4 text-purple-500 bg-slate-800 border-slate-700 focus:ring-purple-500">
+                                    <span class="ml-2 text-sm text-slate-300">标准质量（更好的视觉效果）</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" 
+                                           name="blur_quality" 
+                                           value="low" 
+                                           {% if personalization.blur.quality == 'low' %}checked{% endif %}
+                                           class="form-radio h-4 w-4 text-purple-500 bg-slate-800 border-slate-700 focus:ring-purple-500">
+                                    <span class="ml-2 text-sm text-slate-300">低质量（更好的性能）</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 卡片美化设置 -->
+            <div class="bg-blur-card p-6 rounded-lg space-y-4">
+                <h4 class="text-base font-medium text-slate-200">卡片美化设置</h4>
+                <div class="space-y-6">
+                    <!-- 卡片背景颜色 -->
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">卡片背景颜色</label>
+                        <div class="flex items-center gap-2">
+                            <input type="color" 
+                                   id="card-background-color"
+                                   value="{%if personalization and personalization.card and personalization.card.backgroundColor%}{{personalization.card.backgroundColor}}{%else%}#1e293b{%endif%}" 
+                                   class="h-8 w-12 rounded border-0">
+                            <input type="text" 
+                                   id="card-background-color-text"
+                                   value="{%if personalization and personalization.card and personalization.card.backgroundColor%}{{personalization.card.backgroundColor}}{%else%}#1e293b{%endif%}" 
+                                   class="px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 w-32">
+                        </div>
+                    </div>
+
+                    <!-- 卡片背景透明度 -->
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">卡片背景透明度</label>
+                        <div class="flex items-center gap-2">
+                            <input type="range" 
+                                   id="card-background-opacity"
+                                   min="0.1" 
+                                   max="1" 
+                                   step="0.05" 
+                                   value="{%if personalization and personalization.card and personalization.card.backgroundOpacity%}{{personalization.card.backgroundOpacity}}{%else%}0.95{%endif%}" 
+                                   class="w-full">
+                            <output class="text-sm text-slate-400">{%if personalization and personalization.card and personalization.card.backgroundOpacity%}{{personalization.card.backgroundOpacity * 100}}{%else%}95{%endif%}%</output>
+                        </div>
+                    </div>
+                    
+                    <!-- 卡片背景图片 -->
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" 
+                                           id="card-background-image-enabled"
+                                           class="sr-only peer"
+                                           {% if personalization and personalization.card and personalization.card.backgroundImage and personalization.card.backgroundImage.enabled %}checked{% endif %}>
+                                    <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-500"></div>
+                                </label>
+                                <span class="text-sm text-slate-400">启用卡片背景图片</span>
+                            </div>
+                        </div>
+                        
+                        <!-- 卡片背景图片设置 -->
+                        <div id="card-background-image-settings" class="space-y-4" {% if not personalization or not personalization.card or not personalization.card.backgroundImage or not personalization.card.backgroundImage.enabled %}style="display:none"{% endif %}>
+                            <!-- 背景图片URL -->
+                            <div>
+                                <label class="block text-sm font-medium text-slate-400 mb-2">背景图片URL</label>
+                                <input type="text" 
+                                       id="card-background-image-url"
+                                       value="{%if personalization and personalization.card and personalization.card.backgroundImage and personalization.card.backgroundImage.url%}{{personalization.card.backgroundImage.url}}{%endif%}" 
+                                       class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                                       placeholder="请输入背景图片URL">
+                            </div>
+                            
+                            <!-- 预制卡片效果 -->
+                            <div>
+                                <label class="block text-sm font-medium text-slate-400 mb-2">预制卡片效果</label>
+                                <div class="grid grid-cols-3 gap-2">
+                                    <div class="card-preset-item p-1 border border-slate-700 rounded-md cursor-pointer hover:border-purple-500 transition-all" data-url="/svg/1.svg">
+                                        <div class="bg-slate-800 p-2 rounded h-16 flex items-center justify-center overflow-hidden">
+                                            <img src="/svg/1.svg" alt="霓虹风格" class="w-full h-full object-cover">
+                                        </div>
+                                        <div class="text-xs text-center text-slate-400 mt-1">霓虹风格</div>
+                                    </div>
+                                    <div class="card-preset-item p-1 border border-slate-700 rounded-md cursor-pointer hover:border-purple-500 transition-all" data-url="/svg/2.svg">
+                                        <div class="bg-slate-800 p-2 rounded h-16 flex items-center justify-center overflow-hidden">
+                                            <img src="/svg/2.svg" alt="工业风格" class="w-full h-full object-cover">
+                                        </div>
+                                        <div class="text-xs text-center text-slate-400 mt-1">工业风格</div>
+                                    </div>
+                                    <div class="card-preset-item p-1 border border-slate-700 rounded-md cursor-pointer hover:border-purple-500 transition-all" data-url="/svg/keji.svg">
+                                        <div class="bg-slate-800 p-2 rounded h-16 flex items-center justify-center overflow-hidden">
+                                            <img src="/svg/keji.svg" alt="科技风格" class="w-full h-full object-cover">
+                                        </div>
+                                        <div class="text-xs text-center text-slate-400 mt-1">科技风格</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 图片透明度 -->
+                            <div>
+                                <label class="block text-sm font-medium text-slate-400 mb-2">图片透明度</label>
+                                <div class="flex items-center gap-2">
+                                    <input type="range" 
+                                           id="card-background-image-opacity"
+                                           min="0.1" 
+                                           max="1" 
+                                           step="0.05" 
+                                           value="{%if personalization and personalization.card and personalization.card.backgroundImage and personalization.card.backgroundImage.opacity%}{{personalization.card.backgroundImage.opacity}}{%else%}0.8{%endif%}" 
+                                           class="w-full">
+                                    <output class="text-sm text-slate-400">{%if personalization and personalization.card and personalization.card.backgroundImage and personalization.card.backgroundImage.opacity%}{{personalization.card.backgroundImage.opacity * 100}}{%else%}80{%endif%}%</output>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 保存按钮 -->
+            <div class="flex justify-end p-4 border-t border-slate-700/50">
+                <!-- 添加加载动画 -->
+                <div id="saveSpinner" class="hidden w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mr-2"></div>
+                <button onclick="saveAllSettings()" 
+                        class="inline-flex items-center px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-900">
+                    <i class="material-icons mr-2">save</i>
+                    保存设置
+                                        </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 隐藏的设置数据 -->
+<div id="personalization_data" class="hidden">
+    {% if personalization %}
+        {{personalization|dump|safe}}
+    {% else %}
+        {"wallpaper":{"enabled":false,"url":"","brightness":75,"fixed":false,"size":"cover","repeat":"repeat"},"blur":{"enabled":false,"amount":5,"quality":"normal"}}
+    {% endif %}
+</div>
+{%endblock%}
+
+{%block js%}
+<script>
+/**
+ * @description 更新个性化设置页面的JavaScript
+ * 1. 添加背景预览功能
+ * 2. 添加填充模式控制
+ * 3. 优化设置保存逻辑
+ * 4. 添加卡片美化设置功能
+ * @modified 2024-XX-XX
+ */
+
+// 页面加载时初始化
+document.addEventListener('DOMContentLoaded', function() {
+    // 从隐藏的数据区读取设置
+    const settingDataElem = document.getElementById('personalization_data');
+    let personalizationData = {};
+    if (settingDataElem && settingDataElem.textContent) {
+        try {
+            personalizationData = JSON.parse(settingDataElem.textContent);
+            console.log('初始化时读取到的设置:', personalizationData);
+
+            // 初始化全局设置缓存
+            try {
+                sessionStorage.setItem('personalization-settings', JSON.stringify(personalizationData));
+            } catch (e) {
+                console.warn('无法初始化设置缓存:', e);
+            }
+            
+            // 初始化壁纸设置
+            if (personalizationData.wallpaper) {
+                const wpSettings = personalizationData.wallpaper;
+                
+                // 初始化基本设置
+                if (document.getElementById('wallpaper-enabled')) {
+                    document.getElementById('wallpaper-enabled').checked = wpSettings.enabled || false;
+                }
+                if (document.getElementById('wallpaper-url')) {
+                    document.getElementById('wallpaper-url').value = wpSettings.url || '';
+                    
+                    // 如果当前已有壁纸URL，高亮显示对应的预设（如果是预设之一）
+                    if (wpSettings.url) {
+                        const presetItems = document.querySelectorAll('.wallpaper-preset-item');
+                        presetItems.forEach(item => {
+                            const presetUrl = item.getAttribute('data-url');
+                            if (presetUrl === wpSettings.url) {
+                                item.classList.add('active');
+                            }
+                        });
+                    }
+                }
+                if (document.getElementById('wallpaper-brightness')) {
+                    document.getElementById('wallpaper-brightness').value = wpSettings.brightness || 75;
+                    if (document.getElementById('wallpaper-brightness').nextElementSibling) {
+                        document.getElementById('wallpaper-brightness').nextElementSibling.textContent = (wpSettings.brightness || 75) + '%';
+                    }
+                }
+                if (document.getElementById('wallpaper-fixed')) {
+                    document.getElementById('wallpaper-fixed').checked = wpSettings.fixed || false;
+                }
+
+                // 初始化填充模式设置
+                if (document.getElementById('wallpaper-size')) {
+                    document.getElementById('wallpaper-size').value = wpSettings.size || 'cover';
+                }
+                if (document.getElementById('repeat-direction')) {
+                    const repeatDirection = document.getElementById('repeat-direction');
+                    if (wpSettings.size === 'repeat') {
+                        repeatDirection.classList.remove('hidden');
+                    } else {
+                        repeatDirection.classList.add('hidden');
+                    }
+                }
+
+                // 初始化平铺方向设置
+                const repeatRadios = document.getElementsByName('wallpaper-repeat');
+                if (repeatRadios.length > 0) {
+                    repeatRadios.forEach(radio => {
+                        if (radio.value === (wpSettings.repeat || 'repeat')) {
+                            radio.checked = true;
+                        }
+                    });
+                }
+
+                // 更新预览
+                updatePreview();
+            }
+            
+            // 初始化卡片设置
+            if (personalizationData.card) {
+                const cardSettings = personalizationData.card;
+                
+                // 初始化卡片背景颜色
+                if (document.getElementById('card-background-color')) {
+                    document.getElementById('card-background-color').value = cardSettings.backgroundColor || '#1e293b';
+                }
+                if (document.getElementById('card-background-color-text')) {
+                    document.getElementById('card-background-color-text').value = cardSettings.backgroundColor || '#1e293b';
+                }
+                
+                // 初始化卡片背景透明度
+                if (document.getElementById('card-background-opacity')) {
+                    document.getElementById('card-background-opacity').value = cardSettings.backgroundOpacity || 0.95;
+                    if (document.getElementById('card-background-opacity').nextElementSibling) {
+                        document.getElementById('card-background-opacity').nextElementSibling.textContent = 
+                            Math.round((cardSettings.backgroundOpacity || 0.95) * 100) + '%';
+                    }
+                }
+                
+                // 初始化卡片背景图片设置
+                if (cardSettings.backgroundImage) {
+                    const bgImg = cardSettings.backgroundImage;
+                    
+                    if (document.getElementById('card-background-image-enabled')) {
+                        document.getElementById('card-background-image-enabled').checked = bgImg.enabled || false;
+                    }
+                    
+                    if (document.getElementById('card-background-image-settings')) {
+                        document.getElementById('card-background-image-settings').style.display = 
+                            bgImg.enabled ? 'block' : 'none';
+                    }
+                    
+                    if (document.getElementById('card-background-image-url')) {
+                        document.getElementById('card-background-image-url').value = bgImg.url || '';
+                        
+                        // 根据当前URL高亮显示对应的预制效果
+                        if (bgImg.url) {
+                            const presetItems = document.querySelectorAll('.card-preset-item');
+                            presetItems.forEach(item => {
+                                if (item.getAttribute('data-url') === bgImg.url) {
+                                    item.classList.add('ring-2', 'ring-purple-500');
+                                }
+                            });
+                        }
+                    }
+                    
+                    if (document.getElementById('card-background-image-opacity')) {
+                        document.getElementById('card-background-image-opacity').value = bgImg.opacity || 0.8;
+                        if (document.getElementById('card-background-image-opacity').nextElementSibling) {
+                            document.getElementById('card-background-image-opacity').nextElementSibling.textContent = 
+                                Math.round((bgImg.opacity || 0.8) * 100) + '%';
+                        }
+                    }
+                }
+                
+                // 初始预览卡片效果
+                updateCardPreview();
+            }
+        } catch (e) {
+            console.error('解析设置数据失败:', e);
+        }
+    }
+    
+    // 绑定卡片背景颜色事件
+    bindCardEvents();
+    
+    // 绑定壁纸预设点击事件
+    bindWallpaperPresets();
+
+    // 页面卸载前保存预览状态
+    window.addEventListener('beforeunload', function() {
+        // 清除自定义预览类，避免影响其他页面
+        document.body.classList.remove('custom-wallpaper-preview');
+        
+        // 如果有最终样式，移除它
+        const finalStyle = document.getElementById('final-wallpaper-style');
+        if (finalStyle) {
+            finalStyle.remove();
+        }
+    });
+});
+
+// 更新背景预览
+function updatePreview() {
+    const preview = document.getElementById('bgPreview');
+    const enabled = document.getElementById('wallpaper-enabled').checked;
+    const url = document.getElementById('wallpaper-url').value;
+    const size = document.getElementById('wallpaper-size').value;
+    const brightness = document.getElementById('wallpaper-brightness').value;
+    const repeat = document.querySelector('input[name="wallpaper-repeat"]:checked')?.value || 'repeat';
+    const wallpaperFixed = document.getElementById('wallpaper-fixed').checked;
+    const wallpaperBlurEnabled = document.getElementById('wallpaper_blur_enabled')?.checked || false;
+    const wallpaperBlurAmount = document.getElementById('wallpaper_blur_amount')?.value || 5;
+
+    // 更新预览区域
+    if (enabled && url) {
+        preview.style.setProperty('--global-bg-image', `url(${url})`);
+        preview.style.setProperty('--global-bg-size', size);
+        preview.style.setProperty('--global-bg-repeat', repeat);
+        preview.style.setProperty('--global-bg-overlay', `rgba(0, 0, 0, ${(100 - brightness) / 100})`);
+        
+        // 实时同步到页面背景
+        document.body.classList.add('has-background-image');
+        document.body.classList.add('wallpaper-loaded');
+        document.body.classList.add('custom-wallpaper-preview');
+        
+        // 移除之前的动态样式
+        const oldStyle = document.getElementById('dynamic-wallpaper-style');
+        if (oldStyle) {
+            oldStyle.remove();
+        }
+        
+        // 创建新的动态样式 - 使用更高优先级的选择器
+        const bodyStyle = document.createElement('style');
+        bodyStyle.id = 'dynamic-wallpaper-style';
+        
+        // 使用!important提高优先级
+        let styleText = `
+        body.custom-wallpaper-preview:before {
+            background-image: url('${url}') !important;
+            background-position: center !important;
+            background-size: ${size} !important;
+            background-repeat: ${repeat} !important;
+            ${wallpaperFixed ? 'background-attachment: fixed !important;' : ''}
+            background-color: rgba(0, 0, 0, ${(100 - brightness) / 100}) !important;
+            background-blend-mode: darken !important;
+            opacity: 1 !important;
+            box-shadow: none !important;
+            outline: none !important;
+            border: none !important;
+            ${wallpaperBlurEnabled ? `filter: blur(${wallpaperBlurAmount}px) !important; -webkit-filter: blur(${wallpaperBlurAmount}px) !important;` : 'filter: none !important; -webkit-filter: none !important;'}
+        }
+        
+        /* 确保卡片背景相关样式被应用 */
+        .server-card {
+            position: relative !important;
+            z-index: 1 !important;
+        }
+        
+        /* 清除可能的残留边框和阴影效果 */
+        body.custom-wallpaper-preview *:before {
+            box-shadow: none !important;
+            outline: none !important;
+            border-color: transparent !important;
+        }
+        `;
+        
+        bodyStyle.textContent = styleText;
+        document.head.appendChild(bodyStyle);
+        
+        // 通知所有frames（如果有）更新壁纸
+        try {
+            // 存储临时预览设置到sessionStorage
+            const previewSettings = {
+                enabled: enabled,
+                url: url,
+                size: size,
+                repeat: repeat,
+                fixed: wallpaperFixed,
+                brightness: brightness,
+                blur: {
+                    enabled: wallpaperBlurEnabled,
+                    amount: wallpaperBlurAmount
+                },
+                isPreview: true
+            };
+            
+            sessionStorage.setItem('wallpaper-preview-settings', JSON.stringify(previewSettings));
+            
+            // 创建自定义事件通知其他可能的组件
+            const event = new CustomEvent('wallpaper-preview-updated', {
+                detail: previewSettings
+            });
+            document.dispatchEvent(event);
+        } catch (e) {
+            console.warn('无法保存预览设置:', e);
+        }
+    } else {
+        preview.style.setProperty('--global-bg-image', 'none');
+        preview.style.setProperty('--global-bg-overlay', 'rgba(0, 0, 0, 0.5)');
+        
+        // 移除实时背景
+        document.body.classList.remove('custom-wallpaper-preview');
+        document.body.classList.remove('has-background-image');
+        
+        const oldStyle = document.getElementById('dynamic-wallpaper-style');
+        if (oldStyle) {
+            oldStyle.remove();
+        }
+        
+        // 清除预览设置
+        try {
+            sessionStorage.removeItem('wallpaper-preview-settings');
+            
+            // 通知移除预览
+            const event = new CustomEvent('wallpaper-preview-updated', {
+                detail: { isPreview: false }
+            });
+            document.dispatchEvent(event);
+        } catch (e) {
+            console.error('无法清除预览设置:', e);
+        }
+    }
+}
+
+// 绑定壁纸预设点击事件
+function bindWallpaperPresets() {
+    const presetItems = document.querySelectorAll('.wallpaper-preset-item');
+    const wallpaperUrl = document.getElementById('wallpaper-url');
+    const wallpaperEnabled = document.getElementById('wallpaper-enabled');
+    const wallpaperSettings = document.getElementById('wallpaper-settings');
+    
+    if (presetItems.length > 0 && wallpaperUrl) {
+        presetItems.forEach(item => {
+            item.addEventListener('click', function() {
+                const svgUrl = this.getAttribute('data-url');
+                if (svgUrl) {
+                    // 预加载图片以确保URL有效
+                    const preloadImg = new Image();
+                    preloadImg.onload = function() {
+                        // 图片加载成功后，更新输入框和预览
+                        wallpaperUrl.value = svgUrl;
+                        // 高亮当前选中项
+                        presetItems.forEach(el => el.classList.remove('active'));
+                        item.classList.add('active');
+                        
+                        // 如果壁纸未启用，则自动启用
+                        if (wallpaperEnabled && !wallpaperEnabled.checked) {
+                            wallpaperEnabled.checked = true;
+                            if (wallpaperSettings) {
+                                wallpaperSettings.style.display = 'block';
+                            }
+                        }
+                        
+                        // 更新预览
+                        updatePreview();
+                    };
+                    
+                    preloadImg.onerror = function() {
+                        // 图片加载失败
+                        notice(`壁纸预设加载失败: ${svgUrl}`, 'error');
+                    };
+                    
+                    // 设置图片源以开始加载
+                    preloadImg.src = svgUrl;
+                }
+            });
+        });
+    }
+}
+
+// 绑定事件监听器
+document.getElementById('wallpaper-enabled').addEventListener('change', function(e) {
+    const wallpaperSettings = document.getElementById('wallpaper-settings');
+    if (wallpaperSettings) {
+        wallpaperSettings.style.display = e.target.checked ? 'block' : 'none';
+    }
+    updatePreview();
+});
+document.getElementById('wallpaper-url').addEventListener('input', updatePreview);
+document.getElementById('wallpaper-size').addEventListener('change', function(e) {
+    const repeatDirection = document.getElementById('repeat-direction');
+    if (e.target.value === 'repeat') {
+        repeatDirection.classList.remove('hidden');
+    } else {
+        repeatDirection.classList.add('hidden');
+    }
+    updatePreview();
+});
+document.getElementsByName('wallpaper-repeat').forEach(radio => {
+    radio.addEventListener('change', updatePreview);
+});
+document.getElementById('wallpaper-brightness').addEventListener('input', function(e) {
+    const output = e.target.nextElementSibling;
+    if (output) {
+        output.textContent = e.target.value + '%';
+    }
+    updatePreview();
+});
+
+// 壁纸模糊效果控制
+document.addEventListener('DOMContentLoaded', function() {
+    const wallpaperBlurEnabled = document.getElementById('wallpaper_blur_enabled');
+    const wallpaperBlurSettings = document.getElementById('wallpaper_blur_settings');
+    const wallpaperBlurAmount = document.getElementById('wallpaper_blur_amount');
+    const wallpaperBlurAmountValue = document.getElementById('wallpaper_blur_amount_value');
+    
+    // 更新模糊强度显示
+    function updateWallpaperBlurValue() {
+        if (wallpaperBlurAmountValue) {
+            wallpaperBlurAmountValue.textContent = `${wallpaperBlurAmount.value}px`;
+        }
+        
+        // 实时更新壁纸预览 - 先设置CSS变量
+        if (wallpaperBlurEnabled && wallpaperBlurEnabled.checked) {
+            document.documentElement.style.setProperty('--wallpaper-blur-enabled', '1');
+            document.documentElement.style.setProperty('--wallpaper-blur-amount', `${wallpaperBlurAmount.value}px`);
+        } else if (wallpaperBlurEnabled) {
+            document.documentElement.style.setProperty('--wallpaper-blur-enabled', '0');
+        }
+        
+        // 然后更新预览 - 这样能确保模糊效果立即应用
+        updatePreview();
+    }
+    
+    // 监听启用状态变化
+    if (wallpaperBlurEnabled) {
+        wallpaperBlurEnabled.addEventListener('change', function() {
+            if (wallpaperBlurSettings) {
+                wallpaperBlurSettings.style.display = this.checked ? 'block' : 'none';
+            }
+            updateWallpaperBlurValue();
+        });
+    }
+    
+    // 监听模糊强度变化
+    if (wallpaperBlurAmount) {
+        wallpaperBlurAmount.addEventListener('input', updateWallpaperBlurValue);
+    }
+    
+    // 初始化值
+    if (wallpaperBlurEnabled && wallpaperBlurAmount) {
+        updateWallpaperBlurValue();
+    }
+});
+
+// 绑定卡片美化设置相关事件
+function bindCardEvents() {
+    // 卡片背景颜色控制
+    const cardBackgroundColor = document.getElementById('card-background-color');
+    const cardBackgroundColorText = document.getElementById('card-background-color-text');
+    const cardBackgroundOpacity = document.getElementById('card-background-opacity');
+    const cardBackgroundImageEnabled = document.getElementById('card-background-image-enabled');
+    const cardBackgroundImageSettings = document.getElementById('card-background-image-settings');
+    const cardBackgroundImageUrl = document.getElementById('card-background-image-url');
+    const cardBackgroundImageOpacity = document.getElementById('card-background-image-opacity');
+
+    // 颜色选择器和文本框同步
+    if(cardBackgroundColor && cardBackgroundColorText) {
+        cardBackgroundColor.addEventListener('input', function() {
+            cardBackgroundColorText.value = this.value;
+            updateCardPreview();
+        });
+        
+        cardBackgroundColorText.addEventListener('input', function() {
+            cardBackgroundColor.value = this.value;
+            updateCardPreview();
+        });
+    }
+
+    // 背景透明度
+    if(cardBackgroundOpacity) {
+        cardBackgroundOpacity.addEventListener('input', function(e) {
+            const output = e.target.nextElementSibling;
+            if (output) {
+                output.textContent = Math.round(e.target.value * 100) + '%';
+            }
+            updateCardPreview();
+        });
+    }
+
+    // 背景图片开关
+    if(cardBackgroundImageEnabled && cardBackgroundImageSettings) {
+        cardBackgroundImageEnabled.addEventListener('change', function() {
+            cardBackgroundImageSettings.style.display = this.checked ? 'block' : 'none';
+            updateCardPreview();
+        });
+    }
+
+    // 背景图片URL
+    if(cardBackgroundImageUrl) {
+        cardBackgroundImageUrl.addEventListener('input', updateCardPreview);
+    }
+
+    // 背景图片透明度
+    if(cardBackgroundImageOpacity) {
+        cardBackgroundImageOpacity.addEventListener('input', function(e) {
+            const output = e.target.nextElementSibling;
+            if (output) {
+                output.textContent = Math.round(e.target.value * 100) + '%';
+            }
+            updateCardPreview();
+        });
+    }
+    
+    // 预制卡片效果选择
+    const cardPresetItems = document.querySelectorAll('.card-preset-item');
+    if(cardPresetItems.length > 0 && cardBackgroundImageUrl) {
+        cardPresetItems.forEach(item => {
+            item.addEventListener('click', function() {
+                const svgUrl = this.getAttribute('data-url');
+                if(svgUrl) {
+                    // 预加载图片以确保URL有效
+                    const preloadImg = new Image();
+                    preloadImg.onload = function() {
+                        // 图片加载成功后，更新输入框和预览
+                        cardBackgroundImageUrl.value = svgUrl;
+                        // 高亮当前选中的预制效果
+                        cardPresetItems.forEach(el => el.classList.remove('ring-2', 'ring-purple-500'));
+                        item.classList.add('ring-2', 'ring-purple-500');
+                        // 更新预览
+                        updateCardPreview();
+                        // 如果用户点击预制效果但背景图片未启用，自动开启
+                        if(cardBackgroundImageEnabled && !cardBackgroundImageEnabled.checked) {
+                            cardBackgroundImageEnabled.checked = true;
+                            if(cardBackgroundImageSettings) {
+                                cardBackgroundImageSettings.style.display = 'block';
+                            }
+                            updateCardPreview();
+                        }
+                    };
+                    
+                    preloadImg.onerror = function() {
+                        // 图片加载失败
+                        notice(`预制模板加载失败: ${svgUrl}`, 'error');
+                    };
+                    
+                    // 设置图片源以开始加载
+                    preloadImg.src = svgUrl;
+                }
+            });
+        });
+    }
+}
+
+// 更新卡片预览效果
+function updateCardPreview() {
+    // 获取当前设置
+    const cardBackgroundColor = document.getElementById('card-background-color');
+    const cardBackgroundOpacity = document.getElementById('card-background-opacity');
+    const cardBackgroundImageEnabled = document.getElementById('card-background-image-enabled');
+    const cardBackgroundImageUrl = document.getElementById('card-background-image-url');
+    const cardBackgroundImageOpacity = document.getElementById('card-background-image-opacity');
+    
+    if (!cardBackgroundColor) return;
+    
+    // 获取预览元素
+    const bgColor = cardBackgroundColor.value || '#1e293b';
+    const bgOpacity = cardBackgroundOpacity.value || 0.95;
+    const bgImageEnabled = cardBackgroundImageEnabled.checked;
+    const bgImageUrl = cardBackgroundImageUrl.value || '';
+    const bgImageOpacity = cardBackgroundImageOpacity.value || 0.8;
+    
+    // 应用到样式变量
+    document.documentElement.style.setProperty('--card-bg-color', hexToRgba(bgColor, bgOpacity));
+    
+    if (bgImageEnabled && bgImageUrl) {
+        document.documentElement.style.setProperty('--card-bg-image', `url(${bgImageUrl})`);
+        document.documentElement.style.setProperty('--card-bg-image-opacity', bgImageOpacity);
+        
+        // 为预览卡片添加背景图片类
+        document.querySelectorAll('.server-card').forEach(card => {
+            card.classList.add('has-bg-image');
+        });
+    } else {
+        document.documentElement.style.setProperty('--card-bg-image', 'none');
+        
+        // 移除预览卡片的背景图片类
+        document.querySelectorAll('.server-card').forEach(card => {
+            card.classList.remove('has-bg-image');
+        });
+    }
+}
+
+// Hex颜色转RGBA
+function hexToRgba(hex, opacity) {
+    hex = hex.replace('#', '');
+    if(hex.length === 3) {
+        hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+    }
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    
+    return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+}
+
+// 修改保存设置函数
+async function saveAllSettings() {
+    // 显示加载动画
+    const spinner = document.getElementById('saveSpinner');
+    if (spinner) spinner.classList.remove('hidden');
+    
+    // 使用标准loading效果
+    startloading();
+
+    try {
+        // 获取当前设置
+        const settingDataElem = document.getElementById('personalization_data');
+        let currentSettings = {};
+        
+        if (settingDataElem && settingDataElem.textContent) {
+            try {
+                currentSettings = JSON.parse(settingDataElem.textContent);
+                console.log('当前设置:', currentSettings);
+            } catch (e) {
+                console.error('解析当前设置失败:', e);
+                // 使用默认设置
+                currentSettings = {
+                    wallpaper: {
+                        enabled: false,
+                        url: "",
+                        brightness: 75,
+                        fixed: false,
+                        size: "cover",
+                        repeat: "repeat",
+                        blur: {
+                            enabled: false,
+                            amount: 5
+                        }
+                    },
+                    blur: {
+                        enabled: false,
+                        amount: 5,
+                        quality: 'normal'
+                    },
+                    card: {
+                        backgroundColor: "#1e293b",
+                        backgroundOpacity: 0.95,
+                        backgroundImage: {
+                            enabled: false,
+                            url: "",
+                            opacity: 0.8
+                        }
+                    }
+                };
+            }
+        }
+
+        // 收集壁纸设置
+        const wallpaperEnabled = document.getElementById('wallpaper-enabled').checked;
+        const wallpaperUrl = document.getElementById('wallpaper-url').value.trim();
+        const wallpaperBrightness = parseInt(document.getElementById('wallpaper-brightness').value) || 75;
+        const wallpaperFixed = document.getElementById('wallpaper-fixed').checked;
+        const wallpaperSize = document.getElementById('wallpaper-size').value;
+        const wallpaperRepeat = document.querySelector('input[name="wallpaper-repeat"]:checked')?.value || 'repeat';
+        const wallpaperBlurEnabled = document.getElementById('wallpaper_blur_enabled')?.checked || false;
+        const wallpaperBlurAmount = parseInt(document.getElementById('wallpaper_blur_amount')?.value) || 5;
+        
+        // 收集模糊效果设置
+        const blurEnabled = document.getElementById('blur_enabled').checked;
+        const blurAmount = parseInt(document.getElementById('blur_amount').value) || 5;
+        const blurQuality = document.querySelector('input[name="blur_quality"]:checked')?.value || 'normal';
+        
+        // 收集卡片设置
+        const cardBackgroundColor = document.getElementById('card-background-color').value;
+        const cardBackgroundOpacity = parseFloat(document.getElementById('card-background-opacity').value) || 0.95;
+        const cardBackgroundImageEnabled = document.getElementById('card-background-image-enabled').checked;
+
+        // 只在开启背景图片时才收集和发送图片URL和透明度
+        let cardBackgroundImageSettings = {
+            enabled: cardBackgroundImageEnabled
+        };
+
+        if (cardBackgroundImageEnabled) {
+            const cardBackgroundImageUrl = document.getElementById('card-background-image-url').value.trim();
+            const cardBackgroundImageOpacity = parseFloat(document.getElementById('card-background-image-opacity').value) || 0.8;
+            
+            cardBackgroundImageSettings.url = cardBackgroundImageUrl;
+            cardBackgroundImageSettings.opacity = cardBackgroundImageOpacity;
+        }
+
+        console.log('表单数据:', {
+            wallpaper: {
+                enabled: wallpaperEnabled,
+                url: wallpaperUrl,
+                brightness: wallpaperBrightness,
+                fixed: wallpaperFixed,
+                size: wallpaperSize,
+                repeat: wallpaperRepeat,
+                blur: {
+                    enabled: wallpaperBlurEnabled,
+                    amount: wallpaperBlurAmount
+                }
+            },
+            blur: {
+                enabled: blurEnabled,
+                amount: blurAmount,
+                quality: blurQuality
+            },
+            card: {
+                backgroundColor: cardBackgroundColor,
+                backgroundOpacity: cardBackgroundOpacity,
+                backgroundImage: cardBackgroundImageSettings
+            }
+        });
+        
+        // 构造新的设置对象
+        const newSettings = {
+            wallpaper: {
+                enabled: wallpaperEnabled,
+                url: wallpaperUrl,
+                brightness: wallpaperBrightness,
+                fixed: wallpaperFixed,
+                size: wallpaperSize,
+                repeat: wallpaperRepeat,
+                blur: {
+                    enabled: wallpaperBlurEnabled,
+                    amount: wallpaperBlurAmount
+                }
+            },
+            blur: {
+                enabled: blurEnabled,
+                amount: blurAmount,
+                quality: blurQuality
+            },
+            card: {
+                backgroundColor: cardBackgroundColor,
+                backgroundOpacity: cardBackgroundOpacity,
+                backgroundImage: cardBackgroundImageSettings
+            }
+        };
+        
+        // 对比新旧设置，只保留修改过的字段
+        const changedSettings = {};
+
+        // 检查壁纸设置变化
+        if (JSON.stringify(currentSettings.wallpaper?.enabled) !== JSON.stringify(newSettings.wallpaper.enabled)) {
+            changedSettings.wallpaper = changedSettings.wallpaper || {};
+            changedSettings.wallpaper.enabled = newSettings.wallpaper.enabled;
+        }
+        if (currentSettings.wallpaper?.url !== newSettings.wallpaper.url) {
+            changedSettings.wallpaper = changedSettings.wallpaper || {};
+            changedSettings.wallpaper.url = newSettings.wallpaper.url;
+        }
+        if (currentSettings.wallpaper?.brightness !== newSettings.wallpaper.brightness) {
+            changedSettings.wallpaper = changedSettings.wallpaper || {};
+            changedSettings.wallpaper.brightness = newSettings.wallpaper.brightness;
+        }
+        if (JSON.stringify(currentSettings.wallpaper?.fixed) !== JSON.stringify(newSettings.wallpaper.fixed)) {
+            changedSettings.wallpaper = changedSettings.wallpaper || {};
+            changedSettings.wallpaper.fixed = newSettings.wallpaper.fixed;
+        }
+        if (currentSettings.wallpaper?.size !== newSettings.wallpaper.size) {
+            changedSettings.wallpaper = changedSettings.wallpaper || {};
+            changedSettings.wallpaper.size = newSettings.wallpaper.size;
+        }
+        if (currentSettings.wallpaper?.repeat !== newSettings.wallpaper.repeat) {
+            changedSettings.wallpaper = changedSettings.wallpaper || {};
+            changedSettings.wallpaper.repeat = newSettings.wallpaper.repeat;
+        }
+        
+        // 检查壁纸模糊设置变化
+        if (JSON.stringify(currentSettings.wallpaper?.blur?.enabled) !== JSON.stringify(newSettings.wallpaper.blur.enabled)) {
+            changedSettings.wallpaper = changedSettings.wallpaper || {};
+            changedSettings.wallpaper.blur = changedSettings.wallpaper.blur || {};
+            changedSettings.wallpaper.blur.enabled = newSettings.wallpaper.blur.enabled;
+        }
+        if (currentSettings.wallpaper?.blur?.amount !== newSettings.wallpaper.blur.amount) {
+            changedSettings.wallpaper = changedSettings.wallpaper || {};
+            changedSettings.wallpaper.blur = changedSettings.wallpaper.blur || {};
+            changedSettings.wallpaper.blur.amount = newSettings.wallpaper.blur.amount;
+        }
+
+        // 检查模糊效果设置变化
+        if (JSON.stringify(currentSettings.blur?.enabled) !== JSON.stringify(newSettings.blur.enabled)) {
+            changedSettings.blur = changedSettings.blur || {};
+            changedSettings.blur.enabled = newSettings.blur.enabled;
+        }
+        if (currentSettings.blur?.amount !== newSettings.blur.amount) {
+            changedSettings.blur = changedSettings.blur || {};
+            changedSettings.blur.amount = newSettings.blur.amount;
+        }
+        if (currentSettings.blur?.quality !== newSettings.blur.quality) {
+            changedSettings.blur = changedSettings.blur || {};
+            changedSettings.blur.quality = newSettings.blur.quality;
+        }
+        
+        // 检查卡片设置变化
+        if (currentSettings.card?.backgroundColor !== newSettings.card.backgroundColor) {
+            changedSettings.card = changedSettings.card || {};
+            changedSettings.card.backgroundColor = newSettings.card.backgroundColor;
+        }
+        if (currentSettings.card?.backgroundOpacity !== newSettings.card.backgroundOpacity) {
+            changedSettings.card = changedSettings.card || {};
+            changedSettings.card.backgroundOpacity = newSettings.card.backgroundOpacity;
+        }
+
+        // 检查背景图片的启用状态
+        if (JSON.stringify(currentSettings.card?.backgroundImage?.enabled) !== 
+            JSON.stringify(newSettings.card.backgroundImage.enabled)) {
+            changedSettings.card = changedSettings.card || {};
+            changedSettings.card.backgroundImage = changedSettings.card.backgroundImage || {};
+            changedSettings.card.backgroundImage.enabled = newSettings.card.backgroundImage.enabled;
+        }
+
+        // 只有在启用背景图片时才检查URL和透明度
+        if (newSettings.card.backgroundImage.enabled) {
+            if (currentSettings.card?.backgroundImage?.url !== newSettings.card.backgroundImage.url) {
+                changedSettings.card = changedSettings.card || {};
+                changedSettings.card.backgroundImage = changedSettings.card.backgroundImage || {};
+                changedSettings.card.backgroundImage.url = newSettings.card.backgroundImage.url;
+            }
+            if (currentSettings.card?.backgroundImage?.opacity !== newSettings.card.backgroundImage.opacity) {
+                changedSettings.card = changedSettings.card || {};
+                changedSettings.card.backgroundImage = changedSettings.card.backgroundImage || {};
+                changedSettings.card.backgroundImage.opacity = newSettings.card.backgroundImage.opacity;
+            }
+        }
+        
+        // 如果没有修改，直接返回
+        if (Object.keys(changedSettings).length === 0) {
+            notice('没有需要保存的更改', 'info');
+            if (spinner) spinner.classList.add('hidden');
+            endloading(); // 确保loading效果消失
+            return;
+        }
+        
+        console.log('修改的设置:', changedSettings);
+        
+        // 构造请求数据
+        const requestData = {
+            personalization: changedSettings
+        };
+        console.log('发送的请求数据:', requestData);
+        
+        // 发送到服务器保存
+        const response = await fetch('/admin/personalization', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+        });
+        
+        const result = await response.json();
+        console.log('服务器响应:', result);
+        
+        if (result.code === 1) {
+            // 更新本地设置缓存
+            try {
+                // 深度合并设置
+                const mergedSettings = mergeSettings(currentSettings, newSettings);
+                
+                // 更新设置数据区域
+                if (settingDataElem) {
+                    settingDataElem.textContent = JSON.stringify(mergedSettings);
+                }
+                
+                // 保存设置到会话存储，以便其他页面可以使用
+                sessionStorage.setItem('personalization-settings', JSON.stringify(mergedSettings));
+                
+                // 应用最终保存的设置
+                applyFinalSettings(mergedSettings);
+                
+                // 显示成功通知
+                notice('设置保存成功', 'success');
+            } catch (e) {
+                console.error('更新本地设置缓存失败:', e);
+                notice('设置已保存，但本地缓存更新失败', 'warning');
+            }
+        } else {
+            notice(result.msg || '设置保存失败', 'error');
+        }
+    } catch (error) {
+        console.error('保存设置失败:', error);
+        notice('保存设置失败: ' + error.message, 'error');
+    } finally {
+        // 隐藏加载动画
+        if (spinner) spinner.classList.add('hidden');
+        endloading(); // 确保loading效果消失
+    }
+}
+
+// 深度合并设置对象
+function mergeSettings(target, source) {
+    // 创建目标对象的副本
+    const result = JSON.parse(JSON.stringify(target || {}));
+    
+    // 遍历源对象的所有属性
+    for (const key in source) {
+        // 检查属性是否为对象且不为null
+        if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+            // 递归合并子对象
+            result[key] = mergeSettings(result[key] || {}, source[key]);
+        } else {
+            // 基本类型或数组直接覆盖
+            result[key] = source[key];
+        }
+    }
+    
+    return result;
+}
+
+// 应用最终保存的设置（移除预览模式）
+function applyFinalSettings(settings) {
+    // 清除预览相关的类和样式
+    document.body.classList.remove('custom-wallpaper-preview');
+    
+    const oldStyle = document.getElementById('dynamic-wallpaper-style');
+    if (oldStyle) {
+        oldStyle.remove();
+    }
+    
+    // 清除会话存储中的预览设置
+    sessionStorage.removeItem('wallpaper-preview-settings');
+    
+    // 创建最终的样式
+    const finalStyle = document.createElement('style');
+    finalStyle.id = 'final-personalization-style';
+    
+    // 使用更高优先级的选择器和 !important 规则
+    const styleText = `
+        /* 卡片基础样式 */
+        .server-card {
+            position: relative !important;
+            z-index: 1 !important;
+            background-color: ${hexToRgba(settings.card?.backgroundColor || '#1e293b', settings.card?.backgroundOpacity || 0.95)} !important;
+            transition: all 0.3s ease !important;
+        }
+        
+        /* 卡片背景图片样式 */
+        .server-card.has-bg-image::before,
+        .server-card.has-background-image::before {
+            content: '' !important;
+            position: absolute !important;
+            inset: 0 !important;
+            background-image: ${settings.card?.backgroundImage?.enabled && settings.card?.backgroundImage?.url ? 
+                             `url(${settings.card.backgroundImage.url})` : 'none'} !important;
+            background-size: cover !important;
+            background-position: center !important;
+            opacity: 1 !important;
+            z-index: -2 !important;
+            transition: all 0.3s ease !important;
+        }
+        
+        /* 卡片背景叠加层 */
+        .server-card.has-bg-image::after,
+        .server-card.has-background-image::after {
+            content: '' !important;
+            position: absolute !important;
+            inset: 0 !important;
+            background-color: rgba(0, 0, 0, ${settings.card?.backgroundImage?.opacity || 0.6}) !important;
+            z-index: -1 !important;
+            transition: all 0.3s ease !important;
+        }
+        
+        /* 壁纸样式（如果启用） */
+        ${settings.wallpaper?.enabled && settings.wallpaper?.url ? `
+        body:before {
+            background-image: url('${settings.wallpaper.url}') !important;
+            background-position: center !important;
+            background-size: ${settings.wallpaper.size || 'cover'} !important;
+            background-repeat: ${settings.wallpaper.repeat || 'no-repeat'} !important;
+            ${settings.wallpaper.fixed ? 'background-attachment: fixed !important;' : ''}
+            background-color: rgba(0, 0, 0, ${(100 - (settings.wallpaper.brightness || 75)) / 100}) !important;
+            background-blend-mode: darken !important;
+            opacity: 1 !important;
+            ${settings.wallpaper.blur?.enabled ? 
+              `filter: blur(${settings.wallpaper.blur.amount || 5}px) !important; 
+               -webkit-filter: blur(${settings.wallpaper.blur.amount || 5}px) !important;` : 
+              'filter: none !important; -webkit-filter: none !important;'}
+        }
+        ` : ''}
+    `;
+    
+    finalStyle.textContent = styleText;
+    
+    // 移除旧的最终样式（如果存在）
+    const oldFinalStyle = document.getElementById('final-personalization-style');
+    if (oldFinalStyle) {
+        oldFinalStyle.remove();
+    }
+    
+    // 添加新样式
+    document.head.appendChild(finalStyle);
+    
+    // 更新所有卡片的类名
+    document.querySelectorAll('.server-card').forEach(card => {
+        if (settings.card?.backgroundImage?.enabled && settings.card?.backgroundImage?.url) {
+            card.classList.add('has-bg-image');
+            card.classList.add('has-background-image');
+        } else {
+            card.classList.remove('has-bg-image');
+            card.classList.remove('has-background-image');
+        }
+    });
+    
+    // 更新壁纸相关的类名
+    if (settings.wallpaper?.enabled && settings.wallpaper?.url) {
+        document.body.classList.add('has-background-image');
+        document.body.classList.add('wallpaper-loaded');
+    } else {
+        document.body.classList.remove('has-background-image');
+        document.body.classList.remove('wallpaper-loaded');
+    }
+    
+    // 保存设置到会话存储
+    try {
+        sessionStorage.setItem('personalization-settings', JSON.stringify(settings));
+    } catch (e) {
+        console.warn('无法保存设置到会话存储:', e);
+    }
+    
+    // 广播设置更新事件
+    try {
+        // 创建自定义事件
+        const event = new CustomEvent('personalization-settings-updated', {
+            detail: settings
+        });
+        
+        // 发送到当前文档
+        document.dispatchEvent(event);
+        
+        // 尝试发送到所有iframe
+        const iframes = document.querySelectorAll('iframe');
+        iframes.forEach(iframe => {
+            try {
+                if (iframe.contentDocument) {
+                    iframe.contentDocument.dispatchEvent(new CustomEvent('personalization-settings-updated', {
+                        detail: settings
+                    }));
+                }
+            } catch (e) {
+                console.warn('无法更新iframe:', e);
+            }
+        });
+        
+        // 发送到父窗口（如果在iframe中）
+        if (window.parent !== window) {
+            try {
+                window.parent.document.dispatchEvent(new CustomEvent('personalization-settings-updated', {
+                    detail: settings
+                }));
+            } catch (e) {
+                console.warn('无法更新父窗口:', e);
+            }
+        }
+    } catch (e) {
+        console.warn('广播设置更新事件失败:', e);
+    }
+}
+</script>
+{%endblock%} 

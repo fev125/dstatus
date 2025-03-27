@@ -1,6 +1,6 @@
 {
   "listen": 5555,
-  "password": "YOUR_PASSWORD_HERE",
+  "password_placeholder": "<设置您的密码>",
   "theme": "card",
   "neko_status_url": "https://example.com/neko-status",
   "debug": false,
@@ -13,12 +13,12 @@
   },
   "autodiscovery": {
     "enabled": true,
-    "registrationKey": "YOUR_REGISTRATION_KEY_HERE",
+    "registration_key_placeholder": "<设置您的注册密钥>",
     "defaultGroup": "",
     "requireKey": true,
     "requireApproval": true
   },
-  "dataEncryptKey": "YOUR_ENCRYPT_KEY_HERE",
+  "data_encrypt_key_placeholder": "<设置您的加密密钥>",
   "personalization": {
     "background": {
       "type": "image",
@@ -67,8 +67,8 @@
     }
   },
   "telegram": {
-    "token": "YOUR_TELEGRAM_TOKEN_HERE",
-    "chatIds": ["YOUR_CHAT_ID_HERE"],
+    "token_placeholder": "<设置您的Telegram令牌>",
+    "chatIds": ["<设置您的聊天ID>"],
     "webhook": "webhook",
     "polling": "polling",
     "baseApiUrl": "https://api.telegram.org",

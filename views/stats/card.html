@@ -1,0 +1,480 @@
+{%set title = "节点状态"%}
+{%extends "../base.html"%}
+{%block content%}
+
+
+<!-- 主容器 -->
+<div class="max-w-auto mx-auto px-1 w-full">
+    <!-- 仪表盘区域 -->
+    {% include "stats/dashboard.html" %}
+
+   
+
+    <!-- 分组内容区域 -->
+    <div class="mt-4" id="groups-container">
+        <!-- 全部节点视图 -->
+        <div class="group-view transition-all duration-300 ease-in-out" data-group="all">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {%for sid, node in stats%}
+                <!-- 服务器卡片 -->
+                <div class="server-card card-border card-hover card-padding {%if node.stat==0%}offline{%endif%} {% if setting.personalization and setting.personalization.blur and setting.personalization.blur.enabled %}blur-enabled{% endif %} {% if setting.personalization and setting.personalization.card and setting.personalization.card.backgroundImage and setting.personalization.card.backgroundImage.enabled %}has-bg-image{% endif %}" 
+                     data-group="all" 
+                     data-sid="{{sid}}" 
+                     data-top="{{node.top}}"
+                     data-blur-quality="{% if setting.personalization and setting.personalization.blur %}{{setting.personalization.blur.quality|default('normal')}}{% else %}normal{% endif %}"
+                     data-cpu="{{(node.stat.cpu.multi * 100)|float|round(2) if node.stat and node.stat.cpu else 0}}"
+                     data-memory="{{((node.stat.mem.virtual.used / node.stat.mem.virtual.total) * 100)|float|round(2) if node.stat and node.stat.mem.virtual else 0}}"
+                     data-total-traffic="{{node.traffic_used if node.traffic_used else 0}}"
+                     data-upload="{{node.stat.net.delta.out if node.stat and node.stat.net else 0}}"
+                     data-download="{{node.stat.net.delta.in if node.stat and node.stat.net else 0}}"
+                     data-expiration="{{node.expire_time if node.expire_time else 0}}"
+                     data-region="{% if node.data.location and node.data.location.code %}{{node.data.location.code}}{% elif node.data.location and node.data.location.country and node.data.location.country.code %}{{node.data.location.country.code}}{% else %}UNKNOWN{% endif %}">
+                    <div class="p-1">
+                        <!-- 服务器名称和操作按钮 -->
+                        <div class="server-card-handle flex items-center justify-between mb-3 cursor-move group">
+                            <div class="flex items-center gap-1 overflow-hidden">
+                                <!-- 添加国家信息显示 -->
+                                <div class="flex items-center gap-1 overflow-hidden">
+                                    <h3 class="server-name font-medium text-gray-200 truncate max-w-[180px] {% if node.stat and not node.stat.offline %}{% else %}text-gray-400{% endif %}" title="{{node.name}}">
+                                        {% if node.data.location and node.data.location.code %}
+                                            <span class="country-flag text-lg inline-flex flex-shrink-0" title="{{node.data.location.code}}">
+                                                {% set code = node.data.location.code %}
+                                                {% include "stats/flag.html" %}
+                                            </span>
+                                            <span class="inline-block">{{node.data.location.code}}-</span>
+                                        {% else %}
+                                            <span class="country-flag text-lg inline-flex flex-shrink-0" title="未知位置">
+                                                🌎
+                                            </span>
+                                        {% endif %}
+                                        <a href="/stats/{{sid}}/" class="hover:text-primary-400 truncate">{{node.name}}</a>
+                                    </h3>
+                                    <!-- 状态信息 -->
+                                    
+                                    <div class="flex items-center gap-1" id="{{sid}}_status_container">
+                                        <div class="w-2.5 h-2.5 rounded-full {% if node.stat and not node.stat.offline %}bg-green-500{% else %}bg-red-500{% endif %}" 
+                                             id="{{sid}}_status_indicator" 
+                                             title="{% if node.stat and not node.stat.offline %}在线{% else %}离线{% endif %}">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                               
+
+                                
+                                {%if admin%}
+                                <a class="text-gray-400 hover:text-gray-200" href="/admin/servers/{{sid}}/">
+                                    <i class="material-icons md-16">edit</i>
+                                </a>
+                                {%endif%}
+                            </div>
+                        </div>
+                        
+                        <!-- 系统信息 -->
+                        <div class="space-y-4">
+                            <!-- CPU和内存使用率 -->
+                            <div class="grid grid-cols-2 gap-4">
+                                <!-- CPU 使用率 -->
+                                <div>
+                                    <div class="flex justify-between items-center">
+                                        <div class="flex items-center gap-1 text-gray-400">
+                                            <i class="material-icons md-16">memory</i>
+                                            <span class="text-sm">CPU</span>
+                                        </div>
+                                        <span id="{{sid}}_CPU" class="text-sm text-gray-200 {% if node.stat and not node.stat.offline %}{% else %}text-gray-400{% endif %}" 
+                                              data-cpu="{{(node.stat.cpu.multi * 100)|float|round(2) if node.stat and node.stat.cpu else 0}}">
+                                            {{node.cpu}}%
+                                        </span>
+                                    </div>
+                                    <div class="h-1 bg-gray-700/50 rounded-full overflow-hidden mt-1">
+                                        <div id="{{sid}}_CPU_progress" class="h-full bg-blue-500/70 rounded-full transition-all duration-300" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                                
+                                <!-- 内存使用率 -->
+                                <div>
+                                    <div class="flex justify-between items-center">
+                                        <div class="flex items-center gap-1 text-gray-400">
+                                            <i class="material-icons md-16">dns</i>
+                                            <span class="text-sm">内存</span>
+                                        </div>
+                                        <span id="{{sid}}_MEM" class="text-sm text-gray-200 {% if node.stat and not node.stat.offline %}{% else %}text-gray-400{% endif %}" 
+                                              data-memory="{{((node.stat.mem.virtual.used / node.stat.mem.virtual.total) * 100)|float|round(2) if node.stat and node.stat.mem.virtual else 0}}">
+                                            {{node.memory}}%
+                                        </span>
+                                    </div>
+                                    <div class="h-1 bg-gray-700/50 rounded-full overflow-hidden mt-1">
+                                        <div id="{{sid}}_MEM_progress" class="h-full bg-purple-500/70 rounded-full transition-all duration-300" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 网络流量 -->
+                            <div class="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                    <div class="flex items-center gap-2 text-gray-400">
+                                        <i class="material-icons md-14">arrow_downward</i>
+                                        <span id="{{sid}}_NET_IN" class="{% if node.stat and not node.stat.offline %}{% else %}text-gray-400{% endif %}">NaN</span>
+                                    </div>
+                                    <div class="flex items-center gap-1 text-xs text-gray-500 mt-1">
+                                        <i class="material-icons md-14">cloud_download</i>
+                                        <span id="{{sid}}_NET_IN_TOTAL" class="{% if node.stat and not node.stat.offline %}{% else %}text-gray-400{% endif %}">NaN</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-2 text-gray-400">
+                                        <i class="material-icons md-14">arrow_upward</i>
+                                        <span id="{{sid}}_NET_OUT" class="{% if node.stat and not node.stat.offline %}{% else %}text-gray-400{% endif %}">NaN</span>
+                                    </div>
+                                    <div class="flex items-center gap-1 text-xs text-gray-500 mt-1">
+                                        <i class="material-icons md-14">cloud_upload</i>
+                                        <span id="{{sid}}_NET_OUT_TOTAL" class="{% if node.stat and not node.stat.offline %}{% else %}text-gray-400{% endif %}">NaN</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 到期时间 -->
+                            <div class="flex items-center gap-1 text-sm text-gray-400">
+                                <i class="material-icons md-14">access_time</i>
+                                <span>到期：</span>
+                                <span id="{{sid}}_EXPIRE_TIME" class="text-gray-200 {% if node.stat and not node.stat.offline %}{% else %}text-gray-400{% endif %}" 
+                                      data-expire="{{node.expire_time|default(0)}}">
+                                    {{node.expire}}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 操作按钮 -->
+                    <div class="card-action">
+                        <a href="/stats/{{sid}}" class="detail-btn">
+                            <i class="material-icons" style="font-size: 18px;">info_outline</i>
+                            <span>详细信息</span>
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        
+        <!-- 分组视图 -->
+        {% for group in groups %}
+        <div class="group-view hidden transition-all duration-300 ease-in-out opacity-0" data-group="{{group.id}}">
+            <div id="card-grid-{{group.id}}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {%for sid, node in stats%}
+                {% if node.group_id == group.id %}
+                <div class="server-card card-border card-hover card-padding {%if node.stat==0%}offline{%endif%} {% if setting.personalization and setting.personalization.blur and setting.personalization.blur.enabled %}blur-enabled{% endif %} {% if setting.personalization and setting.personalization.card and setting.personalization.card.backgroundImage and setting.personalization.card.backgroundImage.enabled %}has-bg-image{% endif %}" 
+                     data-group="{{group.id}}" 
+                     data-sid="{{sid}}" 
+                     data-top="{{node.top}}"
+                     data-blur-quality="{% if setting.personalization and setting.personalization.blur %}{{setting.personalization.blur.quality|default('normal')}}{% else %}normal{% endif %}"
+                     data-cpu="{{(node.stat.cpu.multi * 100)|float|round(2) if node.stat and node.stat.cpu else 0}}"
+                     data-memory="{{((node.stat.mem.virtual.used / node.stat.mem.virtual.total) * 100)|float|round(2) if node.stat and node.stat.mem.virtual else 0}}"
+                     data-total-traffic="{{node.traffic_used if node.traffic_used else 0}}"
+                     data-upload="{{node.stat.net.delta.out if node.stat and node.stat.net else 0}}"
+                     data-download="{{node.stat.net.delta.in if node.stat and node.stat.net else 0}}"
+                     data-expiration="{{node.expire_time if node.expire_time else 0}}"
+                     data-region="{% if node.data.location and node.data.location.code %}{{node.data.location.code}}{% elif node.data.location and node.data.location.country and node.data.location.country.code %}{{node.data.location.country.code}}{% else %}UNKNOWN{% endif %}">
+                    <div class="p-1">
+                        <!-- 服务器名称和操作按钮 -->
+                        <div class="server-card-handle flex items-center justify-between mb-3 cursor-move group">
+                            <div class="flex items-center gap-1 overflow-hidden">
+                                <!-- 添加国家信息显示 -->
+                                <div class="flex items-center gap-1 overflow-hidden">
+                                    <h3 class="server-name font-medium text-gray-200 truncate max-w-[180px] {% if node.stat and not node.stat.offline %}{% else %}text-gray-400{% endif %}" title="{{node.name}}">
+                                        {% if node.data.location and node.data.location.code %}
+                                            <span class="country-flag text-lg inline-flex flex-shrink-0" title="{{node.data.location.code}}">
+                                                {% set code = node.data.location.code %}
+                                                {% include "stats/flag.html" %}
+                                            </span>
+                                            <span class="inline-block">{{node.data.location.code}}-</span>
+                                        {% else %}
+                                            <span class="country-flag text-lg inline-flex flex-shrink-0" title="未知位置">
+                                                🌎
+                                            </span>
+                                        {% endif %}
+                                        <a href="/stats/{{sid}}/" class="hover:text-primary-400 truncate">{{node.name}}</a>
+                                    </h3>
+                                    <!-- 状态信息 -->
+                                    <div class="flex items-center gap-1" id="{{sid}}_status_container">
+                                        <div class="w-2.5 h-2.5 rounded-full {% if node.stat and not node.stat.offline %}bg-green-500{% else %}bg-red-500{% endif %}" 
+                                             id="{{sid}}_status_indicator" 
+                                             title="{% if node.stat and not node.stat.offline %}在线{% else %}离线{% endif %}">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                                <button class="text-gray-400 hover:text-gray-200" id="{{sid}}_host">
+                                    <i class="material-icons md-16">info_outline</i>
+                                </button>
+                                {%if admin%}
+                                <a class="text-gray-400 hover:text-gray-200" href="/admin/servers/{{sid}}/">
+                                    <i class="material-icons md-16">edit</i>
+                                </a>
+                                {%endif%}
+                            </div>
+                        </div>
+                        
+                        <!-- 系统信息 -->
+                        <div class="space-y-4">
+                            <!-- CPU和内存使用率 -->
+                            <div class="grid grid-cols-2 gap-4">
+                                <!-- CPU 使用率 -->
+                                <div>
+                                    <div class="flex justify-between items-center">
+                                        <div class="flex items-center gap-1 text-gray-400">
+                                            <i class="material-icons md-16">memory</i>
+                                            <span class="text-sm">CPU</span>
+                                        </div>
+                                        <span id="{{sid}}_CPU" class="text-sm text-gray-200 {% if node.stat and not node.stat.offline %}{% else %}text-gray-400{% endif %}" 
+                                              data-cpu="{{(node.stat.cpu.multi * 100)|float|round(2) if node.stat and node.stat.cpu else 0}}">
+                                            {{node.cpu}}%
+                                        </span>
+                                    </div>
+                                    <div class="h-1 bg-gray-700/50 rounded-full overflow-hidden mt-1">
+                                        <div id="{{sid}}_CPU_progress" class="h-full bg-blue-500/70 rounded-full transition-all duration-300" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                                
+                                <!-- 内存使用率 -->
+                                <div>
+                                    <div class="flex justify-between items-center">
+                                        <div class="flex items-center gap-1 text-gray-400">
+                                            <i class="material-icons md-16">dns</i>
+                                            <span class="text-sm">内存</span>
+                                        </div>
+                                        <span id="{{sid}}_MEM" class="text-sm text-gray-200 {% if node.stat and not node.stat.offline %}{% else %}text-gray-400{% endif %}" 
+                                              data-memory="{{((node.stat.mem.virtual.used / node.stat.mem.virtual.total) * 100)|float|round(2) if node.stat and node.stat.mem.virtual else 0}}">
+                                            {{node.memory}}%
+                                        </span>
+                                    </div>
+                                    <div class="h-1 bg-gray-700/50 rounded-full overflow-hidden mt-1">
+                                        <div id="{{sid}}_MEM_progress" class="h-full bg-purple-500/70 rounded-full transition-all duration-300" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 网络流量 -->
+                            <div class="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                    <div class="flex items-center gap-2 text-gray-400">
+                                        <i class="material-icons md-14">arrow_downward</i>
+                                        <span id="{{sid}}_NET_IN" class="{% if node.stat and not node.stat.offline %}{% else %}text-gray-400{% endif %}">NaN</span>
+                                    </div>
+                                    <div class="flex items-center gap-1 text-xs text-gray-500 mt-1">
+                                        <i class="material-icons md-14">cloud_download</i>
+                                        <span id="{{sid}}_NET_IN_TOTAL" class="{% if node.stat and not node.stat.offline %}{% else %}text-gray-400{% endif %}">NaN</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-2 text-gray-400">
+                                        <i class="material-icons md-14">arrow_upward</i>
+                                        <span id="{{sid}}_NET_OUT" class="{% if node.stat and not node.stat.offline %}{% else %}text-gray-400{% endif %}">NaN</span>
+                                    </div>
+                                    <div class="flex items-center gap-1 text-xs text-gray-500 mt-1">
+                                        <i class="material-icons md-14">cloud_upload</i>
+                                        <span id="{{sid}}_NET_OUT_TOTAL" class="{% if node.stat and not node.stat.offline %}{% else %}text-gray-400{% endif %}">NaN</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 到期时间 -->
+                            <div class="flex items-center gap-1 text-sm text-gray-400">
+                                <i class="material-icons md-14">access_time</i>
+                                <span>到期时间：</span>
+                                <span id="{{sid}}_EXPIRE_TIME" class="text-gray-200 {% if node.stat and not node.stat.offline %}{% else %}text-gray-400{% endif %}" 
+                                      data-expire="{{node.expire_time|default(0)}}">
+                                    {{node.expire}}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 操作按钮 -->
+                    <div class="card-action">
+                        <a href="/stats/{{sid}}" class="detail-btn">
+                            <i class="material-icons" style="font-size: 18px;">info_outline</i>
+                            <span>详细信息</span>
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{%endblock%}
+
+{%block js%}
+<!-- 卡片页面样式 -->
+<style>
+/* 分组视图基础样式 */
+.group-view {
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
+    will-change: opacity, transform;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+}
+
+/* 可见状态 */
+.group-view:not(.hidden) {
+    opacity: 1;
+}
+
+/* 容器样式 */
+#groups-container {
+    position: relative;
+    min-height: 200px;
+    perspective: 1000px;
+}
+
+/* 拖拽时的样式 */
+.server-card.dragging {
+    opacity: 0.8;
+    transform: scale(1.02);
+    z-index: 10;
+}
+
+/* 排序工具栏样式 */
+.sort-toolbar {
+    position: relative;
+    z-index: 40;
+}
+
+.sort-toolbar .relative {
+    position: relative;
+    z-index: 50;
+}
+
+.sort-toolbar .absolute {
+    z-index: 51;
+    transform-origin: top;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    background-color: rgba(31, 41, 55, 0.95);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.sort-toolbar .absolute.invisible {
+    transform: translateY(-10px);
+    opacity: 0;
+}
+
+.sort-toolbar .absolute:not(.invisible) {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+/* 性能优化 */
+@media (prefers-reduced-motion: reduce) {
+    .sort-toolbar .absolute {
+        transition: none;
+    }
+}
+</style>
+
+<!-- 核心脚本 -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script src="/js/core.js"></script>
+<script src="/js/sort.js"></script>
+<script src="/js/stats.js"></script>
+<script src="/js/region-stats.js"></script>
+<script src="/js/card-beautifier.js"></script>
+
+<!-- 触屏滑动支持 -->
+<script>
+/**
+ * @description 修复卡片区域在触屏设备上无法滑动的问题
+ * 1. 阻止卡片上的touch事件冒泡
+ * 2. 允许卡片内部滚动和交互
+ * @modified 2024-08-11
+ */
+document.addEventListener('DOMContentLoaded', function() {
+    // 为所有卡片添加触摸事件处理
+    const serverCards = document.querySelectorAll('.server-card');
+    
+    serverCards.forEach(card => {
+        // 标记是否正在滑动
+        let isScrolling = false;
+        let startTouchY = 0;
+        
+        // 触摸开始时记录位置
+        card.addEventListener('touchstart', function(e) {
+            isScrolling = false;
+            startTouchY = e.touches[0].clientY;
+            // 不阻止默认行为，允许正常滚动
+        }, {passive: true});
+        
+        // 触摸移动时检测是否为滚动
+        card.addEventListener('touchmove', function(e) {
+            const touchY = e.touches[0].clientY;
+            const deltaY = Math.abs(touchY - startTouchY);
+            
+            // 如果垂直移动超过10px，认为是在滚动
+            if (deltaY > 10) {
+                isScrolling = true;
+            }
+            
+            // 允许事件传播，以便页面可以滚动
+        }, {passive: true});
+        
+        // 触摸结束时，如果不是滚动，则处理点击
+        card.addEventListener('touchend', function(e) {
+            if (!isScrolling) {
+                // 如果不是滚动，可以处理为点击
+                // 这里不做特殊处理，让浏览器默认处理点击事件
+            }
+            // 重置状态
+            isScrolling = false;
+        }, {passive: true});
+    });
+});
+</script>
+
+<script>
+// 监听个性化设置更新事件
+document.addEventListener('personalization-settings-updated', function(event) {
+    const settings = event.detail;
+    if (!settings) return;
+    
+    // 更新所有服务器卡片
+    const cards = document.querySelectorAll('.server-card');
+    cards.forEach(card => {
+        // 更新背景图片类名
+        if (settings.card?.backgroundImage?.enabled) {
+            card.classList.add('has-bg-image');
+        } else {
+            card.classList.remove('has-bg-image');
+        }
+        
+        // 更新模糊效果
+        if (settings.blur?.enabled) {
+            card.classList.add('blur-enabled');
+            card.setAttribute('data-blur-quality', settings.blur.quality || 'normal');
+        } else {
+            card.classList.remove('blur-enabled');
+        }
+    });
+});
+
+// 初始化时从 sessionStorage 读取设置
+document.addEventListener('DOMContentLoaded', function() {
+    try {
+        const storedSettings = sessionStorage.getItem('personalization-settings');
+        if (storedSettings) {
+            const settings = JSON.parse(storedSettings);
+            const event = new CustomEvent('personalization-settings-updated', {
+                detail: settings
+            });
+            document.dispatchEvent(event);
+        }
+    } catch (e) {
+        console.warn('无法读取存储的个性化设置:', e);
+    }
+});
+</script>
+{%endblock%}

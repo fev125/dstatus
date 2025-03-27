@@ -1,0 +1,499 @@
+<!-- 仪表盘组件 -->
+<!-- 响应式仪表盘 -->
+<div class="hidden md:grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+    <!-- 节点情况卡片 -->
+    <div class="dashboard-card card rounded-lg overflow-hidden border border-gray-700/50">
+        <div class="p-4">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2">
+                    <i class="material-icons text-gray-400">hub</i>
+                    <h2 class="text-lg font-medium text-gray-200">节点情况</h2>
+                </div>
+                <!-- 到期节点筛选 -->
+                <div class="flex items-center gap-3">
+                    <div class="flex items-center gap-1 cursor-pointer expiry-filter hover:bg-slate-700/30 rounded-lg px-2 py-1 transition-all duration-200" data-days="3" title="点击查看3天内到期节点">
+                        <i class="material-icons text-red-500 text-sm">timer</i>
+                        <span class="text-xs text-gray-400">3天:</span>
+                        <span class="text-sm text-gray-200 font-medium" id="expiring-nodes-3">0</span>
+                    </div>
+                    <div class="flex items-center gap-1 cursor-pointer expiry-filter hover:bg-slate-700/30 rounded-lg px-2 py-1 transition-all duration-200" data-days="7" title="点击查看7天内到期节点">
+                        <i class="material-icons text-red-500 text-sm">timer</i>
+                        <span class="text-xs text-gray-400">7天:</span>
+                        <span class="text-sm text-gray-200 font-medium" id="expiring-nodes-7">0</span>
+                    </div>
+                    <div class="flex items-center gap-1 cursor-pointer expiry-filter hover:bg-slate-700/30 rounded-lg px-2 py-1 transition-all duration-200" data-days="30" title="点击查看30天内到期节点">
+                        <i class="material-icons text-red-500 text-sm">timer</i>
+                        <span class="text-xs text-gray-400">30天:</span>
+                        <span class="text-sm text-gray-200 font-medium" id="expiring-nodes-30">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 节点统计 -->
+            <div class="grid grid-cols-3 gap-4 mt-3">
+                <div class="text-center cursor-pointer status-filter hover:bg-slate-700/30 rounded-lg p-2 transition-all duration-200" data-status="ALL" title="点击查看所有节点">
+                    <div class="text-2xl font-semibold text-gray-200" id="total-nodes">0</div>
+                    <div class="text-sm text-gray-400 flex items-center justify-center gap-1">
+                        <i class="material-icons text-gray-400 text-sm">devices</i>
+                        <span>总节点</span>
+                    </div>
+                </div>
+                <div class="text-center cursor-pointer status-filter hover:bg-slate-700/30 rounded-lg p-2 transition-all duration-200" data-status="ONLINE" title="点击只查看在线节点">
+                    <div class="text-2xl font-semibold text-green-500" id="online-nodes">0</div>
+                    <div class="text-sm text-gray-400 flex items-center justify-center gap-1">
+                        <i class="material-icons text-green-500 text-sm">check_circle</i>
+                        <span>在线节点</span>
+                    </div>
+                </div>
+                <div class="text-center cursor-pointer status-filter hover:bg-slate-700/30 rounded-lg p-2 transition-all duration-200" data-status="OFFLINE" title="点击只查看离线节点">
+                    <div class="text-2xl font-semibold text-red-500" id="offline-nodes">0</div>
+                    <div class="text-sm text-gray-400 flex items-center justify-center gap-1">
+                        <i class="material-icons text-red-500 text-sm">error</i>
+                        <span>离线节点</span>
+                    </div>
+                </div>
+            </div>
+            <!-- 状态筛选提示 -->
+            <div class="mt-1 text-xs text-gray-500 text-center">点击上方卡片可筛选节点状态</div>
+           
+            <!-- 地区分布 -->
+            <div class="mt-3 mb-2 border-t border-gray-700/50 relative">
+                <h3 class="text-sm text-gray-400 mt-2 mb-1 px-0.5 flex items-center gap-1">
+                    <i class="material-icons text-gray-400 text-base">public</i>
+                    <span>地区分布</span>
+                    <span class="text-xs text-gray-500">(点击可筛选)</span>
+                </h3>
+            </div>
+            <div class="grid grid-cols-6 lg:grid-cols-8 gap-x-1.5 gap-y-1" id="region-stats">
+                <!-- 预占位元素，避免加载时布局跳动 -->
+                <div class="w-[65px] flex items-center justify-between bg-slate-800 rounded-full px-2 py-1 opacity-0 hover:bg-slate-700 cursor-pointer region-filter" data-region="CN">
+                    <div class="flex items-center min-w-0">
+                        {% set code = "CN" %}
+                        <span class="text-sm mr-1">{% include "stats/flag.html" %}</span>
+                        <span class="text-xs font-medium">CN</span>
+                        <span class="text-xs font-bold ml-1">0</span>
+                    </div>
+                </div>
+                <!-- 重复8次预占位，使用不同国家代码 -->
+                <div class="w-[65px] flex items-center justify-between bg-slate-800 rounded-full px-2 py-1 opacity-0 hover:bg-slate-700 cursor-pointer region-filter" data-region="US">
+                    <div class="flex items-center min-w-0">
+                        {% set code = "US" %}
+                        <span class="text-sm mr-1">{% include "stats/flag.html" %}</span>
+                        <span class="text-xs font-medium">US</span>
+                        <span class="text-xs font-bold ml-1">0</span>
+                    </div>
+                </div>
+                <div class="w-[65px] flex items-center justify-between bg-slate-800 rounded-full px-2 py-1 opacity-0 hover:bg-slate-700 cursor-pointer region-filter" data-region="JP">
+                    <div class="flex items-center min-w-0">
+                        {% set code = "JP" %}
+                        <span class="text-sm mr-1">{% include "stats/flag.html" %}</span>
+                        <span class="text-xs font-medium">JP</span>
+                        <span class="text-xs font-bold ml-1">0</span>
+                    </div>
+                </div>
+                <div class="w-[65px] flex items-center justify-between bg-slate-800 rounded-full px-2 py-1 opacity-0 hover:bg-slate-700 cursor-pointer region-filter" data-region="SG">
+                    <div class="flex items-center min-w-0">
+                        {% set code = "SG" %}
+                        <span class="text-sm mr-1">{% include "stats/flag.html" %}</span>
+                        <span class="text-xs font-medium">SG</span>
+                        <span class="text-xs font-bold ml-1">0</span>
+                    </div>
+                </div>
+                <div class="w-[65px] flex items-center justify-between bg-slate-800 rounded-full px-2 py-1 opacity-0 hover:bg-slate-700 cursor-pointer region-filter" data-region="LO">
+                    <div class="flex items-center min-w-0">
+                        {% set code = "LO" %}
+                        <span class="text-sm mr-1">{% include "stats/flag.html" %}</span>
+                        <span class="text-xs font-medium">LO</span>
+                        <span class="text-xs font-bold ml-1">0</span>
+                    </div>
+                </div>
+                <div class="w-[65px] flex items-center justify-between bg-slate-800 rounded-full px-2 py-1 opacity-0 hover:bg-slate-700 cursor-pointer region-filter" data-region="DE">
+                    <div class="flex items-center min-w-0">
+                        {% set code = "DE" %}
+                        <span class="text-sm mr-1">{% include "stats/flag.html" %}</span>
+                        <span class="text-xs font-medium">DE</span>
+                        <span class="text-xs font-bold ml-1">0</span>
+                    </div>
+                </div>
+                <div class="w-[65px] flex items-center justify-between bg-slate-800 rounded-full px-2 py-1 opacity-0 hover:bg-slate-700 cursor-pointer region-filter" data-region="CL">
+                    <div class="flex items-center min-w-0">
+                        {% set code = "CL" %}
+                        <span class="text-sm mr-1">{% include "stats/flag.html" %}</span>
+                        <span class="text-xs font-medium">CL</span>
+                        <span class="text-xs font-bold ml-1">0</span>
+                    </div>
+                </div>
+                <div class="w-[65px] flex items-center justify-between bg-slate-800 rounded-full px-2 py-1 opacity-0 hover:bg-slate-700 cursor-pointer region-filter" data-region="OT">
+                    <div class="flex items-center min-w-0">
+                        {% set code = "OT" %}
+                        <span class="text-sm mr-1">{% include "stats/flag.html" %}</span>
+                        <span class="text-xs font-medium">OT</span>
+                        <span class="text-xs font-bold ml-1">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 网络情况卡片 -->
+    <div class="dashboard-card card rounded-lg overflow-hidden border border-gray-700/50">
+        <div class="p-4">
+            <div class="flex items-center gap-2 mb-4">
+                <i class="material-icons text-gray-400">network_check</i>
+                <h2 class="text-lg font-medium text-gray-200">网络情况</h2>
+            </div>
+            <div class="space-y-4">
+                <!-- 实时带宽 -->
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <i class="material-icons text-gray-400">speed</i>
+                        <span class="text-sm text-gray-400">实时带宽</span>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <div class="flex items-center gap-1.5 min-w-0">
+                            <i class="material-icons text-green-500/70 text-sm flex-shrink-0">arrow_downward</i>
+                            <span class="text-base sm:text-xl font-medium text-gray-150 truncate" id="current-download-speed">0.00 bps</span>
+                        </div>
+                        <div class="flex items-center gap-1.5 min-w-0">
+                            <i class="material-icons text-blue-500/70 text-sm flex-shrink-0">arrow_upward</i>
+                            <span class="text-base sm:text-xl font-medium text-gray-150 truncate" id="current-upload-speed">0.00 bps</span>
+                        </div>
+                    </div>
+                </div>
+                <!-- 总流量 -->
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <i class="material-icons text-gray-400">data_usage</i>
+                        <span class="text-sm text-gray-400">总流量</span>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <div class="flex items-center gap-1.5">
+                            <i class="material-icons text-green-500/70 text-sm">arrow_downward</i>
+                            <span class="text-sm text-gray-200" id="total-download">0.00 B</span>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            <i class="material-icons text-blue-500/70 text-sm">arrow_upward</i>
+                            <span class="text-sm text-gray-200" id="total-upload">0.00 B</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 移动端优化仪表盘 -->
+<div class="md:hidden card rounded-lg overflow-hidden border border-gray-700/50 p-2 mt-4">
+    <!-- 第一行: 节点统计(更紧凑) -->
+    <div class="flex items-center justify-between">
+        <div class="flex-1 text-center">
+            <div class="text-base font-medium text-gray-200" id="total-nodes-mobile">0</div>
+            <div class="text-[10px] text-gray-400">总节点</div>
+        </div>
+        <div class="w-px h-6 bg-gray-700/50"></div>
+        <div class="flex-1 text-center">
+            <div class="text-base font-medium text-green-500" id="online-nodes-mobile">0</div>
+            <div class="text-[10px] text-gray-400">在线</div>
+        </div>
+        <div class="w-px h-6 bg-gray-700/50"></div>
+        <div class="flex-1 text-center">
+            <div class="text-base font-medium text-red-500" id="offline-nodes-mobile">0</div>
+            <div class="text-[10px] text-gray-400">离线</div>
+        </div>
+    </div>
+
+    <!-- 分隔线 -->
+    <div class="h-px bg-gray-700/50 my-1"></div>
+
+    <!-- 第二行: 网络统计(更紧凑) -->
+    <div class="grid grid-cols-2 gap-1">
+        <!-- 实时带宽 -->
+        <div class="flex items-center justify-center">
+            <div class="flex items-center">
+                <span class="text-[10px] text-gray-400 w-2">实</span>
+                <div class="inline-flex items-center ml-0.5">
+                    <i class="material-icons text-green-500/70 !text-[8px] leading-none">arrow_downward</i>
+                    <span class="text-[10px] text-gray-200 tabular-nums ml-px" id="current-download-speed-mobile">0.00 bps</span>
+                </div>
+                <div class="inline-flex items-center ml-1">
+                    <i class="material-icons text-blue-500/70 !text-[8px] leading-none">arrow_upward</i>
+                    <span class="text-[10px] text-gray-200 tabular-nums ml-px" id="current-upload-speed-mobile">0.00 bps</span>
+                </div>
+            </div>
+        </div>
+        <!-- 总流量 -->
+        <div class="flex items-center justify-center">
+            <div class="flex items-center">
+                <span class="text-[10px] text-gray-400 w-2">总</span>
+                <div class="inline-flex items-center ml-0.5">
+                    <i class="material-icons text-green-500/70 !text-[8px] leading-none">arrow_downward</i>
+                    <span class="text-[10px] text-gray-200 tabular-nums ml-px" id="total-download-mobile">0.00 B</span>
+                </div>
+                <div class="inline-flex items-center ml-1">
+                    <i class="material-icons text-blue-500/70 !text-[8px] leading-none">arrow_upward</i>
+                    <span class="text-[10px] text-gray-200 tabular-nums ml-px" id="total-upload-mobile">0.00 B</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 分隔线 -->
+    <div class="h-px bg-gray-700/50 my-1"></div>
+
+    <!-- 第三行: 地区分布 -->
+    <div class="flex items-center gap-1 px-1.5 mb-0.5">
+        <i class="material-icons text-gray-400 !text-[10px]">public</i>
+        <span class="text-[10px] text-gray-400">地区分布</span>
+        <span class="text-[8px] text-gray-500">(点击筛选)</span>
+    </div>
+    <div class="grid grid-cols-4 sm:grid-cols-6 gap-x-1 gap-y-1 px-1" id="region-stats-mobile">
+        <!-- 预占位元素，避免加载时布局跳动 -->
+        <div class="w-[60px] flex items-center justify-between bg-slate-800 rounded-full px-1.5 py-0.5 opacity-0 hover:bg-slate-700 cursor-pointer region-filter" data-region="CN">
+            <div class="flex items-center min-w-0">
+                {% set code = "CN" %}
+                <span class="text-xs mr-0.5">{% include "stats/flag.html" %}</span>
+                <span class="text-[8px] font-medium">CN</span>
+                <span class="text-[8px] font-bold ml-0.5">0</span>
+            </div>
+        </div>
+        <!-- 重复7次预占位 -->
+        <div class="w-[60px] flex items-center justify-between bg-slate-800 rounded-full px-1.5 py-0.5 opacity-0 hover:bg-slate-700 cursor-pointer region-filter" data-region="US">
+            <div class="flex items-center min-w-0">
+                {% set code = "US" %}
+                <span class="text-xs mr-0.5">{% include "stats/flag.html" %}</span>
+                <span class="text-[8px] font-medium">US</span>
+                <span class="text-[8px] font-bold ml-0.5">0</span>
+            </div>
+        </div>
+        <div class="w-[60px] flex items-center justify-between bg-slate-800 rounded-full px-1.5 py-0.5 opacity-0 hover:bg-slate-700 cursor-pointer region-filter" data-region="JP">
+            <div class="flex items-center min-w-0">
+                {% set code = "JP" %}
+                <span class="text-xs mr-0.5">{% include "stats/flag.html" %}</span>
+                <span class="text-[8px] font-medium">JP</span>
+                <span class="text-[8px] font-bold ml-0.5">0</span>
+            </div>
+        </div>
+        <div class="w-[60px] flex items-center justify-between bg-slate-800 rounded-full px-1.5 py-0.5 opacity-0 hover:bg-slate-700 cursor-pointer region-filter" data-region="LO">
+            <div class="flex items-center min-w-0">
+                {% set code = "LO" %}
+                <span class="text-xs mr-0.5">{% include "stats/flag.html" %}</span>
+                <span class="text-[8px] font-medium">LO</span>
+                <span class="text-[8px] font-bold ml-0.5">0</span>
+            </div>
+        </div>
+        <div class="w-[60px] flex items-center justify-between bg-slate-800 rounded-full px-1.5 py-0.5 opacity-0 hover:bg-slate-700 cursor-pointer region-filter" data-region="SG">
+            <div class="flex items-center min-w-0">
+                {% set code = "SG" %}
+                <span class="text-xs mr-0.5">{% include "stats/flag.html" %}</span>
+                <span class="text-[8px] font-medium">SG</span>
+                <span class="text-[8px] font-bold ml-0.5">0</span>
+            </div>
+        </div>
+        <div class="w-[60px] flex items-center justify-between bg-slate-800 rounded-full px-1.5 py-0.5 opacity-0 hover:bg-slate-700 cursor-pointer region-filter" data-region="DE">
+            <div class="flex items-center min-w-0">
+                {% set code = "DE" %}
+                <span class="text-xs mr-0.5">{% include "stats/flag.html" %}</span>
+                <span class="text-[8px] font-medium">DE</span>
+                <span class="text-[8px] font-bold ml-0.5">0</span>
+            </div>
+        </div>
+        <div class="w-[60px] flex items-center justify-between bg-slate-800 rounded-full px-1.5 py-0.5 opacity-0 hover:bg-slate-700 cursor-pointer region-filter" data-region="CL">
+            <div class="flex items-center min-w-0">
+                {% set code = "CL" %}
+                <span class="text-xs mr-0.5">{% include "stats/flag.html" %}</span>
+                <span class="text-[8px] font-medium">CL</span>
+                <span class="text-[8px] font-bold ml-0.5">0</span>
+            </div>
+        </div>
+        <div class="w-[60px] flex items-center justify-between bg-slate-800 rounded-full px-1.5 py-0.5 opacity-0 hover:bg-slate-700 cursor-pointer region-filter" data-region="OT">
+            <div class="flex items-center min-w-0">
+                {% set code = "OT" %}
+                <span class="text-xs mr-0.5">{% include "stats/flag.html" %}</span>
+                <span class="text-[8px] font-medium">OT</span>
+                <span class="text-[8px] font-bold ml-0.5">0</span>
+            </div>
+        </div>
+    </div>
+</div>
+ <!-- Tab导航栏 - 紧凑设计 -->
+ <div class="card rounded-lg overflow-hidden border border-gray-700/50 mt-3">
+    <!-- 分组和管理按钮区域 -->
+    <div class="flex flex-col sm:flex-row">
+        <!-- 分组标签滚动区域 -->
+        <div class="flex-1 p-2 overflow-x-auto hide-scrollbar">
+            <div class="flex items-center min-w-0">
+                <button class="tab-btn shrink-0 flex items-center px-3 h-8 text-sm text-slate-400 bg-slate-800/40 rounded-full mr-2 hover:bg-slate-700/60" data-group="all">
+                    <i class="material-icons text-base">dns</i>
+                    <span class="ml-1.5">全部节点</span>
+                </button>
+                
+                {% for group in groups %}
+                <button class="tab-btn shrink-0 flex items-center px-3 h-8 text-sm text-slate-400 bg-slate-800/40 rounded-full mr-2 hover:bg-slate-700/60" data-group="{{group.id}}">
+                    <i class="material-icons text-base">folder</i>
+                    <span class="ml-1">{{group.name}}</span>
+                    <span class="ml-1 px-1 text-xs bg-slate-700/40 rounded-full">{{group.server_count}}</span>
+                </button>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- 管理按钮区域 - 移动端显示在底部，桌面端显示在右侧 -->
+        {%if admin%}
+        <div class="flex items-center justify-end p-2 border-t sm:border-t-0 sm:border-l border-gray-700/50">
+            <div class="flex items-center space-x-2">
+                <a href="/admin/servers/add" class="flex items-center px-3 h-8 text-sm text-gray-400 hover:text-gray-200 hover:bg-white/5 rounded-full">
+                    <i class="material-icons text-base">add</i>
+                    <span class="ml-1.5 text-xs sm:text-sm">新增</span>
+                </a>
+                <a href="/admin/groups" class="flex items-center px-3 h-8 text-sm text-gray-400 hover:text-gray-200 hover:bg-white/5 rounded-full">
+                    <i class="material-icons text-base">folder</i>
+                    <span class="ml-1.5 text-xs sm:text-sm">分组</span>
+                </a>
+                <!-- 拖拽排序开关 -->
+                <div class="flex items-center px-2 h-8 text-sm text-gray-400">
+                    <label class="flex items-center cursor-pointer">
+                        <input type="checkbox" id="enable-drag-sort" class="sr-only peer">
+                        <div class="relative w-8 sm:w-9 h-4 sm:h-5 bg-gray-700 rounded-full peer peer-checked:bg-blue-600 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-3 sm:after:h-4 after:w-3 sm:after:w-4 after:transition-all"></div>
+                        <span class="ml-1.5 text-xs sm:text-sm">排序</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+        {%endif%}
+    </div>
+
+    <!-- 排序工具栏 -->
+    <div class="border-t border-gray-700/50 p-2 overflow-x-auto hide-scrollbar">
+        <div class="flex items-center min-w-0">
+            <span class="text-gray-400 text-xs sm:text-sm mr-2 shrink-0">排序:</span>
+            <div class="flex gap-2">
+                <button class="sort-btn flex items-center px-3 h-8 text-xs sm:text-sm text-gray-400 bg-slate-800/40 rounded-full hover:bg-slate-700/60 shrink-0" data-sort="default">
+                    <span>默认</span>
+                    <i class="material-icons text-base ml-1">unfold_more</i>
+                </button>
+                <button class="sort-btn flex items-center px-3 h-8 text-xs sm:text-sm text-gray-400 bg-slate-800/40 rounded-full hover:bg-slate-700/60 shrink-0" data-sort="cpu">
+                    <span>CPU</span>
+                    <i class="material-icons text-base ml-1">unfold_more</i>
+                </button>
+                <button class="sort-btn flex items-center px-3 h-8 text-xs sm:text-sm text-gray-400 bg-slate-800/40 rounded-full hover:bg-slate-700/60 shrink-0" data-sort="memory">
+                    <span>内存</span>
+                    <i class="material-icons text-base ml-1">unfold_more</i>
+                </button>
+                <button class="sort-btn flex items-center px-3 h-8 text-xs sm:text-sm text-gray-400 bg-slate-800/40 rounded-full hover:bg-slate-700/60 shrink-0" data-sort="download">
+                    <span>下载</span>
+                    <i class="material-icons text-base ml-1">unfold_more</i>
+                </button>
+                <button class="sort-btn flex items-center px-3 h-8 text-xs sm:text-sm text-gray-400 bg-slate-800/40 rounded-full hover:bg-slate-700/60 shrink-0" data-sort="upload">
+                    <span>上传</span>
+                    <i class="material-icons text-base ml-1">unfold_more</i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<style>
+/* 滚动条美化 */
+.hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+/* 卡片基础样式 */
+.card {
+    background-color: rgba(15, 23, 42, 0.95);
+    transition: opacity 0.3s ease-in-out;
+}
+
+/* 移动端优化 */
+@media (max-width: 768px) {
+    .card {
+        background-color: rgba(15, 23, 42, 0.98);
+    }
+}
+
+/* 暗色模式 */
+.dark .card {
+    background-color: rgba(15, 23, 42, 0.95);
+}
+
+/* 性能优化 */
+@media (prefers-reduced-motion: reduce) {
+    .card {
+        transition: none;
+    }
+}
+</style>
+
+<!-- 主题色图表支持 -->
+<script>
+// 为图表应用自定义主题颜色
+function getThemeColors() {
+    const isDark = document.documentElement.classList.contains('dark');
+    
+    // 设置默认颜色
+    const defaultLightColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+    const defaultDarkColors = ['#60a5fa', '#34d399', '#fbbf24', '#f87171', '#a78bfa'];
+    
+    // 初始化颜色数组
+    let chartColors = isDark ? defaultDarkColors : defaultLightColors;
+    
+    // 尝试从CSS变量获取颜色
+    const getComputedVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    
+    // 检查是否存在主题变量
+    if (getComputedVar('--accent-color')) {
+        const accentColor = getComputedVar('--accent-color');
+        chartColors[0] = accentColor; // 使用强调色作为第一个图表颜色
+    }
+    
+    return chartColors;
+}
+
+// 监听主题变化
+function setupThemeChangeListener() {
+    // 创建一个自定义事件
+    const themeChangeEvent = new CustomEvent('themeChanged');
+    
+    // 监听类变化来检测主题切换
+    const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            if (mutation.attributeName === 'class' && 
+                mutation.target === document.documentElement) {
+                // 触发主题变化事件
+                document.dispatchEvent(themeChangeEvent);
+            }
+        });
+    });
+    
+    // 开始观察html元素的class变化
+    observer.observe(document.documentElement, { attributes: true });
+    
+    console.log('主题变化监听器已设置');
+}
+
+// 在页面加载时设置主题监听
+document.addEventListener('DOMContentLoaded', setupThemeChangeListener);
+
+// 为echarts或其他图表库应用主题色
+document.addEventListener('themeChanged', function() {
+    console.log('主题已变更，正在更新图表颜色');
+    // 这里可以添加更新图表的代码
+    // 例如：重新绘制图表或更新颜色设置
+});
+
+// 为可能存在的图表设置颜色
+window.addEventListener('load', function() {
+    const chartColors = getThemeColors();
+    console.log('图表颜色已初始化:', chartColors);
+    
+    // 如果有echarts或其他图表，在这里应用主题色
+    // 例如：更新已初始化的图表
+});
+</script>
+
+
+

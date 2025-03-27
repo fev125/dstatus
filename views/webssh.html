@@ -1,0 +1,242 @@
+<!-- WebSSH Dialog -->
+<style>
+    .body-lock {
+        overflow: hidden;
+    }
+    </style>
+    
+    <div id="webSSHdialog" class="hidden fixed inset-0 z-50">
+        <!-- Dialog Backdrop -->
+        <div class="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"></div>
+        
+        <!-- Dialog Content -->
+        <div class="absolute left-1/2 top-[10vh] -translate-x-1/2 w-[95%] max-w-[1200px] min-w-[300px] h-[80vh]">
+            <div class="relative bg-gray-900 w-full h-full flex flex-col rounded-lg shadow-2xl border border-gray-700">
+                <!-- Dialog Header -->
+                <div class="px-3 h-9 flex items-center justify-between bg-gray-800 rounded-t-lg border-b border-gray-700">
+                    <!-- Window Controls -->
+                    <div class="flex items-center space-x-2 pl-1">
+                        <button onclick="dispose()" 
+                                class="w-3 h-3 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center group">
+                            <svg class="w-2 h-2 text-red-900 opacity-0 group-hover:opacity-100" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M15 5L5 15M5 5l10 10"/>
+                            </svg>
+                        </button>
+                        <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                        <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                    </div>
+                    <div class="absolute left-1/2 -translate-x-1/2 flex items-center space-x-2">
+                        <h3 id="webSSHdialogT" class="text-sm font-medium text-gray-200">BackWaves-hklite</h3>
+                        <span class="text-xs text-gray-400">已连接</span>
+                    </div>
+                    <div class="w-16"><!-- Spacer to balance the window controls --></div>
+                </div>
+                
+                <!-- Dialog Body -->
+                <div id="webSSHdialogC" class="flex-1 overflow-hidden">
+                    <div id="terminal" class="h-full w-full bg-black"></div>
+                </div>
+                
+                <!-- Dialog Footer -->
+                <div class="px-3 h-10 bg-gray-800 border-t border-gray-700 flex items-center justify-between rounded-b-lg">
+                    <!-- Scripts Dropdown -->
+                    <div class="relative">
+                        <button id="scriptsDropdownButton" 
+                                class="px-3 py-1.5 text-xs text-white bg-gray-700 hover:bg-gray-600 rounded flex items-center space-x-2 focus:outline-none focus:ring-1 focus:ring-gray-500">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                            <span>脚本片段</span>
+                        </button>
+                        <div id="ssh-scripts" 
+                             class="hidden absolute left-0 bottom-full mb-2 w-56 bg-gray-800 rounded shadow-lg py-1 z-10 border border-gray-700">
+                            {%for script in db.ssh_scripts.all()%}
+                            <button onclick="ssh_script('{{script.id}}')"
+                                    class="block w-full px-3 py-1.5 text-left text-xs text-gray-200 hover:bg-gray-700 transition-colors duration-150">
+                                {{script.name}}
+                            </button>
+                            {%endfor%}
+                        </div>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="flex items-center space-x-2">
+                        <button onclick="connect()" 
+                                class="px-3 py-1.5 text-xs text-white bg-blue-600 hover:bg-blue-700 rounded flex items-center space-x-2 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                            </svg>
+                            <span>连接</span>
+                        </button>
+                        <button onclick="dispose()" 
+                                class="px-3 py-1.5 text-xs text-white bg-red-600 hover:bg-red-700 rounded flex items-center space-x-2 focus:outline-none focus:ring-1 focus:ring-red-500">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                            <span>关闭</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+<!-- Terminal Dependencies -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@4.13.0/css/xterm.css">
+<script src="https://cdn.jsdelivr.net/npm/xterm@4.13.0/lib/xterm.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.5.0/lib/xterm-addon-fit.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xterm-addon-web-links@0.4.0/lib/xterm-addon-web-links.js"></script>
+
+<script>
+var term = null, socket = null, now_sid = "";
+let resizeTimer = null;
+
+function showDialog() {
+    document.getElementById('webSSHdialog').classList.remove('hidden');
+    document.body.classList.add('body-lock');
+}
+
+function hideDialog() {
+    document.getElementById('webSSHdialog').classList.add('hidden');
+    document.body.classList.remove('body-lock');
+}
+
+// Scripts Menu Toggle
+document.getElementById('scriptsDropdownButton').addEventListener('click', function() {
+    document.getElementById('ssh-scripts').classList.toggle('hidden');
+});
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(event) {
+    if (!event.target.closest('#scriptsDropdownButton')) {
+        document.getElementById('ssh-scripts').classList.add('hidden');
+    }
+});
+
+async function ssh_script(id) {
+    var res = await postjson("/admin/ssh_scripts/get", {id});
+    console.log(res);
+    socket.send(res.data.content);
+}
+
+function debounceResize() {
+    if (resizeTimer) {
+        clearTimeout(resizeTimer);
+    }
+    resizeTimer = setTimeout(() => {
+        if (term && term.FitAddon) {
+            // 记录调整前的大小
+            const oldCols = term.cols;
+            const oldRows = term.rows;
+            
+            // 调整终端大小
+            term.FitAddon.fit();
+            
+            // 只在大小真正改变时才发送更新
+            if (socket && socket.readyState === 1 && 
+                (oldCols !== term.cols || oldRows !== term.rows)) {
+                socket.send(JSON.stringify({
+                    cols: term.cols,
+                    rows: term.rows
+                }));
+            }
+        }
+    }, 200); // 200ms 延迟
+}
+
+function resize() {
+    if (term && term.FitAddon) {
+        term.FitAddon.fit();
+        if (socket && socket.readyState === 1) {
+            socket.send(JSON.stringify({
+                cols: term.cols,
+                rows: term.rows
+            }));
+        }
+    }
+}
+
+function connect(sid = now_sid) {
+    var path = `/admin/servers/${sid}/ws-ssh/`;
+    if (socket && socket.readyState == 1) return;
+    startloading();
+    term.FitAddon.fit();
+    socket = new WebSocket(window.location.origin.replace('http', 'ws') + path + JSON.stringify({
+        cols: term.cols,
+        rows: term.rows,
+    }));
+    socket.addEventListener('open', (e) => {
+        endloading();
+        term.focus();
+    });
+    socket.addEventListener('message', (e) => { term.write(e.data.toString("utf-8")); });
+    socket.addEventListener('close', (ev) => { });
+    socket.addEventListener('error', (ev) => { });
+}
+
+function dispose() {
+    if (socket) {
+        socket.close();
+    }
+    hideDialog();
+}
+
+async function webssh(sid) {
+    now_sid = sid;
+    
+    if (term) {
+        showDialog();
+        term.focus();
+        connect(sid);
+        return;
+    }
+
+    // 计算终端尺寸
+    const terminalContainer = document.getElementById('terminal');
+    const computedStyle = window.getComputedStyle(terminalContainer);
+    const width = parseInt(computedStyle.width);
+    const height = parseInt(computedStyle.height);
+
+    term = new Terminal({
+        cols: Math.floor(width / 9),  // 稍微调大一点避免文字挤压
+        rows: Math.floor(height / 17),
+        cursorBlink: true,
+        cursorStyle: "underline",
+        scrollback: 1000,
+        fontSize: 14,
+        fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+        theme: {
+            background: '#000000',
+            foreground: '#ffffff',
+        }
+    });
+
+    showDialog();
+    term.open(terminalContainer);
+    term.FitAddon = new FitAddon.FitAddon();
+    term.loadAddon(term.FitAddon);
+    term.WebLinksAddon = new WebLinksAddon.WebLinksAddon();
+    term.loadAddon(term.WebLinksAddon);
+
+    // 适应终端大小
+    term.FitAddon.fit();
+
+    // 修改resize事件监听
+    window.removeEventListener('resize', resize);
+    window.addEventListener('resize', debounceResize);
+
+    term.onData(data => {
+        if (socket && socket.readyState != 1) {
+            connect(sid);
+            return;
+        }
+        try {
+            socket.send(data);
+        } catch (e) {
+            term.write('\r\nConnection lost, trying to connect again!\r\n');
+            connect(sid);
+        }
+    });
+
+    connect(sid);
+}
+</script>

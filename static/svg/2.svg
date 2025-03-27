@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200" preserveAspectRatio="none">
+    <defs>
+        <linearGradient id="steel-gradient" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#64748b"/>
+            <stop offset="50%" stop-color="#334155"/>
+            <stop offset="100%" stop-color="#1e293b"/>
+        </linearGradient>
+        <pattern id="dot-pattern" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse">
+            <circle cx="5" cy="5" r="1" fill="#64748b" fill-opacity="0.5"/>
+        </pattern>
+        <linearGradient id="warning-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#f59e0b"/>
+            <stop offset="100%" stop-color="#d97706"/>
+        </linearGradient>
+    </defs>
+    
+    <!-- 工业风边框 -->
+    <path d="M 0,0 L 20,0 L 25,5 L 375,5 L 380,0 L 400,0 L 400,20 L 395,25 L 395,175 L 400,180 L 400,200 L 380,200 L 375,195 L 25,195 L 20,200 L 0,200 L 0,180 L 5,175 L 5,25 L 0,20 Z" fill="none" stroke="#64748b" stroke-width="2"/>
+    
+    <!-- 边角金属螺丝装饰 -->
+    <circle cx="20" cy="20" r="6" fill="url(#steel-gradient)" stroke="#94a3b8" stroke-width="1"/>
+    <circle cx="20" cy="20" r="3" fill="none" stroke="#94a3b8" stroke-width="1"/>
+    <circle cx="20" cy="20" r="1" fill="#94a3b8"/>
+    
+    <circle cx="380" cy="20" r="6" fill="url(#steel-gradient)" stroke="#94a3b8" stroke-width="1"/>
+    <circle cx="380" cy="20" r="3" fill="none" stroke="#94a3b8" stroke-width="1"/>
+    <circle cx="380" cy="20" r="1" fill="#94a3b8"/>
+    
+    <circle cx="20" cy="180" r="6" fill="url(#steel-gradient)" stroke="#94a3b8" stroke-width="1"/>
+    <circle cx="20" cy="180" r="3" fill="none" stroke="#94a3b8" stroke-width="1"/>
+    <circle cx="20" cy="180" r="1" fill="#94a3b8"/>
+    
+    <circle cx="380" cy="180" r="6" fill="url(#steel-gradient)" stroke="#94a3b8" stroke-width="1"/>
+    <circle cx="380" cy="180" r="3" fill="none" stroke="#94a3b8" stroke-width="1"/>
+    <circle cx="380" cy="180" r="1" fill="#94a3b8"/>
+    
+    <!-- 金属面板纹理 -->
+    <rect x="30" y="30" width="340" height="140" fill="url(#dot-pattern)" stroke="#334155" stroke-width="1"/>
+    
+    <!-- 工业指示标签 -->
+    <path d="M 400,60 L 385,60 L 380,65 L 380,75 L 385,80 L 400,80" fill="none" stroke="#64748b" stroke-width="1.5"/>
+    <path d="M 400,120 L 385,120 L 380,125 L 380,135 L 385,140 L 400,140" fill="none" stroke="#64748b" stroke-width="1.5"/>
+    
+    <path d="M 0,60 L 15,60 L 20,65 L 20,75 L 15,80 L 0,80" fill="none" stroke="#64748b" stroke-width="1.5"/>
+    <path d="M 0,120 L 15,120 L 20,125 L 20,135 L 15,140 L 0,140" fill="none" stroke="#64748b" stroke-width="1.5"/>
+    
+    <!-- 警示条纹 -->
+    <rect x="40" y="155" width="80" height="10" fill="url(#warning-gradient)"/>
+    <rect x="140" y="155" width="80" height="10" fill="url(#warning-gradient)"/>
+    <rect x="240" y="155" width="80" height="10" fill="url(#warning-gradient)"/>
+    
+    <!-- 辅助技术参数线 -->
+    <path d="M 40,145 L 320,145" stroke="#64748b" stroke-width="0.5" stroke-dasharray="5 2"/>
+    <path d="M 40,130 L 320,130" stroke="#64748b" stroke-width="0.5" stroke-dasharray="5 2"/>
+    <path d="M 40,115 L 320,115" stroke="#64748b" stroke-width="0.5" stroke-dasharray="5 2"/>
+    <path d="M 40,100 L 320,100" stroke="#64748b" stroke-width="0.5" stroke-dasharray="5 2"/>
+</svg>

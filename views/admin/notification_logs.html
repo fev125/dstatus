@@ -1,0 +1,151 @@
+{% set title = "通知日志" %}
+{%set admin = true%}
+{% extends "../base.html" %}
+
+{%block content%}
+<!-- 页面容器 -->
+<div class="container mx-auto px-4 flex flex-col md:flex-row gap-6 justify-center" style="padding-top: calc(1.5rem + env(safe-area-inset-top));">
+    <!-- 引入侧边栏 -->
+    {% include "admin/sidebar.html" %}
+    
+    <!-- 主内容区域 -->
+    <div class="flex-1 md:max-w-4xl bg-slate-900/80 backdrop-blur rounded-lg border border-slate-800/50 p-6">
+        <!-- 页面标题 -->
+        <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center gap-3">
+                <i class="material-icons text-purple-500">notifications</i>
+                <div>
+                    <h3 class="text-lg font-medium text-white">通知日志</h3>
+                    <p class="text-sm text-slate-400">Notification Logs</p>
+                </div>
+            </div>
+        </div>
+        <div class="p-6">
+            <div class="flex justify-between items-center mb-4">
+                <div class="flex space-x-4">
+                    <select id="monthSelect" class="bg-slate-800 border-slate-700 text-white rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500/40">
+                        <!-- 将由JavaScript动态填充 -->
+                    </select>
+                    <select id="typeSelect" class="bg-slate-800 border-slate-700 text-white rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500/40">
+                        <option value="all">所有类型</option>
+                        <option value="success">成功</option>
+                        <option value="error">错误</option>
+                    </select>
+                </div>
+                <button id="refreshBtn" class="inline-flex items-center px-3 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-900 transition-colors duration-200">
+                    <i class="material-icons mr-2">refresh</i>
+                    刷新
+                </button>
+            </div>
+        
+            <div class="overflow-x-auto">
+                <table class="min-w-full table-auto">
+                    <thead>
+                        <tr class="bg-slate-800/50 text-white">
+                            <th class="px-4 py-2 text-left">时间</th>
+                            <th class="px-4 py-2 text-left">类型</th>
+                            <th class="px-4 py-2 text-left">状态</th>
+                            <th class="px-4 py-2 text-left">消息/错误</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logsTableBody">
+                        <!-- 将由JavaScript动态填充 -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <div id="noLogsMessage" class="hidden text-center py-4 text-slate-400">
+                暂无日志记录
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+async function fetchNotificationLogs(month, type = 'all') {
+    try {
+        const response = await fetch(`/admin/notification-logs?month=${month}&type=${type}`);
+        if (!response.ok) throw new Error('获取日志失败');
+        const logs = await response.json();
+        return logs;
+    } catch (error) {
+        console.error('获取日志失败:', error);
+        notice('获取日志失败: ' + error.message, 'error');
+        return [];
+    }
+}
+
+function formatDateTime(isoString) {
+    const date = new Date(isoString);
+    return date.toLocaleString('zh-CN');
+}
+
+function updateLogsTable(logs) {
+    const tbody = document.getElementById('logsTableBody');
+    const noLogsMessage = document.getElementById('noLogsMessage');
+    
+    tbody.innerHTML = '';
+    
+    if (logs.length === 0) {
+        noLogsMessage.classList.remove('hidden');
+        return;
+    }
+    
+    noLogsMessage.classList.add('hidden');
+    
+    logs.forEach(log => {
+        const tr = document.createElement('tr');
+        tr.className = 'border-b border-slate-800/50 hover:bg-slate-800/30';
+        
+        tr.innerHTML = `
+            <td class="px-4 py-2">${formatDateTime(log.timestamp)}</td>
+            <td class="px-4 py-2">${log.type}</td>
+            <td class="px-4 py-2">
+                <span class="${log.status === 'success' ? 'text-green-500' : 'text-red-500'}">
+                    ${log.status === 'success' ? '成功' : '失败'}
+                </span>
+            </td>
+            <td class="px-4 py-2">${log.message || log.error}</td>
+        `;
+        
+        tbody.appendChild(tr);
+    });
+}
+
+function populateMonthSelect() {
+    const select = document.getElementById('monthSelect');
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth();
+    
+    // 生成最近12个月的选项
+    for (let i = 0; i < 12; i++) {
+        const date = new Date(currentYear, currentMonth - i, 1);
+        const value = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+        const text = `${date.getFullYear()}年${(date.getMonth() + 1)}月`;
+        
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = text;
+        select.appendChild(option);
+    }
+}
+
+async function refreshLogs() {
+    const month = document.getElementById('monthSelect').value;
+    const type = document.getElementById('typeSelect').value;
+    const logs = await fetchNotificationLogs(month, type);
+    updateLogsTable(logs);
+}
+
+// 初始化
+document.addEventListener('DOMContentLoaded', () => {
+    populateMonthSelect();
+    refreshLogs();
+    
+    document.getElementById('monthSelect').addEventListener('change', refreshLogs);
+    document.getElementById('typeSelect').addEventListener('change', refreshLogs);
+    document.getElementById('refreshBtn').addEventListener('click', refreshLogs);
+});
+</script>
+{%endblock%}

@@ -1,0 +1,145 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" preserveAspectRatio="none">
+    <defs>
+        <linearGradient id="holo-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.7"/>
+            <stop offset="50%" stop-color="#8b5cf6" stop-opacity="0.5"/>
+            <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.7"/>
+        </linearGradient>
+        <linearGradient id="bg-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#0f172a"/>
+            <stop offset="100%" stop-color="#0f0f1a"/>
+        </linearGradient>
+        <filter id="holo-glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="8" result="blur"/>
+            <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+        </filter>
+        <radialGradient id="circle-glow" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+            <stop offset="0%" stop-color="#0ea5e9" stop-opacity="0.8"/>
+            <stop offset="100%" stop-color="#0ea5e9" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="data-line-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#06b6d4"/>
+            <stop offset="50%" stop-color="#8b5cf6"/>
+            <stop offset="100%" stop-color="#3b82f6"/>
+        </linearGradient>
+    </defs>
+    
+    <!-- 背景 -->
+    <rect width="1920" height="1080" fill="url(#bg-gradient)"/>
+    
+    <!-- 全息外框 -->
+    <rect x="10" y="10" width="1900" height="1060" rx="15" ry="15" 
+          fill="none" stroke="url(#holo-gradient)" stroke-width="5" filter="url(#holo-glow)"/>
+    
+    <!-- 棱角化边框装饰 -->
+    <path d="M 0,0 L 300,0 L 350,50 L 1570,50 L 1620,0 L 1920,0" 
+          fill="none" stroke="#38bdf8" stroke-width="3" stroke-opacity="0.5" filter="url(#holo-glow)"/>
+    <path d="M 0,1080 L 300,1080 L 350,1030 L 1570,1030 L 1620,1080 L 1920,1080" 
+          fill="none" stroke="#38bdf8" stroke-width="3" stroke-opacity="0.5" filter="url(#holo-glow)"/>
+    
+    <!-- 水平中轴线 -->
+    <line x1="0" y1="540" x2="1920" y2="540" stroke="#38bdf8" stroke-width="1" 
+          stroke-dasharray="20 15" stroke-opacity="0.3"/>
+    
+    <!-- 全息交叉线条 -->
+    <path d="M 300,0 L 1620,1080" stroke="#38bdf8" stroke-width="1" stroke-opacity="0.2"/>
+    <path d="M 1620,0 L 300,1080" stroke="#38bdf8" stroke-width="1" stroke-opacity="0.2"/>
+    
+    <!-- 全息装饰圆形 -->
+    <circle cx="300" cy="300" r="150" fill="url(#circle-glow)" opacity="0.15"/>
+    <circle cx="1620" cy="780" r="200" fill="url(#circle-glow)" opacity="0.15"/>
+    
+    <!-- 扫描线效果 -->
+    <g opacity="0.1">
+        <rect x="0" y="100" width="1920" height="3" fill="#38bdf8"/>
+        <rect x="0" y="200" width="1920" height="2" fill="#38bdf8"/>
+        <rect x="0" y="300" width="1920" height="3" fill="#38bdf8"/>
+        <rect x="0" y="400" width="1920" height="2" fill="#38bdf8"/>
+        <rect x="0" y="500" width="1920" height="3" fill="#38bdf8"/>
+        <rect x="0" y="600" width="1920" height="2" fill="#38bdf8"/>
+        <rect x="0" y="700" width="1920" height="3" fill="#38bdf8"/>
+        <rect x="0" y="800" width="1920" height="2" fill="#38bdf8"/>
+        <rect x="0" y="900" width="1920" height="3" fill="#38bdf8"/>
+        <rect x="0" y="1000" width="1920" height="2" fill="#38bdf8"/>
+    </g>
+    
+    <!-- 中央全息环 -->
+    <circle cx="960" cy="540" r="350" fill="none" stroke="url(#holo-gradient)" 
+            stroke-width="3" filter="url(#holo-glow)" stroke-dasharray="30 15" opacity="0.5"/>
+    <circle cx="960" cy="540" r="300" fill="none" stroke="url(#holo-gradient)" 
+            stroke-width="2" filter="url(#holo-glow)" stroke-dasharray="20 10" opacity="0.6"/>
+    <circle cx="960" cy="540" r="250" fill="none" stroke="url(#holo-gradient)" 
+            stroke-width="1" filter="url(#holo-glow)" opacity="0.7"/>
+    
+    <!-- 数据可视化装饰 - 波形图 -->
+    <path d="M 100,800 L 200,700 L 300,750 L 400,650 L 500,700 L 600,600 L 700,650 L 800,550 L 900,600 L 
+             1000,500 L 1100,600 L 1200,550 L 1300,650 L 1400,600 L 1500,700 L 1600,650 L 1700,750 L 1800,700"
+           fill="none" stroke="url(#data-line-gradient)" stroke-width="3" filter="url(#holo-glow)" opacity="0.6"/>
+    
+    <!-- 数据可视化装饰 - 条形图 -->
+    <g opacity="0.5">
+        <rect x="200" y="850" width="40" height="100" fill="#38bdf8" filter="url(#holo-glow)" opacity="0.3"/>
+        <rect x="300" y="870" width="40" height="80" fill="#38bdf8" filter="url(#holo-glow)" opacity="0.3"/>
+        <rect x="400" y="830" width="40" height="120" fill="#38bdf8" filter="url(#holo-glow)" opacity="0.3"/>
+        <rect x="500" y="850" width="40" height="100" fill="#38bdf8" filter="url(#holo-glow)" opacity="0.3"/>
+        <rect x="600" y="820" width="40" height="130" fill="#38bdf8" filter="url(#holo-glow)" opacity="0.3"/>
+        <rect x="700" y="860" width="40" height="90" fill="#38bdf8" filter="url(#holo-glow)" opacity="0.3"/>
+        <rect x="800" y="840" width="40" height="110" fill="#38bdf8" filter="url(#holo-glow)" opacity="0.3"/>
+        
+        <rect x="1100" y="850" width="40" height="100" fill="#38bdf8" filter="url(#holo-glow)" opacity="0.3"/>
+        <rect x="1200" y="870" width="40" height="80" fill="#38bdf8" filter="url(#holo-glow)" opacity="0.3"/>
+        <rect x="1300" y="830" width="40" height="120" fill="#38bdf8" filter="url(#holo-glow)" opacity="0.3"/>
+        <rect x="1400" y="850" width="40" height="100" fill="#38bdf8" filter="url(#holo-glow)" opacity="0.3"/>
+        <rect x="1500" y="820" width="40" height="130" fill="#38bdf8" filter="url(#holo-glow)" opacity="0.3"/>
+        <rect x="1600" y="860" width="40" height="90" fill="#38bdf8" filter="url(#holo-glow)" opacity="0.3"/>
+        <rect x="1700" y="840" width="40" height="110" fill="#38bdf8" filter="url(#holo-glow)" opacity="0.3"/>
+    </g>
+    
+    <!-- 全息六边形装饰 -->
+    <path d="M 960,190 L 1100,270 L 1100,430 L 960,510 L 820,430 L 820,270 Z" 
+          fill="none" stroke="#38bdf8" stroke-width="2" filter="url(#holo-glow)" opacity="0.4"/>
+    <path d="M 960,240 L 1050,290 L 1050,390 L 960,440 L 870,390 L 870,290 Z" 
+          fill="none" stroke="#38bdf8" stroke-width="1" filter="url(#holo-glow)" opacity="0.3"/>
+          
+    <!-- 全息方框装饰 -->
+    <rect x="700" y="600" width="520" height="300" rx="5" ry="5" 
+          fill="none" stroke="#38bdf8" stroke-width="2" filter="url(#holo-glow)" opacity="0.4"/>
+    <rect x="740" y="640" width="440" height="220" rx="5" ry="5" 
+          fill="none" stroke="#38bdf8" stroke-width="1" filter="url(#holo-glow)" opacity="0.3"/>
+          
+    <!-- 全息三角形装饰 -->
+    <path d="M 300,400 L 500,200 L 700,400 Z" 
+          fill="none" stroke="#38bdf8" stroke-width="2" filter="url(#holo-glow)" opacity="0.3"/>
+    <path d="M 1220,400 L 1420,200 L 1620,400 Z" 
+          fill="none" stroke="#38bdf8" stroke-width="2" filter="url(#holo-glow)" opacity="0.3"/>
+          
+    <!-- 全息圆点装饰 -->
+    <g>
+        <circle cx="200" cy="200" r="8" fill="#38bdf8" filter="url(#holo-glow)" opacity="0.8"/>
+        <circle cx="250" cy="250" r="5" fill="#38bdf8" filter="url(#holo-glow)" opacity="0.6"/>
+        <circle cx="300" cy="200" r="3" fill="#38bdf8" filter="url(#holo-glow)" opacity="0.4"/>
+        
+        <circle cx="1720" cy="200" r="8" fill="#38bdf8" filter="url(#holo-glow)" opacity="0.8"/>
+        <circle cx="1670" cy="250" r="5" fill="#38bdf8" filter="url(#holo-glow)" opacity="0.6"/>
+        <circle cx="1620" cy="200" r="3" fill="#38bdf8" filter="url(#holo-glow)" opacity="0.4"/>
+        
+        <circle cx="200" cy="880" r="8" fill="#38bdf8" filter="url(#holo-glow)" opacity="0.8"/>
+        <circle cx="250" cy="830" r="5" fill="#38bdf8" filter="url(#holo-glow)" opacity="0.6"/>
+        <circle cx="300" cy="880" r="3" fill="#38bdf8" filter="url(#holo-glow)" opacity="0.4"/>
+        
+        <circle cx="1720" cy="880" r="8" fill="#38bdf8" filter="url(#holo-glow)" opacity="0.8"/>
+        <circle cx="1670" cy="830" r="5" fill="#38bdf8" filter="url(#holo-glow)" opacity="0.6"/>
+        <circle cx="1620" cy="880" r="3" fill="#38bdf8" filter="url(#holo-glow)" opacity="0.4"/>
+    </g>
+    
+    <!-- 全息波纹装饰 -->
+    <path d="M 400,300 C 550,250 750,350 900,300 C 1050,250 1250,350 1400,300" 
+          fill="none" stroke="#8b5cf6" stroke-width="2" filter="url(#holo-glow)" opacity="0.3"/>
+    <path d="M 400,340 C 550,290 750,390 900,340 C 1050,290 1250,390 1400,340" 
+          fill="none" stroke="#8b5cf6" stroke-width="1" filter="url(#holo-glow)" opacity="0.2"/>
+          
+    <path d="M 400,780 C 550,730 750,830 900,780 C 1050,730 1250,830 1400,780" 
+          fill="none" stroke="#3b82f6" stroke-width="2" filter="url(#holo-glow)" opacity="0.3"/>
+    <path d="M 400,740 C 550,690 750,790 900,740 C 1050,690 1250,790 1400,740" 
+          fill="none" stroke="#3b82f6" stroke-width="1" filter="url(#holo-glow)" opacity="0.2"/>
+</svg>

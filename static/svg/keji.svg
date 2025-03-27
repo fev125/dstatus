@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 200" preserveAspectRatio="none">
+    <defs>
+        <linearGradient id="cyber-edge-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.8"/>
+            <stop offset="50%" stop-color="#10b981" stop-opacity="0.8"/>
+            <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.8"/>
+        </linearGradient>
+        <filter id="cyber-glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="2" result="blur"/>
+            <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+        </filter>
+    </defs>
+    
+    <!-- 上边线条装饰 -->
+    <path d="M 0,0 L 110,0 L 130,20 L 270,20 L 290,0 L 400,0" fill="none" stroke="url(#cyber-edge-gradient)" stroke-width="2" filter="url(#cyber-glow)"/>
+    
+    <!-- 下边线条装饰 -->
+    <path d="M 0,200 L 90,200 L 110,180 L 290,180 L 310,200 L 400,200" fill="none" stroke="url(#cyber-edge-gradient)" stroke-width="2" filter="url(#cyber-glow)"/>
+    
+    <!-- 左边切角装饰 -->
+    <path d="M 0,0 L 0,40 L 15,55 L 15,145 L 0,160 L 0,200" fill="none" stroke="url(#cyber-edge-gradient)" stroke-width="2" filter="url(#cyber-glow)"/>
+    
+    <!-- 右边切角装饰 -->
+    <path d="M 400,0 L 400,40 L 385,55 L 385,145 L 400,160 L 400,200" fill="none" stroke="url(#cyber-edge-gradient)" stroke-width="2" filter="url(#cyber-glow)"/>
+    
+    <!-- 电路图案装饰 -->
+    <path d="M 15,55 L 60,55 L 60,35 M 60,55 L 60,75 L 40,75 L 40,125 L 60,125 L 60,145" fill="none" stroke="#f59e0b" stroke-width="1" stroke-opacity="0.5"/>
+    <path d="M 385,55 L 340,55 L 340,35 M 340,55 L 340,75 L 360,75 L 360,125 L 340,125 L 340,145" fill="none" stroke="#3b82f6" stroke-width="1" stroke-opacity="0.5"/>
+    
+    <!-- 装饰性角落点 -->
+    <circle cx="15" cy="55" r="3" fill="#f59e0b" filter="url(#cyber-glow)"/>
+    <circle cx="15" cy="145" r="3" fill="#f59e0b" filter="url(#cyber-glow)"/>
+    <circle cx="385" cy="55" r="3" fill="#3b82f6" filter="url(#cyber-glow)"/>
+    <circle cx="385" cy="145" r="3" fill="#3b82f6" filter="url(#cyber-glow)"/>
+    
+    <!-- 小技术节点 -->
+    <circle cx="60" cy="35" r="2" fill="#f59e0b" filter="url(#cyber-glow)"/>
+    <circle cx="60" cy="55" r="2" fill="#f59e0b" filter="url(#cyber-glow)"/>
+    <circle cx="60" cy="75" r="2" fill="#f59e0b" filter="url(#cyber-glow)"/>
+    <circle cx="40" cy="75" r="2" fill="#f59e0b" filter="url(#cyber-glow)"/>
+    <circle cx="40" cy="125" r="2" fill="#f59e0b" filter="url(#cyber-glow)"/>
+    <circle cx="60" cy="125" r="2" fill="#f59e0b" filter="url(#cyber-glow)"/>
+    <circle cx="60" cy="145" r="2" fill="#f59e0b" filter="url(#cyber-glow)"/>
+    
+    <circle cx="340" cy="35" r="2" fill="#3b82f6" filter="url(#cyber-glow)"/>
+    <circle cx="340" cy="55" r="2" fill="#3b82f6" filter="url(#cyber-glow)"/>
+    <circle cx="340" cy="75" r="2" fill="#3b82f6" filter="url(#cyber-glow)"/>
+    <circle cx="360" cy="75" r="2" fill="#3b82f6" filter="url(#cyber-glow)"/>
+    <circle cx="360" cy="125" r="2" fill="#3b82f6" filter="url(#cyber-glow)"/>
+    <circle cx="340" cy="125" r="2" fill="#3b82f6" filter="url(#cyber-glow)"/>
+    <circle cx="340" cy="145" r="2" fill="#3b82f6" filter="url(#cyber-glow)"/>
+</svg>

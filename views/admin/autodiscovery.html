@@ -1,0 +1,1062 @@
+{% set title = "自动发现管理" %}
+{%set admin = true%}
+{% extends "../base.html" %}
+
+{%block content%}
+<!-- 页面容器 -->
+<div class="container mx-auto px-4 flex flex-col md:flex-row gap-6 justify-center" style="padding-top: calc(1.5rem + env(safe-area-inset-top));">
+    <!-- 引入侧边栏 -->
+    {% include "admin/sidebar.html" %}
+    
+    <!-- 主内容区域 -->
+    <div class="flex-1 md:max-w-4xl bg-slate-900/80 backdrop-blur rounded-lg border border-slate-800/50 p-6">
+        <!-- 页面标题 -->
+        <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center gap-3">
+                <i class="material-icons text-purple-500">search</i>
+                <div>
+                    <h3 class="text-lg font-medium text-white">自动发现管理</h3>
+                    <p class="text-sm text-slate-400">Auto Discovery Management</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 自动发现设置卡片 -->
+        <div class="bg-slate-900/80 backdrop-blur rounded-lg border border-slate-800/50 mb-6">
+            <!-- 卡片标题 -->
+            <div class="flex items-center justify-between p-4 border-b border-slate-800/50">
+                <div class="flex items-center gap-3">
+                    <i class="material-icons text-blue-500">settings</i>
+                    <div>
+                        <h3 class="text-lg font-medium text-white">自动发现设置</h3>
+                        <p class="text-sm text-slate-400">Auto Discovery Settings</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 卡片内容 -->
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="flex items-center justify-between col-span-1 md:col-span-2 bg-slate-800/30 p-4 rounded-lg">
+                        <div class="flex items-center space-x-3">
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" 
+                                       {%if setting.autodiscovery.enabled%}checked{%endif%} 
+                                       key="autodiscovery.enabled"
+                                       class="sr-only peer">
+                                <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                            </label>
+                            <span class="text-sm font-medium text-slate-400">启用自动发现功能</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">注册密钥</label>
+                        <div class="relative">
+                            <input type="text" 
+                                   value="{{setting.autodiscovery.registrationKey}}" 
+                                   key="autodiscovery.registrationKey"
+                                   class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <div class="absolute right-2 top-1/2 -translate-y-1/2 flex space-x-2">
+                                <button type="button" 
+                                        onclick="generateRegistrationKey()" 
+                                        class="text-xs px-2 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded">
+                                    生成
+                                </button>
+                                <button type="button" 
+                                        onclick="copyInstallCommand()" 
+                                        class="text-xs px-2 py-1 bg-green-500 hover:bg-green-600 text-white rounded flex items-center">
+                                    <i class="material-icons text-[14px] mr-1">content_copy</i>安装命令
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">默认分组</label>
+                        <select key="autodiscovery.defaultGroup"
+                                class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            {% for group in groups %}
+                            <option value="{{group._id}}" {%if setting.autodiscovery.defaultGroup == group._id%}selected{%endif%}>{{group.name}}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" 
+                                   {%if setting.autodiscovery.requireKey%}checked{%endif%} 
+                                   key="autodiscovery.requireKey"
+                                   class="sr-only peer">
+                            <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                        </label>
+                        <span class="text-sm font-medium text-slate-400">要求注册密钥</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" 
+                                   {%if setting.autodiscovery.requireApproval%}checked{%endif%} 
+                                   key="autodiscovery.requireApproval"
+                                   class="sr-only peer">
+                            <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+                        </label>
+                        <span class="text-sm font-medium text-slate-400">需要审核</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 待审核服务器卡片 -->
+        <div class="bg-slate-900/80 backdrop-blur rounded-lg border border-slate-800/50 mb-6">
+            <!-- 卡片标题 -->
+            <div class="flex items-center justify-between p-4 border-b border-slate-800/50">
+                <div class="flex items-center gap-3">
+                    <i class="material-icons text-yellow-500">pending</i>
+                    <div>
+                        <h3 class="text-lg font-medium text-white">待审核服务器</h3>
+                        <p class="text-sm text-slate-400">Pending Servers</p>
+                    </div>
+                </div>
+                <!-- 添加刷新按钮 -->
+                <button onclick="refreshPendingServers()" 
+                        class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-slate-300 hover:text-white bg-slate-800/50 hover:bg-slate-700/50 rounded-md transition-colors">
+                    <i class="material-icons text-[18px]">refresh</i>
+                    <span>刷新</span>
+                </button>
+            </div>
+
+            <!-- 卡片内容 -->
+            <div class="p-6">
+                <div id="pendingServersContainer" class="space-y-4">
+                    <div class="flex items-center justify-center py-8">
+                        <div class="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                        <span class="ml-3 text-slate-400">加载中...</span>
+                    </div>
+                </div>
+                
+                <!-- 无数据提示 -->
+                <div id="noDataMessage" class="hidden py-8 text-center">
+                    <i class="material-icons text-slate-500 text-4xl mb-2">search_off</i>
+                    <p class="text-slate-400">暂无待审核的服务器</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 已发现服务器卡片 -->
+        <div class="bg-slate-900/80 backdrop-blur rounded-lg border border-slate-800/50">
+            <!-- 卡片标题 -->
+            <div class="flex items-center justify-between p-4 border-b border-slate-800/50">
+                <div class="flex items-center gap-3">
+                    <i class="material-icons text-green-500">travel_explore</i>
+                    <div>
+                        <h3 class="text-lg font-medium text-white">已发现服务器</h3>
+                        <p class="text-sm text-slate-400">Discovered Servers</p>
+                    </div>
+                </div>
+                <!-- 添加刷新按钮 -->
+                <button onclick="refreshDiscoveredServers()" 
+                        class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-slate-300 hover:text-white bg-slate-800/50 hover:bg-slate-700/50 rounded-md transition-colors">
+                    <i class="material-icons text-[18px]">refresh</i>
+                    <span>刷新</span>
+                </button>
+            </div>
+
+            <!-- 卡片内容 -->
+            <div class="p-6">
+                <!-- 添加搜索和分页控制 -->
+                <div class="flex flex-col md:flex-row justify-between items-center mb-4 gap-3">
+                    <div class="relative w-full md:w-64">
+                        <input type="text" id="serverSearchInput" placeholder="搜索服务器..." 
+                               class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <button onclick="searchServers()" class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white">
+                            <i class="material-icons">search</i>
+                        </button>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-sm text-slate-400">每页显示:</span>
+                        <select id="pageSize" onchange="changePageSize()" 
+                                class="bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            <option value="10">10</option>
+                            <option value="20">20</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div id="discoveredServersContainer" class="space-y-4">
+                    <div class="flex items-center justify-center py-8">
+                        <div class="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                        <span class="ml-3 text-slate-400">加载中...</span>
+                    </div>
+                </div>
+                
+                <!-- 分页控制 -->
+                <div id="paginationControls" class="flex justify-between items-center mt-6 hidden">
+                    <div class="text-sm text-slate-400">
+                        显示 <span id="currentRange">0-0</span> / <span id="totalServers">0</span> 个服务器
+                    </div>
+                    <div class="flex gap-2">
+                        <button id="prevPageBtn" onclick="goToPrevPage()" 
+                                class="px-3 py-1 bg-slate-800/50 hover:bg-slate-700/50 text-slate-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed">
+                            <i class="material-icons text-sm">chevron_left</i>
+                        </button>
+                        <span id="currentPage" class="px-3 py-1 bg-slate-800/50 text-slate-300 rounded-md">1</span>
+                        <button id="nextPageBtn" onclick="goToNextPage()" 
+                                class="px-3 py-1 bg-slate-800/50 hover:bg-slate-700/50 text-slate-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed">
+                            <i class="material-icons text-sm">chevron_right</i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 无数据提示 -->
+                <div id="noDiscoveredMessage" class="hidden py-8 text-center">
+                    <i class="material-icons text-slate-500 text-4xl mb-2">search_off</i>
+                    <p class="text-slate-400">暂无自动发现的服务器</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 保存按钮 -->
+        <div class="mt-6 flex justify-end">
+            <button onclick="saveSettings()" 
+                    class="inline-flex items-center px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-900 transition-colors">
+                <i class="material-icons mr-2">save</i>
+                保存设置
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 服务器详情弹窗 -->
+<div id="serverDetailModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center backdrop-blur-sm z-50">
+    <div class="bg-slate-800 p-6 rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-xl font-medium text-white" id="modalTitle">服务器详情</h3>
+            <button onclick="closeModal()" class="text-slate-400 hover:text-white">
+                <i class="material-icons">close</i>
+            </button>
+        </div>
+        
+        <div id="serverDetailContent" class="space-y-4">
+            <!-- 服务器详情内容 -->
+        </div>
+        
+        <div class="flex justify-end gap-3 mt-6">
+            <button onclick="closeModal()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-md">
+                关闭
+            </button>
+            <button id="approveButton" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md hidden">
+                批准
+            </button>
+            <button id="rejectButton" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md hidden">
+                拒绝
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 添加复制安装命令的弹窗 -->
+<div id="copyCommandModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center backdrop-blur-sm z-50">
+    <div class="bg-slate-800 p-6 rounded-lg shadow-xl max-w-2xl w-full mx-4">
+        <div class="flex items-center justify-between mb-4">
+            <h3 class="text-xl font-medium text-white">一键安装命令</h3>
+            <button onclick="closeCopyCommandModal()" class="text-slate-400 hover:text-white">
+                <i class="material-icons">close</i>
+            </button>
+        </div>
+        
+        <div class="space-y-4">
+            <p class="text-slate-300">复制以下命令在您的服务器上执行，即可一键安装DStatus客户端并自动注册：</p>
+            
+            <div class="relative">
+                <pre id="installCommand" class="bg-slate-900 p-4 rounded-md text-green-400 text-sm font-mono overflow-x-auto whitespace-pre-wrap break-all"></pre>
+                <button onclick="copyToClipboard('installCommand')" class="absolute top-2 right-2 text-slate-400 hover:text-white bg-slate-800/80 p-1 rounded">
+                    <i class="material-icons">content_copy</i>
+                </button>
+            </div>
+            
+            <div class="text-slate-400 text-sm">
+                <p class="mb-2">说明：</p>
+                <ul class="list-disc list-inside space-y-1">
+                    <li>此命令将下载并执行安装脚本</li>
+                    <li>安装过程需要root权限</li>
+                    <li>如果您是普通用户，脚本会提示您使用sudo或切换到root用户</li>
+                    <li>如果您已经是root用户，可以直接执行上述命令</li>
+                    <li>安装完成后，服务器将自动注册到系统中</li>
+                    <li>如果启用了审核功能，您需要在管理界面批准新服务器</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="flex justify-end mt-6">
+            <button onclick="closeCopyCommandModal()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-md">
+                关闭
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 刷新状态指示器 -->
+<div class="fixed bottom-6 left-6 md:left-70 bg-slate-800/80 backdrop-blur rounded-lg p-2 text-xs text-slate-400 shadow-lg">
+    <div class="flex items-center gap-2">
+        <i class="material-icons text-blue-500 text-sm">update</i>
+        <div>
+            <div>上次刷新: <span id="lastRefreshTime">刚刚</span></div>
+            <div>下次刷新: <span id="nextRefreshTime">30秒后</span></div>
+        </div>
+    </div>
+</div>
+{%endblock%}
+
+{%block js%}
+<script src="/js/admin-buttons.js"></script>
+<script>
+// 当前选中的服务器ID
+let currentServerId = null;
+// 添加刷新定时器变量
+let refreshTimer = null;
+
+// 分页相关变量
+let allDiscoveredServers = []; // 存储所有已发现的服务器
+let currentPage = 1;
+let pageSize = 10;
+let searchKeyword = '';
+
+/**
+ * 更新刷新状态指示器
+ * @description 更新页面上显示的上次刷新时间和下次刷新倒计时
+ */
+function updateRefreshIndicator() {
+    const lastRefreshTime = document.getElementById('lastRefreshTime');
+    const nextRefreshTime = document.getElementById('nextRefreshTime');
+    
+    if (lastRefreshTime) {
+        lastRefreshTime.textContent = new Date().toLocaleTimeString();
+    }
+    
+    // 更新倒计时
+    let countdown = 30;
+    if (nextRefreshTime) {
+        const updateCountdown = () => {
+            countdown--;
+            if (countdown <= 0) {
+                countdown = 30;
+            }
+            nextRefreshTime.textContent = `${countdown}秒后`;
+        };
+        
+        // 清除之前的倒计时
+        if (window.countdownTimer) {
+            clearInterval(window.countdownTimer);
+        }
+        
+        // 设置新的倒计时
+        updateCountdown();
+        window.countdownTimer = setInterval(updateCountdown, 1000);
+    }
+}
+
+/**
+ * 初始化页面
+ * @description 页面加载时初始化数据和定时刷新
+ */
+async function init() {
+    // 获取本地存储的每页显示数量
+    const savedPageSize = localStorage.getItem('autodiscovery_page_size');
+    if (savedPageSize) {
+        pageSize = parseInt(savedPageSize);
+        document.getElementById('pageSize').value = pageSize;
+    }
+    
+    await Promise.all([
+        refreshPendingServers(),
+        refreshDiscoveredServers()
+    ]);
+    
+    // 初始化刷新状态指示器
+    updateRefreshIndicator();
+    
+    // 添加定时刷新功能，每30秒刷新一次
+    refreshTimer = setInterval(async () => {
+        await Promise.all([
+            refreshPendingServers(),
+            refreshDiscoveredServers()
+        ]);
+        console.log('自动刷新服务器列表完成 - ' + new Date().toLocaleTimeString());
+        
+        // 更新刷新状态指示器
+        updateRefreshIndicator();
+    }, 30000); // 30秒刷新一次
+    
+    // 添加搜索框回车事件
+    document.getElementById('serverSearchInput').addEventListener('keyup', function(event) {
+        if (event.key === 'Enter') {
+            searchServers();
+        }
+    });
+}
+
+// 页面离开时清除定时器
+window.addEventListener('beforeunload', () => {
+    if (refreshTimer) {
+        clearInterval(refreshTimer);
+    }
+});
+
+// 刷新待审核服务器列表
+async function refreshPendingServers() {
+    try {
+        const pendingContainer = document.getElementById('pendingServersContainer');
+        const noDataMessage = document.getElementById('noDataMessage');
+        
+        // 显示加载状态
+        pendingContainer.innerHTML = `
+            <div class="flex items-center justify-center py-8">
+                <div class="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                <span class="ml-3 text-slate-400">加载中...</span>
+            </div>
+        `;
+        
+        // 获取待审核服务器列表 - 添加timestamp参数确保获取最新状态
+        const timestamp = new Date().getTime();
+        const response = await fetch(`/admin/autodiscovery/pending?t=${timestamp}`);
+        
+        // 检查响应状态
+        if (!response.ok) {
+            throw new Error(`服务器返回错误: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if ((result.success === true || result.code === 1) && result.data && result.data.length > 0) {
+            // 有待审核服务器
+            pendingContainer.innerHTML = '';
+            noDataMessage.classList.add('hidden');
+            
+            // 渲染服务器列表
+            result.data.forEach(server => {
+                pendingContainer.innerHTML += createServerCard(server, true);
+            });
+        } else {
+            // 无待审核服务器
+            pendingContainer.innerHTML = '';
+            noDataMessage.classList.remove('hidden');
+        }
+    } catch (error) {
+        console.error('获取待审核服务器失败:', error);
+        // 替换toast为notice函数
+        notice('获取待审核服务器失败', 'error');
+        // 显示无数据消息
+        document.getElementById('pendingServersContainer').innerHTML = '';
+        document.getElementById('noDataMessage').classList.remove('hidden');
+    }
+    
+    // 更新刷新状态指示器
+    updateRefreshIndicator();
+}
+
+/**
+ * 刷新已发现服务器列表
+ * @description 从服务器获取已发现服务器列表并显示
+ */
+async function refreshDiscoveredServers() {
+    try {
+        const discoveredContainer = document.getElementById('discoveredServersContainer');
+        const noDiscoveredMessage = document.getElementById('noDiscoveredMessage');
+        
+        // 显示加载状态
+        discoveredContainer.innerHTML = `
+            <div class="flex items-center justify-center py-8">
+                <div class="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                <span class="ml-3 text-slate-400">加载中...</span>
+            </div>
+        `;
+        
+        // 获取已发现服务器列表 - 添加timestamp参数确保获取最新状态
+        const timestamp = new Date().getTime();
+        const response = await fetch(`/admin/autodiscovery/discovered?t=${timestamp}`);
+        
+        // 检查响应状态
+        if (!response.ok) {
+            throw new Error(`服务器返回错误: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if ((result.success === true || result.code === 1) && result.data && result.data.length > 0) {
+            // 保存所有服务器数据
+            allDiscoveredServers = result.data;
+            
+            // 显示分页控制
+            document.getElementById('paginationControls').classList.remove('hidden');
+            
+            // 渲染当前页的服务器
+            renderDiscoveredServers();
+        } else {
+            // 无已发现服务器
+            allDiscoveredServers = [];
+            discoveredContainer.innerHTML = '';
+            noDiscoveredMessage.classList.remove('hidden');
+            document.getElementById('paginationControls').classList.add('hidden');
+        }
+    } catch (error) {
+        console.error('获取已发现服务器失败:', error);
+        // 替换toast为notice函数
+        notice('获取已发现服务器失败', 'error');
+        // 显示无数据消息
+        document.getElementById('discoveredServersContainer').innerHTML = '';
+        document.getElementById('noDiscoveredMessage').classList.remove('hidden');
+        document.getElementById('paginationControls').classList.add('hidden');
+    }
+    
+    // 更新刷新状态指示器
+    updateRefreshIndicator();
+}
+
+/**
+ * 渲染已发现服务器列表
+ * @description 根据当前页码和搜索关键词渲染服务器列表
+ */
+function renderDiscoveredServers() {
+    const discoveredContainer = document.getElementById('discoveredServersContainer');
+    const noDiscoveredMessage = document.getElementById('noDiscoveredMessage');
+    
+    // 根据搜索关键词过滤服务器
+    let filteredServers = allDiscoveredServers;
+    if (searchKeyword) {
+        const keyword = searchKeyword.toLowerCase();
+        filteredServers = allDiscoveredServers.filter(server => 
+            (server.name && server.name.toLowerCase().includes(keyword)) ||
+            (server.hostname && server.hostname.toLowerCase().includes(keyword)) ||
+            (server.ip && server.ip.toLowerCase().includes(keyword)) ||
+            (server.system && server.system.toLowerCase().includes(keyword))
+        );
+    }
+    
+    // 计算总页数
+    const totalPages = Math.ceil(filteredServers.length / pageSize);
+    
+    // 确保当前页码有效
+    if (currentPage > totalPages) {
+        currentPage = totalPages || 1;
+    }
+    
+    // 计算当前页的服务器
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = Math.min(startIndex + pageSize, filteredServers.length);
+    const currentPageServers = filteredServers.slice(startIndex, endIndex);
+    
+    // 更新分页信息
+    document.getElementById('currentPage').textContent = currentPage;
+    document.getElementById('currentRange').textContent = filteredServers.length > 0 ? `${startIndex + 1}-${endIndex}` : '0-0';
+    document.getElementById('totalServers').textContent = filteredServers.length;
+    
+    // 更新分页按钮状态
+    document.getElementById('prevPageBtn').disabled = currentPage <= 1;
+    document.getElementById('nextPageBtn').disabled = currentPage >= totalPages;
+    
+    // 显示或隐藏分页控制
+    if (filteredServers.length > 0) {
+        document.getElementById('paginationControls').classList.remove('hidden');
+    } else {
+        document.getElementById('paginationControls').classList.add('hidden');
+    }
+    
+    // 渲染服务器列表
+    if (currentPageServers.length > 0) {
+        discoveredContainer.innerHTML = '';
+        noDiscoveredMessage.classList.add('hidden');
+        
+        currentPageServers.forEach(server => {
+            discoveredContainer.innerHTML += createServerCard(server, false);
+        });
+    } else {
+        discoveredContainer.innerHTML = '';
+        noDiscoveredMessage.classList.remove('hidden');
+    }
+}
+
+/**
+ * 搜索服务器
+ * @description 根据输入框中的关键词搜索服务器
+ */
+function searchServers() {
+    searchKeyword = document.getElementById('serverSearchInput').value.trim();
+    currentPage = 1; // 重置到第一页
+    renderDiscoveredServers();
+}
+
+/**
+ * 更改每页显示数量
+ * @description 根据下拉框选择更改每页显示的服务器数量
+ */
+function changePageSize() {
+    pageSize = parseInt(document.getElementById('pageSize').value);
+    currentPage = 1; // 重置到第一页
+    
+    // 保存到本地存储
+    localStorage.setItem('autodiscovery_page_size', pageSize);
+    
+    renderDiscoveredServers();
+}
+
+/**
+ * 前往上一页
+ * @description 分页控制 - 前往上一页
+ */
+function goToPrevPage() {
+    if (currentPage > 1) {
+        currentPage--;
+        renderDiscoveredServers();
+    }
+}
+
+/**
+ * 前往下一页
+ * @description 分页控制 - 前往下一页
+ */
+function goToNextPage() {
+    const totalPages = Math.ceil(
+        (searchKeyword ? 
+            allDiscoveredServers.filter(server => 
+                (server.name && server.name.toLowerCase().includes(searchKeyword.toLowerCase())) ||
+                (server.hostname && server.hostname.toLowerCase().includes(searchKeyword.toLowerCase())) ||
+                (server.ip && server.ip.toLowerCase().includes(searchKeyword.toLowerCase())) ||
+                (server.system && server.system.toLowerCase().includes(searchKeyword.toLowerCase()))
+            ) : 
+            allDiscoveredServers
+        ).length / pageSize
+    );
+    
+    if (currentPage < totalPages) {
+        currentPage++;
+        renderDiscoveredServers();
+    }
+}
+
+// 创建服务器卡片HTML
+function createServerCard(server, isPending) {
+    // 检查server和server.data是否存在
+    if (!server) {
+        console.error('创建服务器卡片失败: 服务器对象为空');
+        return '';
+    }
+    
+    // 初始化数据对象，防止undefined错误
+    const data = server.data || {};
+    const ssh = data.ssh || {};
+    
+    // 安全地获取discoveryTime
+    const discoveryTime = data.discoveryTime ? new Date(data.discoveryTime).toLocaleString() : '未知';
+    
+    // 安全地获取状态 - 使用与card.html相同的判断逻辑
+    let statusHtml = '';
+    // 判断服务器是否在线 - 参考card.html的逻辑
+    const isOnline = server.stat && !server.stat.offline;
+    statusHtml = isOnline ? 
+        '<span class="text-green-500 flex items-center"><i class="material-icons mr-1 text-sm">check_circle</i>在线</span>' : 
+        '<span class="text-red-500 flex items-center"><i class="material-icons mr-1 text-sm">error</i>离线</span>';
+    
+    // 安全地获取ID
+    const serverId = server._id || server.id || '';
+    
+    // 添加删除按钮（仅对已发现服务器显示）
+    const deleteButton = !isPending ? 
+        `<button onclick="deleteServer('${serverId}')" class="ml-2 text-red-500 hover:text-red-400" title="删除服务器">
+            <i class="material-icons">delete</i>
+        </button>` : '';
+    
+    return `
+        <div class="bg-slate-800/50 border border-slate-700/50 rounded-lg p-4 hover:bg-slate-800/80 transition-colors">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 w-10 h-10 bg-slate-700 rounded-full flex items-center justify-center">
+                        <i class="material-icons text-blue-500">computer</i>
+                    </div>
+                    <div class="ml-3">
+                        <h4 class="text-base font-medium text-white">${server.name || server.hostname || '未命名服务器'}</h4>
+                        <p class="text-sm text-slate-400">${ssh.host || server.ip || '未知IP'}</p>
+                    </div>
+                </div>
+                <div class="flex items-center">
+                    ${statusHtml}
+                    <button onclick="viewServerDetail('${serverId}', ${isPending})" class="ml-3 text-blue-500 hover:text-blue-400">
+                        <i class="material-icons">visibility</i>
+                    </button>
+                    ${deleteButton}
+                </div>
+            </div>
+            <div class="mt-3 grid grid-cols-2 gap-2 text-sm">
+                <div class="text-slate-400">系统: <span class="text-slate-300">${data.system || server.system || '未知'}</span></div>
+                <div class="text-slate-400">发现时间: <span class="text-slate-300">${discoveryTime}</span></div>
+            </div>
+        </div>
+    `;
+}
+
+// 查看服务器详情
+async function viewServerDetail(serverId, isPending = false) {
+    try {
+        let response, result, server;
+        const timestamp = new Date().getTime(); // 添加时间戳防止缓存
+        
+        if (isPending) {
+            // 待审核服务器
+            response = await fetch(`/admin/autodiscovery/pending/${serverId}?t=${timestamp}`);
+        } else {
+            // 已发现服务器
+            response = await fetch(`/admin/autodiscovery/server/${serverId}?t=${timestamp}`);
+        }
+        
+        // 检查响应状态
+        if (!response.ok) {
+            throw new Error(`服务器返回错误: ${response.status}`);
+        }
+        
+        result = await response.json();
+        
+        if ((result.success === true || result.code === 1) && result.data) {
+            server = result.data;
+            const modal = document.getElementById('serverDetailModal');
+            const content = document.getElementById('serverDetailContent');
+            const approveButton = document.getElementById('approveButton');
+            const rejectButton = document.getElementById('rejectButton');
+            
+            // 设置标题
+            const modalTitle = document.getElementById('modalTitle');
+            if (modalTitle) {
+                modalTitle.textContent = server.name || server.hostname || '服务器详情';
+            }
+            
+            // 生成详情内容
+            if (content) {
+                content.innerHTML = generateServerDetailHtml(server);
+            }
+            
+            // 显示/隐藏审核按钮
+            if (isPending) {
+                if (approveButton) approveButton.classList.remove('hidden');
+                if (rejectButton) rejectButton.onclick = () => rejectServer(serverId);
+            } else {
+                if (approveButton) approveButton.classList.add('hidden');
+                if (rejectButton) rejectButton.classList.add('hidden');
+            }
+            
+            // 显示弹窗
+            if (modal) {
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+        } else {
+            notice('获取服务器详情失败', 'error');
+        }
+    } catch (error) {
+        console.error('查看服务器详情失败:', error);
+        notice('查看服务器详情失败', 'error');
+    }
+}
+
+// 生成服务器详情HTML
+function generateServerDetailHtml(server) {
+    // 检查server是否存在
+    if (!server) {
+        console.error('生成服务器详情失败: 服务器对象为空');
+        return '<div class="text-red-500">无法加载服务器详情</div>';
+    }
+    
+    // 初始化数据对象，防止undefined错误
+    const data = server.data || {};
+    const ssh = data.ssh || {};
+    const api = data.api || {};
+    
+    // 安全地获取时间
+    const discoveryTime = data.discoveryTime ? new Date(data.discoveryTime).toLocaleString() : '未知';
+    const lastOnline = server.status && server.status.last_online ? new Date(server.status.last_online).toLocaleString() : '未知';
+    
+    // 安全地获取在线状态 - 使用与card.html相同的判断逻辑
+    const isOnline = server.stat && !server.stat.offline;
+    
+    return `
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="space-y-2">
+                <div class="text-slate-400">主机名: <span class="text-white">${server.name || server.hostname || '未知'}</span></div>
+                <div class="text-slate-400">IP地址: <span class="text-white">${ssh.host || server.ip || '未知'}</span></div>
+                <div class="text-slate-400">系统: <span class="text-white">${data.system || server.system || '未知'}</span></div>
+                <div class="text-slate-400">版本: <span class="text-white">${data.version || server.version || '未知'}</span></div>
+                <div class="text-slate-400">状态: <span class="${isOnline ? 'text-green-500' : 'text-red-500'}">${isOnline ? '在线' : '离线'}</span></div>
+            </div>
+            <div class="space-y-2">
+                <div class="text-slate-400">分组: <span class="text-white">${server.group_id || server.group || '默认'}</span></div>
+                <div class="text-slate-400">API端口: <span class="text-white">${api.port || '未知'}</span></div>
+                <div class="text-slate-400">网络设备: <span class="text-white">${data.device || server.device || '未知'}</span></div>
+                <div class="text-slate-400">发现时间: <span class="text-white">${discoveryTime}</span></div>
+                <div class="text-slate-400">最后在线: <span class="text-white">${lastOnline}</span></div>
+            </div>
+        </div>
+        <div class="mt-4 p-3 bg-slate-900 rounded-md">
+            <h4 class="text-sm font-medium text-slate-300 mb-2">API密钥</h4>
+            <div class="text-xs font-mono bg-slate-950 p-2 rounded overflow-x-auto">${api.key || server.api_key || '未知'}</div>
+        </div>
+    `;
+}
+
+// 批准服务器
+async function approveServer(serverId) {
+    try {
+        // 修正API路径
+        const response = await fetch(`/admin/autodiscovery/approve/${serverId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ approved: true })
+        });
+        
+        // 检查响应状态
+        if (!response.ok) {
+            throw new Error(`服务器返回错误: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (result.success === true) {
+            notice('服务器已批准', 'success');
+            closeModal();
+            await Promise.all([refreshPendingServers(), refreshDiscoveredServers()]);
+        } else {
+            notice(result.message || '批准服务器失败', 'error');
+        }
+    } catch (error) {
+        console.error('批准服务器失败:', error);
+        notice('批准服务器失败', 'error');
+    }
+}
+
+// 拒绝服务器
+async function rejectServer(serverId) {
+    try {
+        // 修正API路径
+        const response = await fetch(`/admin/autodiscovery/reject/${serverId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        // 检查响应状态
+        if (!response.ok) {
+            throw new Error(`服务器返回错误: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (result.success === true) {
+            notice('服务器已拒绝', 'success');
+            closeModal();
+            await refreshPendingServers();
+        } else {
+            notice(result.message || '拒绝服务器失败', 'error');
+        }
+    } catch (error) {
+        console.error('拒绝服务器失败:', error);
+        notice('拒绝服务器失败', 'error');
+    }
+}
+
+// 关闭弹窗
+function closeModal() {
+    const modal = document.getElementById('serverDetailModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    currentServerId = null;
+}
+
+// 页面加载完成后初始化
+document.addEventListener('DOMContentLoaded', init);
+
+// 保存设置
+async function saveSettings() {
+    try {
+        // 显示加载动画
+        startloading();
+        
+        // 收集设置
+        var settings = {};
+        function gen(x, keys, val) {
+            if(keys.length==0) return;
+            var key = keys[0];
+            keys.shift();
+            if(keys.length==0) x[key]=val;
+            else {
+                if(!x[key]) x[key]={};
+                gen(x[key], keys, val);
+            }
+        }
+        
+        // 获取所有带key属性的元素的值
+        for(var x of document.querySelectorAll("[key]")) {
+            var val = x.value;
+            if(x.type=="number") val = Number(x.value);
+            if(x.type=="checkbox") val = x.checked;
+            if(x.getAttribute("isarray")) val = val.split(",");
+            gen(settings, x.getAttribute("key").split('.'), val);
+        }
+        
+        // 发送到服务器
+        const res = await fetch('/admin/setting', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(settings)
+        }).then(r => r.json());
+        
+        if(res.code === 1) {
+            notice('保存成功', 'success');
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
+        } else {
+            notice(res.msg || '保存失败', 'error');
+        }
+    } catch (error) {
+        console.error('保存设置失败:', error);
+        notice('保存失败: ' + error.message, 'error');
+    } finally {
+        // 隐藏加载动画
+        endloading();
+    }
+}
+
+// 添加快捷键保存
+document.addEventListener("keydown", (e) => {
+    if ((window.navigator.platform.match("Mac") ? e.metaKey : e.ctrlKey) && e.keyCode == 83) {
+        e.preventDefault();
+        saveSettings();
+    }
+}, false);
+</script>
+<!-- 生成注册密钥函数 -->
+<script>
+// 生成随机注册密钥
+function generateRegistrationKey() {
+    // 生成16位随机字符串
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let key = '';
+    for (let i = 0; i < 16; i++) {
+        key += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    
+    // 设置到输入框
+    document.querySelector('[key="autodiscovery.registrationKey"]').value = key;
+    
+    // 显示提示
+    notice('已生成新的注册密钥', 'success');
+}
+</script>
+<!-- 添加复制安装命令的JavaScript代码 -->
+<script>
+// 生成安装命令
+function generateInstallCommand() {
+    const registrationKey = document.querySelector('[key="autodiscovery.registrationKey"]').value;
+    const serverUrl = window.location.origin;
+    
+    // 构建安装命令 - 修正脚本路径
+    return `curl -s ${serverUrl}/js/install-dstatus.sh | bash -s -- "${registrationKey}" "${serverUrl}"`;
+}
+
+// 显示复制命令弹窗
+function copyInstallCommand() {
+    const modal = document.getElementById('copyCommandModal');
+    const commandElement = document.getElementById('installCommand');
+    const rootCommandElement = document.getElementById('rootInstallCommand');
+    
+    // 生成安装命令
+    const command = generateInstallCommand();
+    
+    // 设置命令内容
+    commandElement.textContent = command;
+    
+    // 显示弹窗
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
+// 关闭复制命令弹窗
+function closeCopyCommandModal() {
+    const modal = document.getElementById('copyCommandModal');
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+}
+
+// 复制文本到剪贴板
+function copyToClipboard(elementId) {
+    const element = document.getElementById(elementId);
+    const text = element.textContent;
+    
+    // 创建临时文本区域
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    
+    // 选择并复制文本
+    textarea.select();
+    document.execCommand('copy');
+    
+    // 移除临时文本区域
+    document.body.removeChild(textarea);
+    
+    // 显示复制成功提示
+    notice('安装命令已复制到剪贴板', 'success');
+}
+</script>
+<!-- 添加删除服务器函数 -->
+<script>
+// 删除服务器
+async function deleteServer(serverId) {
+    if (!confirm('确定要删除此服务器吗？此操作不可恢复。')) {
+        return;
+    }
+    
+    try {
+        // 显示加载状态
+        startloading();
+        
+        // 调用删除API
+        const response = await fetch(`/admin/autodiscovery/delete/${serverId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        // 检查响应状态
+        if (!response.ok) {
+            throw new Error(`服务器返回错误: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        
+        if (result.success === true) {
+            notice('服务器已删除', 'success');
+            
+            // 从本地数据中移除
+            allDiscoveredServers = allDiscoveredServers.filter(server => 
+                (server._id !== serverId) && (server.id !== serverId)
+            );
+            
+            // 重新渲染列表
+            renderDiscoveredServers();
+        } else {
+            notice(result.message || '删除服务器失败', 'error');
+        }
+    } catch (error) {
+        console.error('删除服务器失败:', error);
+        notice('删除服务器失败: ' + error.message, 'error');
+    } finally {
+        // 隐藏加载状态
+        endloading();
+    }
+}
+</script>
+{%endblock%}

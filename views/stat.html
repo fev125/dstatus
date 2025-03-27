@@ -1,0 +1,585 @@
+{%set title = "节点状态"%}
+{%extends "./base.html"%}
+
+{%block content%}
+<style>
+/* 基础图标样式 */
+.material-icons {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
+    line-height: 1;
+}
+
+/* 主标题图标 - 用于卡片标题 */
+.card-title .material-icons,
+h2 .material-icons {
+    width: 24px;
+    height: 24px;
+    font-size: 24px;
+}
+
+/* 次级标题图标 - 用于区块标题 */
+h3 .material-icons,
+.section-title .material-icons {
+    width: 22px;
+    height: 22px;
+    font-size: 22px;
+}
+
+/* 普通图标 - 用于数据展示 */
+.data-icon .material-icons {
+    width: 18px;
+    height: 18px;
+    font-size: 18px;
+}
+
+/* 小图标 - 用于辅助信息 */
+.material-icons.text-sm {
+    width: 16px;
+    height: 16px;
+    font-size: 16px;
+}
+
+/* 操作图标 - 用于按钮和交互 */
+.action-icon .material-icons {
+    width: 20px;
+    height: 20px;
+    font-size: 20px;
+}
+
+.offline {
+    color: #94a3b8;
+}
+
+/* 进度条基础样式 */
+.progress-container {
+    width: 100%;
+    height: 0.25rem;
+    background-color: rgba(55, 65, 81, 0.5);
+    border-radius: 9999px;
+    overflow: hidden;
+    position: relative;
+}
+
+/* 进度条填充样式 */
+.progress-bar {
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    border-radius: 9999px;
+    transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: width, background-color;
+}
+
+/* 进度条颜色变体 */
+.progress-bar.bg-green-500 { background-color: rgba(34, 197, 94, 0.7); }
+.progress-bar.bg-blue-500 { background-color: rgba(59, 130, 246, 0.7); }
+.progress-bar.bg-yellow-500 { background-color: rgba(234, 179, 8, 0.7); }
+.progress-bar.bg-red-500 { background-color: rgba(239, 68, 68, 0.7); }
+.progress-bar.bg-purple-500 { background-color: rgba(168, 85, 247, 0.7); }
+.progress-bar.bg-indigo-500 { background-color: rgba(99, 102, 241, 0.7); }
+
+/* 图表容器样式 */
+.chart-container {
+    height: calc(100% - 20px);
+    min-height: 300px;
+    width: 100%;
+}
+
+/* 负载详情卡片样式 */
+.load-details-card {
+    min-height: 400px;
+}
+
+/* 带宽监控卡片样式 */
+.bandwidth-card {
+    min-height: 400px;
+}
+
+/* 图表内容区域样式 */
+.tab-content {
+    min-height: 350px;
+    height: 100%;
+}
+</style>
+
+<!-- 预加载 Material Icons 字体 -->
+<link rel="preload" href="/fonts/MaterialIcons-Regular.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/css/material-icons.css">
+
+<!-- 数据存储区域 -->
+<textarea id='traffic_data' class="hidden">{{traffic|dump}}</textarea>
+<textarea id='load_m_data' class="hidden">{{load_m|dump}}</textarea>
+<textarea id='load_h_data' class="hidden">{{load_h|dump}}</textarea>
+<textarea id='node-data' class="hidden">{{node|dump|safe}}</textarea>
+<textarea id="preprocessed-data" style="display: none;">{{preProcessedData|safe}}</textarea>
+
+<div class="space-y-4">
+    <!-- 节点信息卡片 -->
+    <div class="card card-border card-hover overflow-hidden">
+        <div class="px-4 py-3 flex justify-between items-center border-b border-gray-700/50">
+            <div class="flex-1 flex items-center justify-between mr-4">
+                <!-- 左侧主机信息 -->
+                <div class="flex items-center gap-3">
+                    <i class="material-icons text-blue-500/70">dns</i>
+                    <h2 class="text-base sm:text-lg font-medium text-gray-200 truncate">{{node.name}}</h2>
+                    <span class="text-xs sm:text-sm text-gray-400">(主机名: <span id="system-hostname"></span>)</span>
+                </div>
+            </div>
+            
+            <div class="flex-shrink-0 flex items-center space-x-1 md:space-x-2 action-icon min-w-fit">
+               
+                {%if admin%}
+                <a href="/admin/servers/{{sid}}/" class="p-2 text-gray-400 hover:text-gray-200 hover:bg-white/5 rounded-md transition-colors">
+                    <i class="material-icons">edit</i>
+                </a>
+                <button onclick="webssh('{{sid}}')" class="p-2 text-gray-400 hover:text-gray-200 hover:bg-white/5 rounded-md transition-colors" title="web ssh">
+                    <i class="material-icons">open_in_browser</i>
+                </button>
+                {%endif%}
+            </div>
+        </div>
+    </div>
+
+    <!-- 系统状态区域 - 左右布局 2:3 -->
+    <div class="grid grid-cols-1 lg:grid-cols-5 gap-4">
+        <!-- 系统状况和网络流量卡片 - 占2格 -->
+        <div class="col-span-1 lg:col-span-2 card card-border card-hover overflow-hidden">
+            <div class="px-4 py-3 border-b border-gray-700/50">
+                <div class="flex items-center gap-2 section-title">
+                    <i class="material-icons text-blue-500/70">memory</i>
+                    <h3 class="text-lg font-medium text-gray-200">系统状况</h3>
+                    <span id="system-os" class="text-sm text-gray-400"></span>
+                </div>
+            </div>
+            <div class="p-4">
+                <div class="space-y-4">
+                    <!-- CPU -->
+                    <div class="space-y-2">
+                        <div class="flex items-center gap-3">
+                            <div class="flex-1">
+                                <div class="flex justify-between">
+                                    <div class="flex items-center gap-1 text-gray-400 data-icon">
+                                        <i class="material-icons">memory</i>
+                                        <span class="text-sm">CPU</span>
+                                        <span id="system-cpu-cores" class="text-sm text-gray-400">({{node.stat.cpu.single.length}}核)</span>
+                                    </div>
+                                    <span id="CPU" class="text-sm text-gray-200">{{(100*node.stat.cpu.multi).toFixed(2)}}%</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <!-- 总体CPU使用率进度条 -->
+                            <div class="progress-container">
+                                <div id="CPU_total_progress" 
+                                     class="progress-bar bg-blue-500"
+                                     style="width: {{node.stat.cpu.multi*100}}%;"></div>
+                            </div>
+                            
+                            <!-- 核心CPU使用率进度条 - 双列布局 -->
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
+                                {% for usage in node.stat.cpu.single %}
+                                <div class="flex items-center gap-2">
+                                    <span class="text-xs text-gray-400 w-12">核心{{loop.index}}</span>
+                                    <div class="progress-container flex-1 relative">
+                                <div id="CPU{{loop.index}}_progress" 
+                                             class="progress-bar bg-blue-500"
+                                             style="width: {{usage}}%;"></div>
+                            </div>
+                                    <span class="text-xs text-gray-400 w-12 text-right">{{usage.toFixed(1)}}%</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Memory -->
+                    <div class="space-y-2" id="MEM_item">
+                        <div class="flex items-center gap-3">
+                            <div class="flex-1">
+                                <div class="flex justify-between">
+                                    <div class="flex items-center gap-1 text-gray-400 data-icon">
+                                        <i class="material-icons">straighten</i>
+                                        <span class="text-sm">内存</span>
+                                        <span id="mem-total" class="text-sm text-gray-400"></span>
+                                    </div>
+                                    <span id="MEM" class="text-sm text-gray-200">{{((node.stat.mem.virtual.used/node.stat.mem.virtual.total)*100).toFixed(1)}}%</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="progress-container">
+                                <div id="MEM_progress" 
+                                     class="progress-bar bg-purple-500"
+                                     style="width: {{(node.stat.mem.virtual.used/node.stat.mem.virtual.total*100).toFixed(1)}}%;"></div>
+                            </div>
+                            <div class="progress-container">
+                                <div id="SWAP_progress" 
+                                     class="progress-bar bg-indigo-500"
+                                     style="width: {{(node.stat.mem.swap.used/node.stat.mem.swap.total*100).toFixed(1)}}%;"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Disk Usage -->
+                    <div class="space-y-2" id="DISK_item">
+                        <div class="flex items-center gap-3">
+                            <div class="flex-1">
+                                <div class="flex justify-between">
+                                    <div class="flex items-center gap-1 text-gray-400 data-icon">
+                                        <i class="material-icons">storage</i>
+                                        <span class="text-sm">硬盘</span>
+                                        <span id="disk-total" class="text-sm text-gray-400"></span>
+                                    </div>
+                                    <span id="DISK" class="text-sm text-gray-200">{% if node.stat.disk.total > 0 %}{{ (100*node.stat.disk.used/node.stat.disk.total)|round(2) }}{% else %}0{% endif %}%</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="progress-container">
+                                <div id="DISK_progress" 
+                                     class="progress-bar bg-yellow-500"
+                                     style="width: {% if node.stat.disk.total > 0 %}{{ (node.stat.disk.used/node.stat.disk.total*100)|round(2) }}{% else %}0{% endif %}%;"></div>
+                            </div>
+                            <div class="flex justify-between text-xs text-gray-400 mt-1">
+                                <span>已用: <span id="disk-used">{{strB(node.stat.disk.used)}}</span></span>
+                                <span>可用: <span id="disk-free">{{strB(node.stat.disk.total - node.stat.disk.used)}}</span></span>
+                                <span>总计: <span id="disk-total-value">{{strB(node.stat.disk.total)}}</span></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Network Traffic -->
+                    <div class="pt-2 border-t border-gray-700/50">
+                        <div class="flex items-center gap-2 mb-2">
+                            <i class="material-icons text-blue-500/70">network_check</i>
+                            <h3 class="text-lg font-medium text-gray-200">网络流量</h3>
+                        </div>
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <i class="material-icons text-gray-400 text-sm" style="width:16px;height:16px;font-size:16px;">speed</i>
+                                    <span class="text-sm text-gray-400">实时带宽</span>
+                                </div>
+                                <div class="flex items-center gap-4">
+                                    <div class="flex items-center gap-1">
+                                        <i class="material-icons text-green-500/70 text-sm" style="width:16px;height:16px;font-size:16px;">arrow_downward</i>
+                                        <span id="NET_IN" class="text-base font-medium text-gray-200"></span>
+                                    </div>
+                                    <div class="flex items-center gap-1">
+                                        <i class="material-icons text-blue-500/70 text-sm" style="width:16px;height:16px;font-size:16px;">arrow_upward</i>
+                                        <span id="NET_OUT" class="text-base font-medium text-gray-200"></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2">
+                                    <i class="material-icons text-gray-400 text-sm">data_usage</i>
+                                    <span class="text-sm text-gray-400">总流量</span>
+                                </div>
+                                
+                                <div class="flex items-center gap-4">
+                                    <div class="flex items-center gap-1">
+                                        <i class="material-icons text-green-500/70 text-sm" style="width:16px;height:16px;font-size:16px;">arrow_downward</i>
+                                        <span id="NET_IN_TOTAL" class="text-sm text-gray-200">{{strB(node.stat.net.total.in)}}</span>
+                                    </div>
+                                    <div class="flex items-center gap-1">
+                                        <i class="material-icons text-blue-500/70 text-sm" style="width:16px;height:16px;font-size:16px;">arrow_upward</i>
+                                        <span id="NET_OUT_TOTAL" class="text-sm text-gray-200">{{strB(node.stat.net.total.out)}}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- 月度流量统计 -->
+                            <div class="pt-2 border-t border-gray-700/50">
+                                <div class="flex flex-wrap items-center justify-between gap-4">
+                                    <div class="flex items-center gap-2">
+                                        <i class="material-icons text-blue-500/70">data_usage</i>
+                                        <span class="text-sm text-gray-200">月度流量</span>
+                                    </div>
+                                    
+                                    <!-- 流量信息 - 自适应布局 -->
+                                    <div class="w-full flex flex-wrap justify-center">
+                                        <div class="flex-1 flex items-center justify-center gap-1 min-w-[100px] max-w-[180px]">
+                                            <i class="material-icons text-green-500/70 text-sm" style="width:16px;height:16px;font-size:16px;">data_usage</i>
+                                            <span class="text-gray-400 text-sm">已用:</span>
+                                            <span class="text-white text-sm" id="monthly-used">0.00 B</span>
+                                        </div>
+                                        <div class="flex-1 flex items-center justify-center gap-1 min-w-[100px] max-w-[180px]">
+                                            <i class="material-icons text-yellow-500/70 text-sm" style="width:16px;height:16px;font-size:16px;">data_usage</i>
+                                            <span class="text-gray-400 text-sm">剩余:</span>
+                                            <span class="text-white text-sm" id="monthly-remaining">0.00 B</span>
+                                        </div>
+                                        <div class="flex-1 flex items-center justify-center gap-1 min-w-[100px] max-w-[180px]">
+                                            <i class="material-icons text-blue-500/70 text-sm" style="width:16px;height:16px;font-size:16px;">data_usage</i>
+                                            <span class="text-gray-400 text-sm">总量:</span>
+                                            <span class="text-white text-sm" id="monthly-limit">0.00 B</span>
+                                        </div>
+                                    </div>
+                                    <!-- 流量使用进度条和比例 -->
+                                    <div class="w-full">
+                                        <div class="flex items-center justify-between mb-1">
+                                            <span class="text-sm text-gray-400" id="monthly-percent">0.00%</span>
+                                            <span class="text-sm px-2 py-0.5 rounded-full" id="traffic-status"></span>
+                                        </div>
+                                        <div class="progress-container">
+                                            <div class="progress-bar bg-blue-500" 
+                                                 id="monthly-progress"></div>
+                                        </div>
+                                    </div>
+                                    <div class="mt-2 text-sm text-gray-400">
+                                        <span>下次重置: </span>
+                                        <span id="reset-date"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 负载详情卡片 - 占3格 -->
+        <div class="col-span-1 lg:col-span-3 card card-border card-hover overflow-hidden load-details-card">
+            <div class="px-4 py-3 border-b border-gray-700/50">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <i class="material-icons text-blue-500/70">speed</i>
+                        <h3 class="text-lg font-medium text-gray-200">负载详情</h3>
+                    </div>
+                    <div class="flex bg-slate-800/50 rounded-lg overflow-hidden">
+                        <button data-tab="load-10m" class="tab-button px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700/50 border-r border-slate-700/50 transition-colors">
+                            实时(1分钟)
+                        </button>
+                        <button data-tab="load-ms" class="tab-button px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700/50 border-r border-slate-700/50 transition-colors">
+                            过去60分钟
+                        </button>
+                        <button data-tab="load-hs" class="tab-button px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700/50 transition-colors">
+                            过去24小时
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="p-4">
+                <div id="load-10m" class="tab-content">
+                    <div id="load-10m-chart" class="chart-container"></div>
+                </div>
+                <div id="load-ms" class="tab-content hidden">
+                    <div id="load-m" class="chart-container"></div>
+                </div>
+                <div id="load-hs" class="tab-content hidden">
+                    <div id="load-h" class="chart-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 网络详情区域 - 单列布局 -->
+    <div class="space-y-4">
+        <!-- 带宽监控面板 -->
+        <div class="card card-border card-hover overflow-hidden">
+            <div class="px-4 py-3 border-b border-gray-700/50">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <i class="material-icons text-blue-500/70">network_check</i>
+                        <h3 class="text-lg font-medium text-gray-200">带宽监控</h3>
+                    </div>
+                    <div class="flex bg-slate-800/50 rounded-lg overflow-hidden">
+                        <button data-tab="bandwidth-realtime" data-tab-group="bandwidth" class="tab-button px-4 py-2 text-sm font-medium text-white bg-slate-700/50 hover:text-white hover:bg-slate-700/50 transition-colors">
+                            实时3分钟
+                        </button>
+                        <button data-tab="bandwidth-60m" data-tab-group="bandwidth" class="tab-button px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700/50 border-r border-slate-700/50 transition-colors">
+                            过去60分钟
+                        </button>
+                        <button data-tab="bandwidth-24h" data-tab-group="bandwidth" class="tab-button px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700/50 transition-colors">
+                            过去24小时
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="p-4">
+                <div id="bandwidth-realtime" class="tab-content" data-tab-group="bandwidth">
+                    <div id="bandwidth-realtime-chart" class="chart-container"></div>
+                </div>
+                <div id="bandwidth-60m" class="tab-content hidden" data-tab-group="bandwidth">
+                    <div id="bandwidth-60m-chart" class="chart-container"></div>
+                </div>
+                <div id="bandwidth-24h" class="tab-content hidden" data-tab-group="bandwidth">
+                    <div id="bandwidth-24h-chart" class="chart-container"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 流量统计面板 -->
+        <div class="card card-border card-hover overflow-hidden">
+            <div class="px-4 py-3 border-b border-gray-700/50">
+                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                    <div class="flex items-center gap-2">
+                        <i class="material-icons text-blue-500/70">data_usage</i>
+                        <h3 class="text-lg font-medium text-gray-200">流量统计</h3>
+                    </div>
+                    <div class="w-full sm:w-auto flex flex-col md:flex-row items-end gap-3">
+                        <div class="flex flex-wrap justify-end gap-4 text-sm text-slate-400">
+                            <span id='hs_tot' class="whitespace-nowrap"></span>
+                            <span id='ds_tot' class="whitespace-nowrap"></span>
+                            <span id='ms_tot' class="whitespace-nowrap"></span>
+                        </div>
+                        <div class="flex bg-slate-800/50 rounded-lg overflow-hidden">
+                            <button data-tab="traffic-hs" class="tab-button px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700/50 border-r border-slate-700/50 transition-colors">
+                                过去24小时
+                            </button>
+                            <button data-tab="traffic-ds" class="tab-button px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700/50 border-r border-slate-700/50 transition-colors">
+                                过去31天
+                            </button>
+                            <button data-tab="traffic-ms" class="tab-button px-4 py-2 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-700/50 transition-colors">
+                                过去12个月
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="p-4">
+                <div id="traffic-ds" class="tab-content hidden">
+                    <div id="ds" class="chart-container"></div>
+                </div>
+                <div id="traffic-ms" class="tab-content hidden">
+                    <div id="ms" class="chart-container"></div>
+                </div>
+                <div id="traffic-hs" class="tab-content">
+                    <div id="hs" class="chart-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Network Devices Table -->
+    <div class="card card-border card-hover overflow-hidden">
+        <div class="px-4 py-3 border-b border-gray-700/50">
+            <div class="flex items-center gap-2">
+                <i class="material-icons text-blue-500/70">router</i>
+                <h3 class="text-lg font-medium text-gray-200">网络设备</h3>
+            </div>
+        </div>
+        <div class="p-4">
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="border-b border-gray-700/50">
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase w-1/3">设备</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase w-1/3">总下行流量</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase w-1/3">总上行流量</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-700/50" id="network-devices-table">
+                        {%if node.stat.net.devices%}
+                        {%for device,net in node.stat.net.devices%}
+                        <tr class="hover:bg-white/5" data-device-name="{{device}}">
+                            <td class="px-6 py-3 text-sm text-gray-200 truncate max-w-[33%]">{{device}}</td>
+                            <td class="px-6 py-3 text-sm text-gray-200 whitespace-nowrap w-[33%]" id="net_{{device}}_total_in">{{strB(net.total.in)}}</td>
+                            <td class="px-6 py-3 text-sm text-gray-200 whitespace-nowrap w-[33%]" id="net_{{device}}_total_out">{{strB(net.total.out)}}</td>
+                        </tr>
+                        {%endfor%}
+                        {%else%}
+                        <tr>
+                            <td colspan="3" class="px-6 py-4 text-sm text-gray-400 text-center">暂无网络设备数据</td>
+                        </tr>
+                        {%endif%}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Disk Usage Details Table -->
+    <div class="card card-border card-hover overflow-hidden">
+        <div class="px-4 py-3 border-b border-gray-700/50">
+            <div class="flex items-center gap-2">
+                <i class="material-icons text-blue-500/70">storage</i>
+                <h3 class="text-lg font-medium text-gray-200">硬盘使用详情</h3>
+            </div>
+        </div>
+        <div class="p-4">
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="border-b border-gray-700/50">
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">挂载点</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">文件系统</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">总容量</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">已用空间</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">可用空间</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase">使用率</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-700/50" id="disk-usage-table">
+                        {%if node.stat.disks%}
+                        {%for disk in node.stat.disks%}
+                        <tr class="hover:bg-white/5">
+                            <td class="px-6 py-3 text-sm text-gray-200">{{disk.mount}}</td>
+                            <td class="px-6 py-3 text-sm text-gray-200">{{disk.fstype}}</td>
+                            <td class="px-6 py-3 text-sm text-gray-200">{{strB(disk.total)}}</td>
+                            <td class="px-6 py-3 text-sm text-gray-200">{{strB(disk.used)}}</td>
+                            <td class="px-6 py-3 text-sm text-gray-200">{{strB(disk.free)}}</td>
+                            <td class="px-6 py-3 text-sm text-gray-200">
+                                <div class="flex items-center">
+                                    <div class="w-16 bg-gray-700 rounded-full h-2 mr-2">
+                                        <div class="bg-yellow-500/70 h-2 rounded-full" style="width: {% if disk.total > 0 %}{{ (disk.used/disk.total*100)|round(2) }}{% else %}0{% endif %}%;"></div>
+                                    </div>
+                                    <span>{% if disk.total > 0 %}{{ (disk.used/disk.total*100)|round(2) }}{% else %}0{% endif %}%</span>
+                                </div>
+                            </td>
+                        </tr>
+                        {%endfor%}
+                        {%else%}
+                        <tr>
+                            <td colspan="6" class="px-6 py-4 text-sm text-gray-400 text-center">暂无分区详情数据</td>
+                        </tr>
+                        {%endif%}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{%endblock%}
+
+{%block js%}
+<script src="https://lf26-cdn-tos.bytecdntp.com/cdn/expire-1-M/apexcharts/3.33.0/apexcharts.min.js"></script>
+<script src="/js/stat-unified.js"></script>
+<script src="/js/load.js"></script>
+<script src="/js/traffic.js"></script>
+
+<!-- 确保流量汇总数据显示 -->
+<script>
+    // 添加一个标志变量，防止重复初始化
+    window.trafficSummaryInitialized = false;
+
+    // 监听StatManager初始化完成事件
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('[Stats] 页面加载完成，等待StatManager初始化...');
+        
+        // 检查StatManager是否已经初始化
+        if (window.StatManager) {
+            window.trafficSummaryInitialized = true;
+            console.log('[Stats] StatManager已就绪');
+        }
+    });
+    
+    // 如果3秒后仍未完成初始化，显示错误信息
+    setTimeout(function() {
+        if (!window.trafficSummaryInitialized) {
+            console.warn('[Stats] StatManager初始化超时');
+            const errorMsg = document.createElement('div');
+            errorMsg.className = 'text-red-500 text-sm mt-2';
+            errorMsg.textContent = '加载流量统计数据失败，请刷新页面重试';
+            document.querySelector('.traffic-stats')?.appendChild(errorMsg);
+        }
+    }, 3000);
+</script>
+
+<!-- 其他功能模块 -->
+{%include "./webssh.html"%}
+{%endblock%}
