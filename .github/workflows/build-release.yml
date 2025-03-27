@@ -60,12 +60,14 @@ jobs:
   release:
     needs: build
     runs-on: ubuntu-latest
-    # 仅在推送tag或main/develop分支时运行
     if: github.event_name == 'push' && (startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
     permissions:
       contents: write
     
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
@@ -88,6 +90,18 @@ jobs:
           fi
           ls -la  # 显示文件列表以便调试
           
+      # 如果是develop分支，先删除已存在的dev-latest标签
+      - name: Delete existing dev-latest tag
+        if: github.ref == 'refs/heads/develop'
+        run: |
+          git push origin :refs/tags/dev-latest || true
+          
+      # 如果是main分支，先删除已存在的latest标签
+      - name: Delete existing latest tag
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git push origin :refs/tags/latest || true
+          
       - name: Create Release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/')
@@ -107,6 +121,7 @@ jobs:
           prerelease: true
           draft: false
           token: ${{ secrets.GITHUB_TOKEN }}
+          generate_release_notes: true
           
       - name: Create Latest Release
         uses: softprops/action-gh-release@v1
@@ -117,4 +132,5 @@ jobs:
           tag_name: "latest"
           prerelease: false
           draft: false
-          token: ${{ secrets.GITHUB_TOKEN }} 
+          token: ${{ secrets.GITHUB_TOKEN }}
+          generate_release_notes: true 
