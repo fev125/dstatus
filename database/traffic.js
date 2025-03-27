@@ -16,28 +16,12 @@ const traffic={
     qry(sid){return this._qry.get(sid)},_qry: DB.prepare("SELECT * FROM traffic WHERE sid=?"),
     get(sid){
         var t=this._get.get(sid);
-        if(t) {
-            try {
-                const data = {
-                    hs: JSON.parse(t.hs),
-                    ds: JSON.parse(t.ds),
-                    ms: JSON.parse(t.ms)
-                };
-                return data;
-            } catch(e) {
-                this.ins(sid);
-                return {
-                    hs: new Array(24).fill([0,0]),
-                    ds: new Array(31).fill([0,0]),
-                    ms: new Array(12).fill([0,0])
-                };
-            }
-        }
+        if(t)return {hs:JSON.parse(t.hs),ds:JSON.parse(t.ds),ms:JSON.parse(t.ms),}
         this.ins(sid);
         return {
-            hs: new Array(24).fill([0,0]),
-            ds: new Array(31).fill([0,0]),
-            ms: new Array(12).fill([0,0])
+            hs:new Array(24).fill([0,0]),
+            ds:new Array(31).fill([0,0]),
+            ms:new Array(12).fill([0,0])
         };
     },_get:DB.prepare("SELECT hs,ds,ms FROM traffic WHERE sid=?"),
     UPD(sid,hs,ds,ms){this._UPD.run(JSON.stringify(hs),JSON.stringify(ds),JSON.stringify(ms),sid)},_UPD:DB.prepare("UPDATE traffic SET hs=?,ds=?,ms=? WHERE sid=?"),
@@ -46,7 +30,7 @@ const traffic={
     get_hs(sid){return JSON.parse(this._hs.get(sid).hs)},_hs:DB.prepare("SELECT hs FROM traffic WHERE sid=?"),    
     upd_hs(sid,hs){this._UpdHs.run(JSON.stringify(hs),sid)},_UpdHs:DB.prepare("UPDATE traffic SET hs=? WHERE sid=?"),    
 
-    get_ds(sid){return JSON.parse(this._ds.get(sid).ds)},_ds:DB.prepare("SELECT ds FROM traffic WHERE sid=?"),
+    get_ds(sid){return JSON.parse(this._hs.get(sid).ds)},_ds:DB.prepare("SELECT ds FROM traffic WHERE sid=?"),
     upd_ds(sid,ds){this._UpdDs.run(JSON.stringify(ds),sid)},_UpdDs:DB.prepare("UPDATE traffic SET ds=? WHERE sid=?"),
 
     get_ms(sid){return JSON.parse(this._ms.get(sid).ms)},_ms:DB.prepare("SELECT ms FROM traffic WHERE sid=?"),
@@ -56,60 +40,22 @@ const traffic={
     all(){return this._all.all()},itr(){return this._all.iterate()},_all:DB.prepare("SELECT * FROM traffic"),
 
     add(sid,tf){
-        if (!tf || !Array.isArray(tf) || tf.length !== 2) {
-            return;
-        }
-        
-        try {
-            var {hs,ds,ms} = this.get(sid);
-            
-            // 忽略负值流量差额（只处理正向流量）
-            if (tf[0] < 0) tf[0] = 0;
-            if (tf[1] < 0) tf[1] = 0;
-            
-            // 添加数据到每个时间段的最后一个元素
-            hs[23][0] += tf[0];
-            hs[23][1] += tf[1];
-            ds[30][0] += tf[0];
-            ds[30][1] += tf[1];
-            ms[11][0] += tf[0];
-            ms[11][1] += tf[1];
-            
-            // 保存更新后的数据
-            this.UPD(sid, hs, ds, ms);
-        } catch (e) {
-            // Error handling without logging
-        }
+        var {hs,ds,ms}=this.get(sid);
+        hs[23][0]+=tf[0],ds[30][0]+=tf[0],ms[11][0]+=tf[0];
+        hs[23][1]+=tf[1],ds[30][1]+=tf[1],ms[11][1]+=tf[1];
+        this.UPD(sid,hs,ds,ms);
     },
     shift_hs(){
         for(var {sid,hs} of this.all())
             this.upd_hs(sid,shift(JSON.parse(hs)));
     },
     shift_ds(){
-        let count = 0;
-        for(var {sid,ds} of this.all()) {
-            try {
-                const parsedData = JSON.parse(ds);
-                const shiftedData = shift(parsedData);
-                this.upd_ds(sid, shiftedData);
-                count++;
-            } catch(e) {
-                // Error handling without logging
-            }
-        }
+        for(var {sid,ds} of this.all())
+            this.upd_ds(sid,shift(JSON.parse(ds)));
     },
     shift_ms(){
-        let count = 0;
-        for(var {sid,ms} of this.all()) {
-            try {
-                const parsedData = JSON.parse(ms);
-                const shiftedData = shift(parsedData);
-                this.upd_ms(sid, shiftedData);
-                count++;
-            } catch(e) {
-                // Error handling without logging
-            }
-        }
+        for(var {sid,ms} of this.all())
+            this.upd_ms(sid,shift(JSON.parse(ms)));
     }
 }
 // DB.prepare("DROP TABLE lt").run();
