@@ -31,8 +31,8 @@ jobs:
       - name: Build binaries
         run: |
           cd neko-status
-          chmod +x build-simple.sh
-          ./build-simple.sh
+          chmod +x build-ci.sh
+          ./build-ci.sh
           
       - name: Package binaries
         run: |
