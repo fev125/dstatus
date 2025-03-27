@@ -65,17 +65,22 @@ jobs:
     runs-on: ubuntu-latest
     # 仅在推送tag或main/develop分支时运行
     if: github.event_name == 'push' && (startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    permissions:
+      contents: write
+      pages: write
     
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
+        with:
+          path: artifacts
         
       - name: Prepare release files
         run: |
           # 创建发布目录
           mkdir -p release
           # 移动所有构建文件到发布目录
-          mv binaries-*/* release/
+          mv artifacts/binaries-*/* release/
           cd release
           # 生成校验和
           sha256sum neko-status_* > SHA256SUMS
@@ -85,6 +90,7 @@ jobs:
           else
             echo "$(date +%Y-%m-%d_%H:%M:%S)" > version.txt
           fi
+          ls -la  # 显示文件列表以便调试
           
       - name: Create Release
         uses: softprops/action-gh-release@v1
@@ -93,6 +99,7 @@ jobs:
           files: release/*
           draft: false
           prerelease: false
+          token: ${{ secrets.GITHUB_TOKEN }}
           
       - name: Create Development Release
         uses: softprops/action-gh-release@v1
@@ -103,6 +110,7 @@ jobs:
           tag_name: "dev-latest"
           prerelease: true
           draft: false
+          token: ${{ secrets.GITHUB_TOKEN }}
           
       - name: Create Latest Release
         uses: softprops/action-gh-release@v1
@@ -113,34 +121,48 @@ jobs:
           tag_name: "latest"
           prerelease: false
           draft: false
+          token: ${{ secrets.GITHUB_TOKEN }}
 
   # 部署到GitHub Pages
   deploy-pages:
     needs: build
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    permissions:
+      pages: write
+      id-token: write
+      contents: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     
     steps:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
+        with:
+          path: artifacts
         
       - name: Prepare files for Pages
         run: |
           if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
             # 主分支部署到根目录
             mkdir -p public
-            mv binaries-*/* public/
+            mv artifacts/binaries-*/* public/
             cd public
             echo "$(date +%Y-%m-%d_%H:%M:%S)" > version.txt
           else
             # develop分支部署到dev目录
             mkdir -p public-dev
-            mv binaries-*/* public-dev/
+            mv artifacts/binaries-*/* public-dev/
             cd public-dev
             echo "DEV-$(date +%Y-%m-%d_%H:%M:%S)" > version.txt
           fi
           chmod +x neko-status*
           ls -la
+          
+      - name: Setup Pages
+        if: github.ref == 'refs/heads/main'
+        uses: actions/configure-pages@v4
           
       - name: Deploy to Pages (main)
         if: github.ref == 'refs/heads/main'
@@ -150,6 +172,7 @@ jobs:
           
       - name: Deploy main to Pages
         if: github.ref == 'refs/heads/main'
+        id: deployment
         uses: actions/deploy-pages@v4
           
       - name: Deploy to Pages (develop)
@@ -159,6 +182,7 @@ jobs:
           folder: public-dev
           target-folder: dev
           clean: false
+          token: ${{ secrets.GITHUB_TOKEN }}
           
       # 复制到静态目录
       - name: Copy to static directory
