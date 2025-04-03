@@ -1,4 +1,28 @@
-#!/bin/bash
+# 安装必要的命令
+install_dependencies() {
+    print_info "安装必要的工具..."
+    
+    if [[ "$OS" == "alpine" ]]; then
+        print_info "安装Alpine Linux依赖..."
+        # 更新包列表，避免安装错误
+        apk update
+        
+        # 安装基本工具包和OpenRC需要的包
+        apk add --no-cache curl wget bash procps
+        
+        # 检查是否需要安装OpenRC (可能在某些最小化安装中缺失)
+        if ! command -v rc-service >/dev/null 2>&1; then
+            apk add --no-cache openrc
+        fi
+        
+        # 安装用于防火墙的工具
+        apk add --no-cache iptables || true
+    elif [[ "$OS" == "ubuntu" || "$OS" == "debian" ]]; then
+        apt-get update -qq
+        apt-get install -y -qq curl wget
+    elif [[ "$OS" == "centos" || "$OS" == "rhel" || "$OS" == "fedora" ]]; then
+        yum install -y curl wget
+    elif [[ "$OS" == "arch" || "$OS" == "manjaro" ]];#!/bin/bash
 
 # DStatus客户端一键安装脚本
 # 1. 此脚本用于安装DStatus客户端(neko-status)，支持自动发现功能
@@ -407,7 +431,7 @@ EOF
     print_success "防火墙配置完成"
 }
 
-# 创建系统服务 - 增强Alpine支持
+# 创建系统服务 - 增强跨系统兼容性
 create_service() {
     local API_KEY="$1"
 
@@ -422,8 +446,8 @@ debug: false
 EOF
 
     # 根据系统类型创建不同服务管理文件
-    if [ "$OS" == "alpine" ] && command -v rc-service &> /dev/null; then
-        # 为Alpine创建OpenRC服务
+    if [ "$OS" == "alpine" ]; then
+        # 为Alpine创建OpenRC服务，无论是否有rc-service命令
         print_info "为Alpine创建OpenRC服务..."
         
         cat > /etc/init.d/nekonekostatus <<EOF
@@ -433,25 +457,58 @@ name="DStatus客户端"
 description="DStatus客户端服务"
 command="/usr/bin/neko-status"
 command_args="-c /etc/neko-status/config.yaml"
-command_background=true
+command_background="yes"
 pidfile="/run/nekonekostatus.pid"
 
 depend() {
     need net
     after firewall
 }
-
-start_pre() {
-    checkpath --directory --owner root:root --mode 0755 /etc/neko-status
-}
 EOF
         chmod +x /etc/init.d/nekonekostatus
         
         # 添加到启动项
-        rc-update add nekonekostatus default 2>/dev/null
+        if command -v rc-update &> /dev/null; then
+            rc-update add nekonekostatus default 2>/dev/null
+        fi
         
+        # 创建备用启动脚本以防OpenRC不工作
+        mkdir -p /usr/local/bin
+        cat > /usr/local/bin/nekonekostatus-start <<EOF
+#!/bin/sh
+nohup /usr/bin/neko-status -c /etc/neko-status/config.yaml > /var/log/nekonekostatus.log 2>&1 &
+echo \$! > /var/run/nekonekostatus.pid
+EOF
+        chmod +x /usr/local/bin/nekonekostatus-start
+
+        cat > /usr/local/bin/nekonekostatus-stop <<EOF
+#!/bin/sh
+if [ -f /var/run/nekonekostatus.pid ]; then
+    kill \$(cat /var/run/nekonekostatus.pid) 2>/dev/null
+    rm -f /var/run/nekonekostatus.pid
+fi
+pkill -f "neko-status" 2>/dev/null || true
+EOF
+        chmod +x /usr/local/bin/nekonekostatus-stop
+        
+        # 在开机时自动启动
+        mkdir -p /etc/local.d 2>/dev/null
+        cat > /etc/local.d/nekonekostatus.start <<EOF
+#!/bin/sh
+# 如果OpenRC服务失败，则直接启动
+if ! pgrep -f "neko-status" > /dev/null; then
+    /usr/local/bin/nekonekostatus-start
+fi
+EOF
+        chmod +x /etc/local.d/nekonekostatus.start
+        
+        # 确保local服务已启用
+        if command -v rc-update >/dev/null 2>&1; then
+            rc-update add local default 2>/dev/null || true
+        fi
     elif command -v systemctl &> /dev/null; then
         # 创建systemd服务 (对于使用systemd的系统)
+        print_info "创建systemd服务..."
         cat > /etc/systemd/system/nekonekostatus.service <<EOF
 [Unit]
 Description=DStatus客户端服务
@@ -467,9 +524,9 @@ WantedBy=multi-user.target
 EOF
         # 重新加载systemd配置
         systemctl daemon-reload
-        
-    # 对于使用init.d的普通系统
     elif [ -d /etc/init.d ]; then
+        # 对于使用SysV init的系统
+        print_info "创建SysV init服务..."
         cat > /etc/init.d/nekonekostatus <<EOF
 #!/bin/sh
 ### BEGIN INIT INFO
@@ -481,21 +538,156 @@ EOF
 # Short-Description: DStatus客户端服务
 ### END INIT INFO
 
-DAEMON="/usr/bin/neko-status"
-DAEMON_ARGS="-c /etc/neko-status/config.yaml"
 PIDFILE="/var/run/nekonekostatus.pid"
 
 start() {
     echo "启动DStatus客户端..."
-    start-stop-daemon --start --background --make-pidfile --pidfile \$PIDFILE --exec \$DAEMON -- \$DAEMON_ARGS
-    return \$?
+    if [ -f \$PIDFILE ] && ps -p \$(cat \$PIDFILE) >/dev/null 2>&1; then
+        echo "DStatus客户端已在运行"
+        return 0
+    fi
+    
+    # 尝试使用start-stop-daemon如果可用
+    if command -v start-stop-daemon >/dev/null 2>&1; then
+        start-stop-daemon --start --background --make-pidfile --pidfile \$PIDFILE --exec /usr/bin/neko-status -- -c /etc/neko-status/config.yaml
+        RET=\$?
+        [ \$RET -eq 0 ] && return 0
+        
+        echo "start-stop-daemon方法失败，尝试直接启动"
+    fi
+    
+    # 直接启动作为备选方案
+    nohup /usr/bin/neko-status -c /etc/neko-status/config.yaml >/var/log/nekonekostatus.log 2>&1 &
+    echo \$! > \$PIDFILE
+    
+    # 验证进程是否正在运行
+    if [ -f \$PIDFILE ] && ps -p \$(cat \$PIDFILE) >/dev/null 2>&1; then
+        echo "DStatus客户端启动成功"
+        return 0
+    else
+        echo "DStatus客户端启动失败"
+        return 1
+    fi
 }
 
 stop() {
     echo "停止DStatus客户端..."
-    start-stop-daemon --stop --pidfile \$PIDFILE
-    rm -f \$PIDFILE
-    return \$?
+    if [ -f \$PIDFILE ]; then
+        # 尝试使用start-stop-daemon如果可用
+        if command -v start-stop-daemon >/dev/null 2>&1; then
+            start-stop-daemon --stop --pidfile \$PIDFILE 2>/dev/null
+        fi
+        
+        # 无论是否使用start-stop-daemon，都确保进程已终止
+        if [ -f \$PIDFILE ]; then
+            PID=\$(cat \$PIDFILE)
+            kill \$PID >/dev/null 2>&1
+            rm -f \$PIDFILE
+            
+            # 确保进程已停止
+            if ps -p \$PID >/dev/null 2>&1; then
+                kill -9 \$PID >/dev/null 2>&1
+            fi
+        fi
+        
+        echo "DStatus客户端已停止"
+    else
+        echo "DStatus客户端未在运行"
+    fi
+    
+    # 清理可能残留的进程
+    pkill -f "neko-status" >/dev/null 2>&1 || true
+    return 0
+}
+
+restart() {
+    stop
+    sleep 1
+    start
+}
+
+case "\$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    restart)
+        restart
+        ;;
+    status)
+        if [ -f \$PIDFILE ] && ps -p \$(cat \$PIDFILE) >/dev/null 2>&1; then
+            echo "DStatus客户端正在运行"
+        else
+            echo "DStatus客户端未运行"
+            exit 1
+        fi
+        ;;
+    *)
+        echo "用法: \$0 {start|stop|restart|status}"
+        exit 1
+        ;;
+esac
+
+exit 0
+EOF
+        chmod +x /etc/init.d/nekonekostatus
+        # 添加到启动项
+        update-rc.d nekonekostatus defaults >/dev/null 2>&1 || chkconfig nekonekostatus on >/dev/null 2>&1 || true
+    else
+        # 创建简单的启动脚本，适用于任何系统
+        print_info "创建基本启动脚本..."
+        
+        # 创建目录
+        mkdir -p /usr/local/bin /var/log
+        
+        cat > /usr/local/bin/nekonekostatus-start <<EOF
+#!/bin/sh
+nohup /usr/bin/neko-status -c /etc/neko-status/config.yaml > /var/log/nekonekostatus.log 2>&1 &
+echo \$! > /var/run/nekonekostatus.pid
+EOF
+        chmod +x /usr/local/bin/nekonekostatus-start
+
+        cat > /usr/local/bin/nekonekostatus-stop <<EOF
+#!/bin/sh
+if [ -f /var/run/nekonekostatus.pid ]; then
+    kill \$(cat /var/run/nekonekostatus.pid) 2>/dev/null
+    rm -f /var/run/nekonekostatus.pid
+fi
+pkill -f "neko-status" 2>/dev/null || true
+EOF
+        chmod +x /usr/local/bin/nekonekostatus-stop
+        
+        # 为大多数Linux尝试创建启动链接
+        mkdir -p /etc/rc.d/rc3.d /etc/rc.d/rc5.d 2>/dev/null || true
+        ln -sf /usr/local/bin/nekonekostatus-start /etc/rc.d/rc3.d/S99nekonekostatus 2>/dev/null || true
+        ln -sf /usr/local/bin/nekonekostatus-start /etc/rc.d/rc5.d/S99nekonekostatus 2>/dev/null || true
+    fi
+    
+    print_success "服务创建完成"
+}
+
+stop() {
+    echo "停止DStatus客户端..."
+    if [ -f \$PIDFILE ]; then
+        PID=\$(cat \$PIDFILE)
+        kill \$PID >/dev/null 2>&1
+        rm -f \$PIDFILE
+        
+        # 确保进程已停止
+        if ps -p \$PID >/dev/null 2>&1; then
+            kill -9 \$PID >/dev/null 2>&1
+        fi
+        
+        echo "DStatus客户端已停止"
+    else
+        echo "DStatus客户端未在运行"
+    fi
+    
+    # 清理可能残留的进程
+    pkill -f "neko-status" >/dev/null 2>&1 || true
+    return 0
 }
 
 restart() {
@@ -654,7 +846,7 @@ EOF
     print_success "服务创建完成"
 }
 
-# 启动服务 - 增强Alpine支持
+# 启动服务 - 增强跨系统兼容性
 start_service() {
     print_info "正在启动服务..."
     
@@ -681,13 +873,15 @@ start_service() {
     if pgrep -f "neko-status" > /dev/null; then
         print_success "服务已成功启动"
     else
-        print_warning "服务启动可能失败，尝试直接启动方式"
+        print_warning "常规服务启动方式失败，尝试直接启动"
         # 确保之前的尝试已停止
         pkill -f "neko-status" 2>/dev/null || true
         sleep 1
         
         # 直接启动
+        mkdir -p /var/log
         nohup /usr/bin/neko-status -c /etc/neko-status/config.yaml > /var/log/nekonekostatus.log 2>&1 &
+        RET=$?
         
         # 再次检查
         sleep 2
@@ -696,7 +890,11 @@ start_service() {
         else
             print_error "服务无法启动，请检查日志: /var/log/nekonekostatus.log"
             # 尝试运行一次看错误
-            /usr/bin/neko-status -c /etc/neko-status/config.yaml -v
+            /usr/bin/neko-status -c /etc/neko-status/config.yaml -v 2>&1 | head -n 10
+            
+            # 最后尝试以前台方式运行
+            print_warning "尝试最后一种启动方法..."
+            /usr/bin/neko-status -c /etc/neko-status/config.yaml &
         fi
     fi
 }
@@ -750,15 +948,39 @@ install_dstatus() {
     print_info "  API端口: 9999"
     print_info "配置文件: /etc/neko-status/config.yaml"
 
-    # 针对Alpine的特殊提示
+    # 按系统类型添加特殊说明
     if [ "$OS" == "alpine" ]; then
         print_info "Alpine Linux特殊说明:"
+        
+        if command -v rc-service &> /dev/null; then
+            print_info "  - 服务名称: nekonekostatus"
+            print_info "  - 启动命令: rc-service nekonekostatus start"
+            print_info "  - 停止命令: rc-service nekonekostatus stop"
+            print_info "  - 查看状态: rc-service nekonekostatus status"
+            print_info "  - 开机自启: rc-update add nekonekostatus default (已配置)"
+        else
+            print_info "  - 服务名称: nekonekostatus"
+            print_info "  - 启动命令: /etc/init.d/nekonekostatus start"
+            print_info "  - 停止命令: /etc/init.d/nekonekostatus stop"
+            print_info "  - 手动启动: /usr/local/bin/nekonekostatus-start"
+            print_info "  - 手动停止: /usr/local/bin/nekonekostatus-stop"
+        fi
+        
+        print_info "  - 日志文件: /var/log/nekonekostatus.log"
+        print_info "  - 备用启动方法: nohup /usr/bin/neko-status -c /etc/neko-status/config.yaml > /var/log/nekonekostatus.log 2>&1 &"
+    elif command -v systemctl &> /dev/null; then
+        print_info "Systemd系统说明:"
         print_info "  - 服务名称: nekonekostatus"
-        print_info "  - 启动命令: rc-service nekonekostatus start"
-        print_info "  - 停止命令: rc-service nekonekostatus stop"
-        print_info "  - 查看状态: rc-service nekonekostatus status"
-        print_info "  - 开机自启: rc-update add nekonekostatus default (已自动配置)"
-        print_info "  - 日志文件: 使用 'tail -f /var/log/messages' 查看系统日志"
+        print_info "  - 启动命令: systemctl start nekonekostatus"
+        print_info "  - 停止命令: systemctl stop nekonekostatus"
+        print_info "  - 查看状态: systemctl status nekonekostatus"
+        print_info "  - 开机自启: systemctl enable nekonekostatus (已配置)"
+        print_info "  - 日志查看: journalctl -u nekonekostatus"
+    else
+        print_info "服务管理说明:"
+        print_info "  - 启动命令: /etc/init.d/nekonekostatus start 或 /usr/local/bin/nekonekostatus-start"
+        print_info "  - 停止命令: /etc/init.d/nekonekostatus stop 或 /usr/local/bin/nekonekostatus-stop"
+        print_info "  - 备用启动方法: nohup /usr/bin/neko-status -c /etc/neko-status/config.yaml > /var/log/nekonekostatus.log 2>&1 &"
     fi
 
     exit 0
