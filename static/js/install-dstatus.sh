@@ -5,7 +5,7 @@
 # 2. 支持通过注册密钥自动注册到服务器
 # 3. 支持多系统多架构
 # 修改时间: 2023-11-01
-# Alpine优化版本
+# Alpine优化版本 (第二次修复)
 
 # 颜色定义
 RED='\033[0;31m'
@@ -69,7 +69,6 @@ get_system_info() {
     HOSTNAME=$(hostname)
     
     # 更可靠的IP获取方法，特别针对Alpine系统
-    # 首先尝试使用ip命令
     if command -v ip >/dev/null 2>&1; then
         IP=$(ip -4 addr show | grep -v '127.0.0.1' | grep -v 'secondary' | grep 'inet' | head -n1 | awk '{print $2}' | cut -d'/' -f1)
     fi
@@ -440,7 +439,7 @@ EOF
 name="DStatus客户端"
 description="DStatus客户端服务"
 command="/usr/bin/neko-status"
-command_background="yes"
+command_args="-c /etc/neko-status/config.yaml"
 pidfile="/run/nekonekostatus.pid"
 
 depend() {
@@ -450,7 +449,7 @@ depend() {
 
 start() {
     ebegin "Starting DStatus client"
-    start-stop-daemon --start --background --pidfile "\${pidfile}" --exec "\${command}" -- -c /etc/neko-status/config.yaml
+    start-stop-daemon --start --background --pidfile "\${pidfile}" --exec "\${command}" -- "\${command_args}"
     eend \$?
 }
 
