@@ -41,18 +41,26 @@ NC='\033[0m' # 无颜色
 # 打印带颜色的信息
 print_info() {
     echo -e "${BLUE}[信息]${NC} $1"
+    # 确保立即输出
+    sync
 }
 
 print_success() {
     echo -e "${GREEN}[成功]${NC} $1"
+    # 确保立即输出
+    sync
 }
 
 print_warning() {
     echo -e "${YELLOW}[警告]${NC} $1"
+    # 确保立即输出
+    sync
 }
 
 print_error() {
     echo -e "${RED}[错误]${NC} $1"
+    # 确保立即输出
+    sync
 }
 
 # 检查是否为root用户
@@ -940,17 +948,30 @@ install_dstatus() {
     # 启动服务
     start_service
 
+    # 确保有足够的时间完成所有操作并输出完毕
+    sleep 1
+
+    echo ""
+    print_success "====================================="
     print_success "DStatus客户端安装完成"
+    print_success "====================================="
+    echo ""
     print_info "服务器信息:"
     print_info "  主机名: $HOSTNAME"
     print_info "  IP地址: $IP"
     print_info "  系统: $SYSTEM"
     print_info "  API端口: 9999"
     print_info "配置文件: /etc/neko-status/config.yaml"
+    echo ""
 
     # 按系统类型添加特殊说明
+    print_info "====================================="
+    print_info "服务管理命令说明"
+    print_info "====================================="
+    
     if [ "$OS" == "alpine" ]; then
         print_info "Alpine Linux特殊说明:"
+        echo ""
         
         if command -v rc-service &> /dev/null; then
             print_info "  - 服务名称: nekonekostatus"
@@ -970,6 +991,7 @@ install_dstatus() {
         print_info "  - 备用启动方法: nohup /usr/bin/neko-status -c /etc/neko-status/config.yaml > /var/log/nekonekostatus.log 2>&1 &"
     elif command -v systemctl &> /dev/null; then
         print_info "Systemd系统说明:"
+        echo ""
         print_info "  - 服务名称: nekonekostatus"
         print_info "  - 启动命令: systemctl start nekonekostatus"
         print_info "  - 停止命令: systemctl stop nekonekostatus"
@@ -978,11 +1000,20 @@ install_dstatus() {
         print_info "  - 日志查看: journalctl -u nekonekostatus"
     else
         print_info "服务管理说明:"
+        echo ""
         print_info "  - 启动命令: /etc/init.d/nekonekostatus start 或 /usr/local/bin/nekonekostatus-start"
         print_info "  - 停止命令: /etc/init.d/nekonekostatus stop 或 /usr/local/bin/nekonekostatus-stop"
         print_info "  - 备用启动方法: nohup /usr/bin/neko-status -c /etc/neko-status/config.yaml > /var/log/nekonekostatus.log 2>&1 &"
     fi
-
+    echo ""
+    print_info "====================================="
+    print_success "安装已完成，感谢使用！"
+    print_info "====================================="
+    
+    # 确保所有输出都被显示
+    sync
+    sleep 1
+    
     exit 0
 }
 
@@ -993,6 +1024,9 @@ main() {
 
     # 获取系统信息
     get_system_info
+
+    # 为了确保消息能够被完整打印，设置退出陷阱
+    trap 'sync; sleep 1' EXIT
 
     # 安装服务
     install_dstatus "$1" "$2"
