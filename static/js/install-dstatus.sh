@@ -60,18 +60,34 @@ get_system_info() {
     # 获取系统信息
     HOSTNAME=$(hostname)
     
-    # 更可靠的IP获取方法，尤其对于Alpine系统
-    IP=$(curl -s -m 5 https://api.ipify.org || curl -s -m 5 https://ipinfo.io/ip || hostname -I 2>/dev/null | awk '{print $1}' || ip -4 addr show | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | grep -v 127.0.0.1 | head -n1)
+    # 更可靠的IP获取方法，特别针对Alpine系统
+    # 首先尝试使用ip命令
+    if command -v ip >/dev/null 2>&1; then
+        IP=$(ip -4 addr show | grep -v '127.0.0.1' | grep -v 'secondary' | grep 'inet' | head -n1 | awk '{print $2}' | cut -d'/' -f1)
+    fi
     
-    # IP获取失败时的后备方案
-    if [ -z "$IP" ]; then
-        if command -v ifconfig >/dev/null 2>&1; then
-            IP=$(ifconfig | grep 'inet ' | grep -v '127.0.0.1' | head -n1 | awk '{print $2}' | cut -d: -f2)
-        fi
-        # 如果仍然无法获取IP，使用本地回环地址
+    # 如果上面的方法未能获取IP，尝试使用ifconfig
+    if [ -z "$IP" ] && command -v ifconfig >/dev/null 2>&1; then
+        IP=$(ifconfig | grep 'inet addr:' 2>/dev/null | grep -v '127.0.0.1' | head -n1 | awk '{print $2}' | cut -d: -f2)
+        # 适用于较新版本的ifconfig
         if [ -z "$IP" ]; then
+            IP=$(ifconfig | grep 'inet ' | grep -v '127.0.0.1' | head -n1 | awk '{print $2}')
+        fi
+    fi
+    
+    # 如果本地方法无法获取IP，尝试使用外部服务（如果curl已安装）
+    if [ -z "$IP" ] && command -v curl >/dev/null 2>&1; then
+        IP=$(curl -s -m 5 https://api.ipify.org 2>/dev/null || curl -s -m 5 https://ipinfo.io/ip 2>/dev/null)
+    fi
+    
+    # 如果IP仍然为空，使用本地IP
+    if [ -z "$IP" ]; then
+        # 在某些Alpine系统上，可以通过/proc获取IP
+        if [ -d "/proc/net/fib_trie" ]; then
+            IP=$(grep -v "127.0.0.1" /proc/net/fib_trie | grep -E "([0-9]{1,3}\.){3}[0-9]{1,3}" | head -n1 | awk '{print $2}')
+        else
             IP="127.0.0.1"
-            print_warning "无法获取外部IP，使用本地IP: $IP"
+            print_warning "无法获取IP地址，使用本地回环地址"
         fi
     fi
     
@@ -94,8 +110,19 @@ get_system_info() {
     fi
 
     if [ -z "$DEFAULT_DEVICE" ]; then
-        DEFAULT_DEVICE="eth0"
-        print_warning "无法确定默认网卡，使用: $DEFAULT_DEVICE"
+        # 获取第一个非lo接口
+        if [ -d /sys/class/net ]; then
+            for IFACE in $(ls /sys/class/net/ | grep -v lo); do
+                DEFAULT_DEVICE="$IFACE"
+                break
+            done
+        fi
+        
+        # 如果仍然为空
+        if [ -z "$DEFAULT_DEVICE" ]; then
+            DEFAULT_DEVICE="eth0"
+            print_warning "无法确定默认网卡，使用: $DEFAULT_DEVICE"
+        fi
     fi
 }
 
@@ -441,7 +468,7 @@ EOF
         # 重新加载systemd配置
         systemctl daemon-reload
         
-    # 对于使用init.d的系统
+    # 对于使用init.d的普通系统
     elif [ -d /etc/init.d ]; then
         cat > /etc/init.d/nekonekostatus <<EOF
 #!/bin/sh
@@ -552,6 +579,81 @@ EOF
     print_success "服务创建完成"
 }
 
+case "\$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    restart)
+        restart
+        ;;
+    status)
+        if [ -f \$PIDFILE ] && kill -0 \$(cat \$PIDFILE) 2>/dev/null; then
+            echo "DStatus客户端正在运行"
+        else
+            echo "DStatus客户端未运行"
+            exit 1
+        fi
+        ;;
+    *)
+        echo "用法: \$0 {start|stop|restart|status}"
+        exit 1
+        ;;
+esac
+
+exit 0
+EOF
+        chmod +x /etc/init.d/nekonekostatus
+        # 添加到启动项
+        update-rc.d nekonekostatus defaults >/dev/null 2>&1 || chkconfig nekonekostatus on >/dev/null 2>&1
+    else
+        # 创建简单的启动脚本
+        print_info "创建基本启动脚本..."
+        
+        # 创建目录
+        mkdir -p /usr/local/bin /var/log
+        
+        cat > /usr/local/bin/nekonekostatus-start <<EOF
+#!/bin/sh
+nohup /usr/bin/neko-status -c /etc/neko-status/config.yaml > /var/log/nekonekostatus.log 2>&1 &
+echo \$! > /var/run/nekonekostatus.pid
+EOF
+        chmod +x /usr/local/bin/nekonekostatus-start
+
+        cat > /usr/local/bin/nekonekostatus-stop <<EOF
+#!/bin/sh
+if [ -f /var/run/nekonekostatus.pid ]; then
+    kill \$(cat /var/run/nekonekostatus.pid) 2>/dev/null
+    rm -f /var/run/nekonekostatus.pid
+fi
+pkill -f "neko-status" 2>/dev/null || true
+EOF
+        chmod +x /usr/local/bin/nekonekostatus-stop
+        
+        # 如果是Alpine但没有OpenRC，创建启动脚本
+        if [ "$OS" == "alpine" ]; then
+            # 在开机时自动启动
+            if [ ! -f /etc/local.d/nekonekostatus.start ]; then
+                mkdir -p /etc/local.d
+                cat > /etc/local.d/nekonekostatus.start <<EOF
+#!/bin/sh
+/usr/local/bin/nekonekostatus-start
+EOF
+                chmod +x /etc/local.d/nekonekostatus.start
+                
+                # 确保local服务已启用
+                if command -v rc-update >/dev/null 2>&1; then
+                    rc-update add local default 2>/dev/null || true
+                fi
+            fi
+        fi
+    fi
+    
+    print_success "服务创建完成"
+}
+
 # 启动服务 - 增强Alpine支持
 start_service() {
     print_info "正在启动服务..."
@@ -567,6 +669,11 @@ start_service() {
         /etc/init.d/nekonekostatus start
     elif [ -f /usr/local/bin/nekonekostatus-start ]; then
         /usr/local/bin/nekonekostatus-start
+    else
+        # 直接启动，不使用任何服务管理
+        print_info "使用直接方式启动服务..."
+        nohup /usr/bin/neko-status -c /etc/neko-status/config.yaml > /var/log/nekonekostatus.log 2>&1 &
+        echo $! > /var/run/nekonekostatus.pid
     fi
     
     # 验证服务是否正在运行
@@ -574,7 +681,12 @@ start_service() {
     if pgrep -f "neko-status" > /dev/null; then
         print_success "服务已成功启动"
     else
-        print_warning "服务启动失败，尝试手动启动"
+        print_warning "服务启动可能失败，尝试直接启动方式"
+        # 确保之前的尝试已停止
+        pkill -f "neko-status" 2>/dev/null || true
+        sleep 1
+        
+        # 直接启动
         nohup /usr/bin/neko-status -c /etc/neko-status/config.yaml > /var/log/nekonekostatus.log 2>&1 &
         
         # 再次检查
@@ -583,6 +695,8 @@ start_service() {
             print_success "服务已手动启动成功"
         else
             print_error "服务无法启动，请检查日志: /var/log/nekonekostatus.log"
+            # 尝试运行一次看错误
+            /usr/bin/neko-status -c /etc/neko-status/config.yaml -v
         fi
     fi
 }
