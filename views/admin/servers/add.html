@@ -7,7 +7,7 @@
 <div class="container mx-auto px-4 flex flex-col md:flex-row gap-6 justify-center" style="padding-top: calc(1.5rem + env(safe-area-inset-top));">
     <!-- 引入侧边栏 -->
     {% include "../sidebar.html" %}
-    
+
     <!-- 主内容区域 -->
     <div class="flex-1 md:max-w-4xl bg-slate-900/80 backdrop-blur rounded-lg border border-slate-800/50 p-6">
         <!-- 页面标题 -->
@@ -20,14 +20,14 @@
                 </div>
             </div>
             <!-- 保存按钮 -->
-            <button onclick="add()" 
+            <button onclick="add()"
                     class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-purple-500 hover:bg-purple-600 rounded-md transition-colors">
                 <i class="material-icons text-[18px]">save</i>
                 <span>保存</span>
             </button>
         </div>
 
-  
+
 
             <!-- 卡片内容 -->
             <div class="p-6 space-y-8">
@@ -37,13 +37,13 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div>
                             <label class="block text-sm font-medium text-slate-400 mb-2">服务器名称</label>
-                            <input type="text" 
+                            <input type="text"
                                    id="add_name"
                                    class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-slate-400 mb-2">服务器状态</label>
-                            <select id="server_status" 
+                            <select id="server_status"
                                     class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
                                 <option value="1">正常</option>
                                 <option value="0">不可用</option>
@@ -52,9 +52,21 @@
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-slate-400 mb-2">到期时间</label>
-                            <input type="date" 
+                            <input type="date"
                                    id="add_expire_time"
                                    class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-2">服务器分组</label>
+                            <select id="add_group_id"
+                                    class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                                {% for group in groups %}
+                                <option value="{{group.id}}">{{group.name}}</option>
+                                {% endfor %}
+                                {% if not groups or groups.length == 0 %}
+                                <option value="default">默认分组</option>
+                                {% endif %}
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -65,7 +77,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-slate-400 mb-2">域名/IP</label>
-                            <input type="text" 
+                            <input type="text"
                                    id="add_ssh_host"
                                    placeholder="IPv4或IPv6地址，如: 192.168.1.1 或 2001:db8::1"
                                    class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
@@ -73,14 +85,14 @@
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-slate-400 mb-2">端口</label>
-                            <input type="number" 
+                            <input type="number"
                                    id="add_ssh_port"
                                    placeholder="22"
                                    class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-slate-400 mb-2">用户名</label>
-                            <input type="text" 
+                            <input type="text"
                                    id="add_ssh_username"
                                    placeholder="root"
                                    class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
@@ -88,7 +100,7 @@
                         <div>
                             <label class="block text-sm font-medium text-slate-400 mb-2">密码 (可选)</label>
                             <div class="relative">
-                                <input type="password" 
+                                <input type="password"
                                        id="add_ssh_password"
                                        class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
                                 <span class="absolute inset-y-0 right-0 flex items-center pr-3 cursor-pointer toggle-password">
@@ -96,7 +108,7 @@
                                 </span>
                             </div>
                         </div>
-                        
+
                         <!-- 修改为跨三格的私钥设置区域 -->
                         <div class="lg:col-span-3 md:col-span-2 col-span-1">
                             <div class="bg-slate-800/30 p-4 rounded-lg space-y-3">
@@ -105,12 +117,12 @@
                                        rows="5"
                                        placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
                                        class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"></textarea>
-                                
+
                                 <!-- 新增：私钥密码字段 -->
                                 <div>
                                     <label class="block text-sm font-medium text-slate-400 mb-2">私钥密码 (如果有)</label>
                                     <div class="relative">
-                                        <input type="password" 
+                                        <input type="password"
                                                id="add_ssh_passphrase"
                                                placeholder="如果私钥有密码保护，请在此输入"
                                                class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
@@ -119,15 +131,15 @@
                                         </span>
                                     </div>
                                 </div>
-                                
+
                                 <div class="mt-3">
                                     <p class="text-xs text-slate-500 mb-2">支持 RSA、ED25519 和 PKCS8 格式的私钥</p>
                                     <div class="flex items-center space-x-2">
-                                        <input type="file" 
-                                               id="add_ssh_privateKey_file" 
+                                        <input type="file"
+                                               id="add_ssh_privateKey_file"
                                                class="hidden"
                                                accept=".pem,.key,.ppk">
-                                        <button type="button" 
+                                        <button type="button"
                                                 onclick="document.getElementById('add_ssh_privateKey_file').click()"
                                                 class="px-3 py-1 text-xs bg-slate-700 hover:bg-slate-600 text-white rounded">
                                             <i class="material-icons text-[14px] align-text-bottom">upload_file</i>
@@ -154,7 +166,7 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         <div>
                             <label class="block text-sm font-medium text-slate-400 mb-2">月流量限制 (GB)</label>
-                            <input type="number" 
+                            <input type="number"
                                    id="add_traffic_limit"
                                    placeholder="0 表示不限制"
                                    min="0"
@@ -162,7 +174,7 @@
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-slate-400 mb-2">流量重置日</label>
-                            <input type="number" 
+                            <input type="number"
                                    id="add_traffic_reset_day"
                                    placeholder="1-31"
                                    min="1"
@@ -172,7 +184,7 @@
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-slate-400 mb-2">流量警告阈值 (%)</label>
-                            <input type="number" 
+                            <input type="number"
                                    id="add_traffic_alert_percent"
                                    placeholder="80"
                                    min="1"
@@ -186,13 +198,13 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
                         <div>
                             <label class="block text-sm font-medium text-slate-400 mb-2">流量校准日期</label>
-                            <input type="date" 
+                            <input type="date"
                                    id="add_traffic_calibration_date"
                                    class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-slate-400 mb-2">校准时已用流量 (GB)</label>
-                            <input type="number" 
+                            <input type="number"
                                    id="add_traffic_calibration_value"
                                    step="0.01"
                                    min="0"
@@ -208,21 +220,21 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         <div>
                             <label class="block text-sm font-medium text-slate-400 mb-2">通讯密钥</label>
-                            <input type="text" 
+                            <input type="text"
                                    id="add_api_key"
                                    value="{{uuid.v4()}}"
                                    class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-slate-400 mb-2">通讯端口</label>
-                            <input type="number" 
+                            <input type="number"
                                    id="add_api_port"
                                    value="9999"
                                    class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-slate-400 mb-2">指定网卡</label>
-                            <input type="text" 
+                            <input type="text"
                                    id="add_device"
                                    placeholder="eth0"
                                    class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
@@ -283,7 +295,7 @@ async function handleInstallation(sid) {
     try {
         showInstallModal('正在安装探针', '准备安装...');
         const res = await postjson(`/admin/servers/${sid}/init`);
-        
+
         if (res.status) {
             notice('服务器添加成功，探针已安装', 'success');
             setTimeout(() => location.href = '/admin/servers', 1000);
@@ -291,7 +303,7 @@ async function handleInstallation(sid) {
             hideInstallModal();
             const errorMsg = res.data || '未知错误';
             const retryInstall = confirm(`探针安装失败: ${errorMsg}\n\n是否重试安装？`);
-            
+
             if (retryInstall) {
                 return handleInstallation(sid); // 递归调用重试
             } else {
@@ -302,7 +314,7 @@ async function handleInstallation(sid) {
     } catch (error) {
         console.error('探针安装失败:', error);
         hideInstallModal();
-        
+
         const retryInstall = confirm(`探针安装过程出错: ${error.message || '未知错误'}\n\n是否重试安装？`);
         if (retryInstall) {
             return handleInstallation(sid); // 递归调用重试
@@ -319,10 +331,10 @@ async function handleInstallation(sid) {
 document.getElementById('add_ssh_privateKey_file').addEventListener('change', function(event) {
     const file = event.target.files[0];
     if (!file) return;
-    
+
     // 显示加载状态
     startloading();
-    
+
     const reader = new FileReader();
     reader.onload = function(e) {
         const content = e.target.result;
@@ -330,13 +342,13 @@ document.getElementById('add_ssh_privateKey_file').addEventListener('change', fu
         endloading();
         notice('私钥文件已加载', 'success');
     };
-    
+
     reader.onerror = function(e) {
         console.error('读取文件失败:', e);
         endloading();
         notice('读取文件失败', 'error');
     };
-    
+
     reader.readAsText(file);
 });
 
@@ -349,25 +361,25 @@ async function testSSHConnection() {
         resultEl.classList.add('hidden');
         resultEl.textContent = '';
         resultEl.classList.remove('text-green-500', 'text-red-500');
-        
+
         // 基本验证
         const host = V('add_ssh_host');
         if (!host) {
             notice('请输入服务器地址', 'error');
             return;
         }
-        
+
         const username = V('add_ssh_username') || 'root';
         const port = V('add_ssh_port') || 22;
         const password = V('add_ssh_password');
         const privateKey = V('add_ssh_privateKey');
         const passphrase = V('add_ssh_passphrase');
-        
+
         if (!password && !privateKey) {
             notice('请提供密码或私钥', 'error');
             return;
         }
-        
+
         // 发送测试请求
         const response = await fetch('/admin/test-ssh', {
             method: 'POST',
@@ -383,12 +395,12 @@ async function testSSHConnection() {
                 passphrase
             })
         });
-        
+
         const result = await response.json();
-        
+
         // 显示结果
         resultEl.classList.remove('hidden');
-        
+
         if (result.status) {
             notice('连接成功', 'success');
             resultEl.textContent = '✓ 连接成功';
@@ -397,12 +409,12 @@ async function testSSHConnection() {
             notice(result.data || '连接失败', 'error');
             resultEl.textContent = '✗ ' + (result.data || '连接失败');
             resultEl.classList.add('text-red-500');
-            
+
             // 如果有详细错误信息，添加到结果中
             if (result.details) {
                 console.error('连接错误详情:', result.details);
             }
-            
+
             // 检查是否是私钥密码问题
             if (result.data && result.data.includes('私钥解密失败') && privateKey && !passphrase) {
                 resultEl.textContent += '，请尝试提供私钥密码';
@@ -411,7 +423,7 @@ async function testSSHConnection() {
     } catch (error) {
         console.error('测试SSH连接失败:', error);
         notice(error.message || '测试连接失败', 'error');
-        
+
         // 显示错误到结果区域
         const resultEl = document.getElementById('ssh-test-result');
         resultEl.classList.remove('hidden');
@@ -470,16 +482,16 @@ async function add() {
         }
 
         startloading();
-        
+
         // 使用已生成的 API key 作为服务器 ID
         const sid = V('add_api_key');
         const status = parseInt(E('server_status').value);
-        
+
         // 处理到期时间
-        const expireTime = V('add_expire_time') ? 
-            Math.floor(new Date(V('add_expire_time') + ' 23:59:59').getTime() / 1000) : 
+        const expireTime = V('add_expire_time') ?
+            Math.floor(new Date(V('add_expire_time') + ' 23:59:59').getTime() / 1000) :
             null;
-        
+
         // 构建SSH配置数据
         const sshConfig = {
             host: sshHost.trim(),
@@ -487,18 +499,18 @@ async function add() {
             username: sshUsername.trim(),
             password: sshPassword
         };
-        
+
         // 添加私钥（如果有）
         if (sshPrivateKey && sshPrivateKey.trim() !== '') {
             sshConfig.privateKey = sshPrivateKey.trim();
-            
+
             // 添加私钥密码（如果有）
             const passphrase = V('add_ssh_passphrase');
             if (passphrase && passphrase.trim() !== '') {
                 sshConfig.passphrase = passphrase;
             }
         }
-        
+
         const data = {
             ssh: sshConfig,
             api: {
@@ -518,9 +530,12 @@ async function add() {
         // 处理流量校准数据
         const calibrationDate = V('add_traffic_calibration_date');
         const calibrationValue = parseFloat(V('add_traffic_calibration_value')) || 0;
-        const calibrationTime = calibrationDate ? 
-            Math.floor(new Date(calibrationDate + ' 00:00:00').getTime() / 1000) : 
+        const calibrationTime = calibrationDate ?
+            Math.floor(new Date(calibrationDate + ' 00:00:00').getTime() / 1000) :
             null;
+
+        // 获取分组ID
+        const groupId = V('add_group_id') || 'default';
 
         const res = await postjson('/admin/servers/add', {
             sid,
@@ -528,13 +543,14 @@ async function add() {
             data: JSON.stringify(data),
             status,
             expire_time: expireTime,
+            group_id: groupId,
             traffic_limit: trafficLimit ? trafficLimit * 1024 * 1024 * 1024 : 0,
             traffic_reset_day: trafficResetDay,
             traffic_alert_percent: trafficAlertPercent,
             traffic_calibration_date: calibrationTime,
             traffic_calibration_value: calibrationValue ? calibrationValue * 1024 * 1024 * 1024 : 0
         });
-        
+
         if (res.status) {
             if (hasCredentials) {
                 // 有凭据，弹窗询问是否安装探针
@@ -565,7 +581,7 @@ document.querySelectorAll('.toggle-password').forEach(toggle => {
     toggle.addEventListener('click', function() {
         const input = this.parentElement.querySelector('input');
         const icon = this.querySelector('i');
-        
+
         if (input.type === 'password') {
             input.type = 'text';
             icon.textContent = 'visibility_off';

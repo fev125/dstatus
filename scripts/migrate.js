@@ -13,7 +13,7 @@ async function migrate() {
     
     try {
         // 连接实际数据库
-        const dbPath = path.join(__dirname, '../database/db.db');
+        const dbPath = path.join(__dirname, '../data/db.db');
         const db = new Database(dbPath);
         console.log('Connected to database:', dbPath);
 

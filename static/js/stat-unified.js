@@ -6,13 +6,13 @@
 // IIFE 立即执行函数，避免全局污染
 (function() {
     'use strict';
-    
+
     // 常量定义
     const BYTE_UNITS = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB'];
     const BPS_UNITS = ['bps', 'Kbps', 'Mbps', 'Gbps', 'Tbps'];
     const UPDATE_INTERVAL = 60000; // 1分钟
     const DEBOUNCE_DELAY = 300;    // 300ms
-    
+
     // 单位转换常量
     const KB = 1024;
     const MB = KB * 1024;
@@ -22,7 +22,7 @@
     const Mbps = Kbps * 1000;
     const Gbps = Mbps * 1000;
     const Tbps = Gbps * 1000;
-    
+
     /**
      * 流量格式化工具
      */
@@ -35,19 +35,19 @@
          */
         formatBytes(bytes, decimals = 2) {
             if (!bytes) return '0 B';
-            
+
             let value = typeof bytes === 'bigint' ? Number(bytes) :
                        typeof bytes === 'string' ? Number(bytes) : bytes;
-            
+
             if (isNaN(value) || !isFinite(value)) return '0 B';
-            
+
             if (value < KB) return value.toFixed(decimals) + ' B';
             if (value < MB) return (value/KB).toFixed(decimals) + ' KB';
             if (value < GB) return (value/MB).toFixed(decimals) + ' MB';
             if (value < TB) return (value/GB).toFixed(decimals) + ' GB';
             return (value/TB).toFixed(decimals) + ' TB';
         },
-        
+
         /**
          * 格式化比特率
          * @param {number} bps 比特每秒
@@ -55,17 +55,17 @@
          */
         formatBps(bps) {
             if (!bps) return '0 bps';
-            
+
             const value = Number(bps);
             if (isNaN(value) || !isFinite(value)) return '0 bps';
-            
+
             if (value < Kbps) return value.toFixed(2) + ' bps';
             if (value < Mbps) return (value/Kbps).toFixed(2) + ' Kbps';
             if (value < Gbps) return (value/Mbps).toFixed(2) + ' Mbps';
             if (value < Tbps) return (value/Gbps).toFixed(2) + ' Gbps';
             return (value/Tbps).toFixed(2) + ' Tbps';
         },
-        
+
         /**
          * 验证流量值
          * @param {*} value 要验证的值
@@ -75,9 +75,33 @@
             if (value === undefined || value === null) return false;
             const num = Number(value);
             return !isNaN(num) && num >= 0;
+        },
+
+        /**
+         * 格式化在线时间
+         * @param {number} seconds 秒数
+         * @returns {string} 格式化后的在线时间字符串
+         */
+        formatUptime(seconds) {
+            if (!seconds || isNaN(seconds)) return '0分钟';
+
+            const days = Math.floor(seconds / 86400);
+            const hours = Math.floor((seconds % 86400) / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+
+            let uptimeText = '';
+            if (days > 0) {
+                uptimeText += `${days}天`;
+            }
+            if (hours > 0 || days > 0) {
+                uptimeText += ` ${hours}小时`;
+            }
+            uptimeText += ` ${minutes}分钟`;
+
+            return uptimeText.trim();
         }
     };
-    
+
     /**
      * 流量数据处理工具
      */
@@ -92,7 +116,7 @@
                 console.warn('无效的流量数据格式');
                 return BigInt(0);
             }
-            
+
             try {
                 return data.reduce((total, item) => {
                     const value = Array.isArray(item) ? item[0] : item;
@@ -104,7 +128,7 @@
             }
         }
     };
-    
+
     /**
      * 状态管理器
      */
@@ -120,13 +144,13 @@
         _maxRetries: 3,
         _retryCount: 0,
         _subscribers: new Map(),
-        
+
         // WebSocket相关属性
         _ws: null,
         _wsReconnectTimer: null,
         _wsReconnectInterval: 3000,
         _useWebSocket: true, // 是否使用WebSocket
-        
+
         /**
          * 订阅数据更新
          * @param {string} id 订阅者ID
@@ -136,7 +160,7 @@
             console.log('[Debug] 新订阅者:', id);
             this._subscribers.set(id, callback);
         },
-        
+
         /**
          * 取消订阅
          * @param {string} id 订阅者ID
@@ -145,7 +169,7 @@
             console.log('[Debug] 取消订阅:', id);
             this._subscribers.delete(id);
         },
-        
+
         /**
          * 通知所有订阅者
          * @param {Object} data 更新的数据
@@ -156,7 +180,7 @@
                 console.warn('[Debug] 无效的数据格式，跳过通知');
                 return;
             }
-            
+
             // 处理数据
             const processedData = {
                 [data.sid]: {
@@ -164,7 +188,7 @@
                     stat: data.stat
                 }
             };
-            
+
             this._subscribers.forEach((callback, id) => {
                 try {
                     console.log('[Debug] 通知订阅者:', id);
@@ -174,7 +198,7 @@
                 }
             });
         },
-        
+
         /**
          * 初始化状态管理器
          */
@@ -183,34 +207,34 @@
                 console.log('[Debug] 开始初始化状态管理器...');
                 this._retryCount = 0;
                 this._initEventListeners();
-                
+
                 // 订阅自己来更新系统状况
                 this.subscribe('system-status', this._updateOtherStats.bind(this));
-                
+
                 // 初始化WebSocket
                 if (this._useWebSocket) {
                     this._initWebSocket();
                 }
-                
+
                 // 首次更新
                 await Promise.all([
                     this._fetchRealtimeStats(),  // 实时数据
                     this.updateTrafficStats()     // 流量数据
                 ]);
-                
+
                 // 设置定时更新
                 if (!this._useWebSocket || !this._ws || this._ws.readyState !== WebSocket.OPEN) {
                     this._startUpdateTimer();      // 启动实时数据更新
                 }
                 this._startTrafficUpdateTimer(); // 启动流量数据更新
-                
+
                 console.info('[Debug] 状态管理器初始化完成');
             } catch (error) {
                 console.error('[Debug] 状态管理器初始化失败:', error);
                 setTimeout(() => this.init(), 1000);
             }
         },
-        
+
         /**
          * 初始化WebSocket连接
          * @private
@@ -221,20 +245,20 @@
                 this._ws.close();
                 this._ws = null;
             }
-            
+
             try {
                 const nodeId = this._getNodeId();
                 if (!nodeId) {
                     console.warn('[Debug] 无法获取节点ID，WebSocket将不可用');
                     return;
                 }
-                
+
                 const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
                 const wsUrl = `${protocol}//${location.host}/ws/stats/${nodeId}`;
-                
+
                 console.log('[Debug] 初始化WebSocket连接:', wsUrl);
                 this._ws = new WebSocket(wsUrl);
-                
+
                 // 连接打开
                 this._ws.onopen = () => {
                     console.log('[Debug] WebSocket连接成功');
@@ -250,18 +274,18 @@
                         this._wsReconnectTimer = null;
                     }
                 };
-                
+
                 // 接收消息
                 this._ws.onmessage = (event) => {
                     try {
                         const message = JSON.parse(event.data);
                         if (message.type === 'stats' && message.data) {
                             console.log('[Debug] 收到WebSocket数据, 节点ID:', message.node_id);
-                            
+
                             // 提取节点数据
                             const nodeId = this._getNodeId();
                             const nodeData = message.data[nodeId];
-                            
+
                             if (nodeData) {
                                 // 通知订阅者
                                 const processedData = {
@@ -278,16 +302,16 @@
                         console.error('[Debug] 处理WebSocket消息失败:', error);
                     }
                 };
-                
+
                 // 连接关闭
                 this._ws.onclose = () => {
                     console.log('[Debug] WebSocket连接关闭');
                     this._ws = null;
-                    
+
                     // 重新启动HTTP轮询作为备选
                     console.log('[Debug] 恢复HTTP轮询');
                     this._startUpdateTimer();
-                    
+
                     // 设置重连
                     if (this._wsReconnectTimer) clearTimeout(this._wsReconnectTimer);
                     this._wsReconnectTimer = setTimeout(() => {
@@ -295,7 +319,7 @@
                         this._initWebSocket();
                     }, this._wsReconnectInterval);
                 };
-                
+
                 // 连接错误
                 this._ws.onerror = (error) => {
                     console.error('[Debug] WebSocket连接错误:', error);
@@ -306,13 +330,13 @@
                 this._startUpdateTimer();
             }
         },
-        
+
         /**
          * 初始化事件监听
          */
         _initEventListeners() {
             console.log('[Debug] 初始化事件监听器');
-            
+
             // 页面可见性变化监听
             document.addEventListener('visibilitychange', () => {
                 if (document.hidden) {
@@ -323,7 +347,7 @@
                     console.log('[Debug] 页面显示，恢复正常更新频率');
                     this._adjustUpdateInterval(60000); // 恢复1分钟更新一次
                     this.updateStats(); // 立即更新一次
-                    
+
                     // 如果WebSocket已断开，尝试重新连接
                     if (this._useWebSocket && (!this._ws || this._ws.readyState !== WebSocket.OPEN)) {
                         console.log('[Debug] 尝试重新连接WebSocket');
@@ -348,7 +372,7 @@
             window.addEventListener('online', () => {
                 console.log('[Debug] 网络恢复，立即更新');
                 this.updateStats();
-                
+
                 // 如果WebSocket已断开，尝试重新连接
                 if (this._useWebSocket && (!this._ws || this._ws.readyState !== WebSocket.OPEN)) {
                     console.log('[Debug] 网络恢复，尝试重新连接WebSocket');
@@ -356,7 +380,7 @@
                 }
             });
         },
-        
+
         /**
          * 调整更新间隔
          */
@@ -366,7 +390,7 @@
             // 只重启实时数据更新定时器
             this._startUpdateTimer();
         },
-        
+
         /**
          * 格式化带宽数据
          * @param {number} bps - 比特每秒
@@ -384,7 +408,7 @@
         _formatBytes(bytes) {
             return TrafficFormat.formatBytes(bytes);
         },
-        
+
         /**
          * 开始定时更新
          */
@@ -392,33 +416,33 @@
             if (this._updateTimer) {
                 clearInterval(this._updateTimer);
             }
-            
+
             console.log('[Debug] 启动实时数据更新器，间隔:', this._updateInterval, 'ms');
-            
+
             // 立即执行一次更新
             this._fetchRealtimeStats().catch(error => {
                 console.error('[Debug] 初始数据获取失败:', error);
             });
-            
+
             // 设置定时更新
             this._updateTimer = setInterval(() => {
                 if (document.hidden) {
                     console.log('[Debug] 页面隐藏，跳过更新');
                     return;
                 }
-                
+
                 // 如果WebSocket已连接，不需要HTTP获取
                 if (this._useWebSocket && this._ws && this._ws.readyState === WebSocket.OPEN) {
                     console.log('[Debug] WebSocket已连接，跳过HTTP更新');
                     return;
                 }
-                
+
                 this._fetchRealtimeStats().catch(error => {
                     console.error('[Debug] 定时数据获取失败:', error);
                 });
             }, this._updateInterval);
         },
-        
+
         /**
          * 停止定时更新
          */
@@ -434,7 +458,7 @@
                 this._trafficUpdateTimer = null;
             }
         },
-        
+
         /**
          * 防抖函数
          * @param {Function} fn 要执行的函数
@@ -448,7 +472,7 @@
                 this._debounceTimer = setTimeout(() => fn.apply(this, args), DEBOUNCE_DELAY);
             };
         },
-        
+
         /**
          * 获取节点ID
          * @returns {string|null} 节点ID
@@ -456,14 +480,14 @@
         _getNodeId() {
             try {
                 console.log('[Debug] 当前URL路径:', location.pathname);
-                
+
                 // 1. 首先尝试从URL获取 (/stats/[nodeId])
                 const statsMatch = location.pathname.match(/\/stats\/([^\/]+)/);
                 if (statsMatch) {
                     console.log('[Debug] 从URL获取到节点ID:', statsMatch[1]);
                     return statsMatch[1];
                 }
-                
+
                 // 2. 如果URL中没有，尝试从URL路径的最后一部分获取
                 const pathParts = location.pathname.split('/').filter(Boolean);
                 if (pathParts.length > 0) {
@@ -500,7 +524,7 @@
                 return null;
             }
         },
-        
+
         /**
          * 获取预处理数据
          * @returns {Object|null} 预处理数据
@@ -515,7 +539,7 @@
                 return null;
             }
         },
-        
+
         /**
          * 获取实时状态数据
          */
@@ -525,7 +549,7 @@
                 console.log('[Debug] WebSocket已连接，跳过HTTP获取');
                 return;
             }
-            
+
             try {
                 const nodeId = this._getNodeId();
                 if (!nodeId) {
@@ -534,14 +558,14 @@
 
                 console.log('[Debug] 开始获取实时数据:', `/stats/${nodeId}/data`);
                 const response = await fetch(`/stats/${nodeId}/data`);
-                
+
                 if (!response.ok) {
                     throw new Error(`获取实时数据失败: ${response.status}`);
                 }
 
                 const data = await response.json();
                 console.log('[Debug] 获取到实时数据:', data);
-                
+
                 // 验证数据格式
                 if (!data || !data.stat) {
                     console.warn('[Debug] 实时数据格式无效');
@@ -554,13 +578,13 @@
                         throw new Error('达到最大重试次数');
                     }
                 }
-                
+
                 // 重置重试计数
                 this._retryCount = 0;
-                
+
                 // 通知订阅者
                 this._notifySubscribers(data);
-                
+
                 return data;
             } catch (error) {
                 console.error('[Debug] 获取实时数据失败:', error);
@@ -573,7 +597,7 @@
                 throw error;
             }
         },
-        
+
         /**
          * 更新统计信息
          */
@@ -591,13 +615,13 @@
                     console.warn('[Debug] 无法获取有效的实时数据，跳过本次更新');
                     return;
                 }
-                
+
                 // 获取流量数据
                 console.log('[Debug] 开始更新流量统计...');
-                
+
                 const nodeId = this._getNodeId();
                 console.log('[Debug] 获取到节点ID:', nodeId);
-                
+
                 if (!nodeId) {
                     throw new Error('无法获取节点ID');
                 }
@@ -606,14 +630,14 @@
                 console.log('[Debug] 开始请求流量数据:', `/stats/${nodeId}/traffic`);
                 const response = await fetch(`/stats/${nodeId}/traffic`);
                 console.log('[Debug] API响应状态:', response.status);
-                
+
                 if (!response.ok) {
                     throw new Error(`获取流量数据失败: ${response.status}`);
                 }
 
                 const result = await response.json();
                 console.log('[Debug] 获取到的原始数据:', result);
-                
+
                 if (!result || !result.data || !result.data.monthly) {
                     throw new Error('无效的流量数据');
                 }
@@ -621,7 +645,7 @@
                 // 更新月度流量显示
                 const monthly = result.data.monthly;
                 console.log('[Debug] 月度流量数据:', monthly);
-                
+
                 // 判断是否为无限制流量
                 const isUnlimited = monthly.remaining === -1 && monthly.limit === 0;
                 console.log('[Debug] 是否为无限制流量:', isUnlimited);
@@ -638,7 +662,7 @@
                 };
 
                 console.log('[Debug] 处理后的数据:', validData);
-                
+
                 const format = window.TrafficFormat;
                 if (!format) {
                     console.error('[Debug] TrafficFormat未定义！');
@@ -652,7 +676,7 @@
                     limit: isUnlimited ? '无限制' : format.formatBytes(validData.limit),
                     ratio: validData.ratio
                 };
-                
+
                 console.log('[Debug] 格式化后的流量数据:', formattedData);
 
                 // 根据不同情况生成提示语
@@ -748,19 +772,19 @@
                 this._isUpdating = false;
             }
         },
-        
+
         /**
          * 开始流量数据更新定时器
          */
         _startTrafficUpdateTimer() {
             console.log('[Debug] 启动流量更新定时器，间隔:', this._trafficUpdateInterval, 'ms');
-            
+
             // 清除旧定时器
             if (this._trafficUpdateTimer) {
                 clearInterval(this._trafficUpdateTimer);
                 this._trafficUpdateTimer = null;
             }
-            
+
             // 设置新的定时器
             this._trafficUpdateTimer = setInterval(() => {
                 console.log('[Debug] 流量更新定时器触发');
@@ -771,7 +795,7 @@
                 }
             }, this._trafficUpdateInterval);
         },
-        
+
         /**
          * 更新流量统计信息
          */
@@ -784,7 +808,7 @@
             this._isTrafficUpdating = true;
             try {
                 console.log('[Debug] 开始更新流量统计...');
-                
+
                 const nodeId = this._getNodeId();
                 if (!nodeId) {
                     throw new Error('无法获取节点ID');
@@ -792,7 +816,7 @@
 
                 console.log('[Debug] 开始请求流量数据:', `/stats/${nodeId}/traffic`);
                 const response = await fetch(`/stats/${nodeId}/traffic`);
-                
+
                 if (!response.ok) {
                     throw new Error(`获取流量数据失败: ${response.status}`);
                 }
@@ -804,14 +828,14 @@
 
                 // 更新月度流量显示
                 await this._updateTrafficDisplay(result.data.monthly);
-                
+
             } catch (error) {
                 console.error('[Debug] 更新流量统计失败:', error);
             } finally {
                 this._isTrafficUpdating = false;
             }
         },
-        
+
         /**
          * 更新流量显示
          */
@@ -871,7 +895,7 @@
             if (elements.used) elements.used.textContent = formattedData.used;
             if (elements.remaining) elements.remaining.textContent = formattedData.remaining;
             if (elements.limit) elements.limit.textContent = formattedData.limit;
-            
+
             if (elements.progress) {
                 let colorClass = 'bg-green-500';
                 if (!isUnlimited) {
@@ -883,7 +907,7 @@
                 elements.progress.style.width = isUnlimited ? '10%' : `${formattedData.ratio}%`;
                 elements.progress.className = `progress-bar ${colorClass}`;
             }
-            
+
             if (elements.percent) {
                 elements.percent.textContent = isUnlimited ? tips : `${tips} (${formattedData.ratio}%)`;
             }
@@ -899,7 +923,7 @@
                 elements.resetDate.textContent = resetDate.toLocaleDateString();
             }
         },
-        
+
         /**
          * 更新其他统计信息
          * @param {Object} data 统计数据
@@ -919,18 +943,27 @@
                 if (stat.host) {
                     const hostnameElem = document.getElementById('system-hostname');
                     const osElem = document.getElementById('system-os');
-                    
+                    const uptimeElem = document.getElementById('uptime-display');
+
                     if (hostnameElem && stat.host.hostname) {
                         hostnameElem.textContent = stat.host.hostname;
                         console.log('[Debug] 更新主机名:', stat.host.hostname);
                     }
-                    
+
                     if (osElem && stat.host.platform) {
-                        const osInfo = stat.host.platformVersion ? 
-                            `${stat.host.platform} ${stat.host.platformVersion}` : 
+                        const osInfo = stat.host.platformVersion ?
+                            `${stat.host.platform} ${stat.host.platformVersion}` :
                             stat.host.platform;
                         osElem.textContent = osInfo;
                         console.log('[Debug] 更新操作系统信息:', osInfo);
+                    }
+
+                    // 更新在线时间
+                    if (uptimeElem && typeof stat.host.uptime === 'number') {
+                        const uptime = stat.host.uptime;
+                        const uptimeText = TrafficFormat.formatUptime(uptime);
+                        uptimeElem.textContent = uptimeText;
+                        console.log('[Debug] 更新在线时间:', uptimeText);
                     }
                 }
 
@@ -964,7 +997,7 @@
                     const memTotalElem = document.getElementById('MEM');
                     const memProgress = document.getElementById('MEM_progress');
                     const memDetail = document.getElementById('MEM_detail');
-                    
+
                     // 验证并计算内存使用率
                     const memTotal = stat.mem.virtual.total || 0;
                     const memUsed = stat.mem.virtual.used || 0;
@@ -972,9 +1005,9 @@
                         console.warn('[Debug] 内存总量无效:', memTotal);
                         return;
                     }
-                    
+
                     const memUsage = ((memUsed / memTotal) * 100).toFixed(1);
-                    
+
                     if (memTotalElem) {
                         memTotalElem.textContent = `${memUsage}%`;
                         console.log('[Debug] 更新内存使用率:', memUsage);
@@ -996,18 +1029,18 @@
                         memDetail.textContent = `${usedStr} / ${totalStr}`;
                         console.log('[Debug] 更新内存详情:', `${usedStr} / ${totalStr}`);
                     }
-                    
+
                     // 更新swap使用率
                     if (stat.mem.swap) {
                         const swapTotalElem = document.getElementById('SWAP');
                         const swapProgressElem = document.getElementById('SWAP_progress');
                         const swapDetail = document.getElementById('SWAP_detail');
-                        
+
                         const swapTotal = stat.mem.swap.total || 0;
                         const swapUsed = stat.mem.swap.used || 0;
                         if (swapTotal > 0) {
                             const swapUsage = ((swapUsed / swapTotal) * 100).toFixed(1);
-                            
+
                             if (swapTotalElem) {
                                 swapTotalElem.textContent = `${swapUsage}%`;
                                 console.log('[Debug] 更新Swap使用率:', swapUsage);
@@ -1040,11 +1073,11 @@
                     try {
                         const netIn = document.getElementById('NET_IN');
                         const netOut = document.getElementById('NET_OUT');
-                        
+
                         // 确保delta存在并包含有效数据
                         const deltaIn = stat.net.delta?.in;
                         const deltaOut = stat.net.delta?.out;
-                        
+
                         if (netIn && typeof deltaIn === 'number' && isFinite(deltaIn)) {
                             const inSpeed = this._formatBandwidth(deltaIn);
                             netIn.textContent = inSpeed;
@@ -1053,7 +1086,7 @@
                             console.warn('[Debug] 无效的网络入站数据:', deltaIn);
                             netIn && (netIn.textContent = '0 bps');
                         }
-                        
+
                         if (netOut && typeof deltaOut === 'number' && isFinite(deltaOut)) {
                             const outSpeed = this._formatBandwidth(deltaOut);
                             netOut.textContent = outSpeed;
@@ -1071,7 +1104,7 @@
                         Object.entries(stat.net.devices).forEach(([device, net]) => {
                             const inElement = document.getElementById(`net_${device}_total_in`);
                             const outElement = document.getElementById(`net_${device}_total_out`);
-                            
+
                             if (inElement && net.total && typeof net.total.in === 'number') {
                                 const totalIn = this._formatBytes(net.total.in);
                                 inElement.textContent = totalIn;
@@ -1092,16 +1125,16 @@
             }
         }
     };
-    
+
     // 导出全局函数和对象
     window.TrafficFormat = TrafficFormat;
     window.TrafficUtils = TrafficUtils;
     window.StatManager = StatManager;
-    
+
     // 兼容旧代码的全局函数
     window.strB = (bytes) => TrafficFormat.formatBytes(bytes);
     window.strbps = (bps) => TrafficFormat.formatBps(bps);
-    
+
     // DOM加载完成后初始化
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {
@@ -1134,7 +1167,7 @@
             // 激活默认标签页
             const defaultLoadTab = document.querySelector('[data-tab="load-10m"]');
             const defaultBandwidthTab = document.querySelector('[data-tab="bandwidth-realtime"]');
-            
+
             if (defaultLoadTab) this.activateTab(defaultLoadTab);
             if (defaultBandwidthTab) this.activateTab(defaultBandwidthTab);
         },
@@ -1147,29 +1180,29 @@
             const targetId = tab.dataset.tab;
             if (!targetId) return;
 
-            const group = tab.closest('[data-tab-group]')?.dataset.tabGroup || 
+            const group = tab.closest('[data-tab-group]')?.dataset.tabGroup ||
                         (targetId.startsWith('load-') ? 'load' : 'bandwidth');
-            
+
             // 只影响当前tab组的内容
-            const selector = group === 'bandwidth' ? 
-                `[data-tab-group="${group}"].tab-content` : 
+            const selector = group === 'bandwidth' ?
+                `[data-tab-group="${group}"].tab-content` :
                 '[id^="load-"].tab-content';
-            
+
             document.querySelectorAll(selector).forEach(content => {
                 content.classList.add('hidden');
             });
 
             // 显示目标内容并更新tab样式
             document.getElementById(targetId)?.classList.remove('hidden');
-            
-            const tabSelector = group === 'bandwidth' ? 
-                `[data-tab-group="${group}"] [data-tab]` : 
+
+            const tabSelector = group === 'bandwidth' ?
+                `[data-tab-group="${group}"] [data-tab]` :
                 '[data-tab^="load-"]';
-            
+
             document.querySelectorAll(tabSelector).forEach(t => {
                 t.classList.toggle('bg-slate-700/50', t === tab);
                 t.classList.toggle('text-white', t === tab);
             });
         }
     };
-})(); 
+})();

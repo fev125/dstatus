@@ -36,8 +36,8 @@ module.exports = (DB) => {
             try {
                 const { id, hostname, ip, system, version, device, api_key } = server;
                 const stmt = DB.prepare(`
-                    INSERT INTO autodiscovery_servers 
-                    (id, hostname, ip, system, version, device, api_key) 
+                    INSERT INTO autodiscovery_servers
+                    (id, hostname, ip, system, version, device, api_key)
                     VALUES (?, ?, ?, ?, ?, ?, ?)
                 `);
                 stmt.run(id, hostname, ip, system, version, device, api_key);
@@ -52,7 +52,7 @@ module.exports = (DB) => {
         async findPendingServers() {
             try {
                 const stmt = DB.prepare(`
-                    SELECT * FROM autodiscovery_servers 
+                    SELECT * FROM autodiscovery_servers
                     WHERE status = 'pending'
                     ORDER BY created_at DESC
                 `);
@@ -67,7 +67,7 @@ module.exports = (DB) => {
         async findDiscoveredServers() {
             try {
                 const stmt = DB.prepare(`
-                    SELECT * FROM autodiscovery_servers 
+                    SELECT * FROM autodiscovery_servers
                     WHERE status = 'approved'
                     ORDER BY hostname ASC
                 `);
@@ -82,7 +82,7 @@ module.exports = (DB) => {
         async getServerById(id) {
             try {
                 const stmt = DB.prepare(`
-                    SELECT * FROM autodiscovery_servers 
+                    SELECT * FROM autodiscovery_servers
                     WHERE id = ?
                 `);
                 return stmt.get(id);
@@ -96,7 +96,7 @@ module.exports = (DB) => {
         async updateServerStatus(id, status) {
             try {
                 const stmt = DB.prepare(`
-                    UPDATE autodiscovery_servers 
+                    UPDATE autodiscovery_servers
                     SET status = ?, updated_at = strftime('%s', 'now')
                     WHERE id = ?
                 `);
@@ -112,7 +112,7 @@ module.exports = (DB) => {
         async deleteServer(id) {
             try {
                 const stmt = DB.prepare(`
-                    DELETE FROM autodiscovery_servers 
+                    DELETE FROM autodiscovery_servers
                     WHERE id = ?
                 `);
                 stmt.run(id);
@@ -128,7 +128,7 @@ module.exports = (DB) => {
             try {
                 console.log(`[自动发现] 查询待审核服务器: ${id}`);
                 const stmt = DB.prepare(`
-                    SELECT * FROM autodiscovery_servers 
+                    SELECT * FROM autodiscovery_servers
                     WHERE id = ? AND status = 'pending'
                 `);
                 return stmt.get(id);
@@ -143,7 +143,7 @@ module.exports = (DB) => {
             try {
                 console.log(`[自动发现] 查询已发现服务器: ${id}`);
                 const stmt = DB.prepare(`
-                    SELECT * FROM autodiscovery_servers 
+                    SELECT * FROM autodiscovery_servers
                     WHERE id = ? AND status = 'approved'
                 `);
                 return stmt.get(id);
@@ -157,19 +157,20 @@ module.exports = (DB) => {
          * 批准服务器
          * @description 将待审核服务器批准并添加到servers表
          * @param {string} id - 服务器ID
+         * @param {string} groupId - 分组ID，如果不提供则使用默认分组
          * @returns {Promise<object>} - 操作结果，包含成功状态和服务器ID
          */
-        async approveServer(id) {
+        async approveServer(id, groupId = null) {
             try {
                 console.log(`[自动发现] 批准服务器: ${id}`);
-                
+
                 // 查询待审核服务器
                 const server = await this.findPendingServerById(id);
                 if (!server) {
                     console.error(`[自动发现] 批准服务器失败: 服务器不存在 ${id}`);
                     return { success: false, message: '服务器不存在' };
                 }
-                
+
                 // 创建服务器数据对象
                 const serverData = {
                     ssh: {
@@ -189,15 +190,11 @@ module.exports = (DB) => {
                     discoveryTime: new Date(server.created_at * 1000).toISOString(),
                     approved: true // 已批准
                 };
-                
-                // 获取系统配置
-                const allSettings = DB.prepare("SELECT val FROM setting WHERE key = 'autodiscovery'").get();
-                const autodiscoverySetting = allSettings ? JSON.parse(allSettings.val) : { defaultGroup: "default" };
-                
-                // 添加到服务器表
+
+                // 添加到服务器表 (使用待审核记录的目标分组ID)
                 const stmtIns = DB.prepare(`
-                    INSERT INTO servers 
-                    (sid, name, data, top, status, expire_time, group_id) 
+                    INSERT INTO servers
+                    (sid, name, data, top, status, expire_time, group_id)
                     VALUES (?, ?, ?, ?, ?, ?, ?)
                 `);
                 stmtIns.run(
@@ -207,13 +204,13 @@ module.exports = (DB) => {
                     0, // top
                     1, // status
                     null, // expire_time
-                    autodiscoverySetting.defaultGroup || "default" // group_id
+                    groupId || "default" // 使用传入的分组ID，如果不存在则回退到 'default'
                 );
-                
+
                 // 更新autodiscovery_servers表中的状态
                 await this.updateServerStatus(id, 'approved');
-                
-                console.log(`[自动发现] 服务器已批准: ${server.hostname} (${server.ip}), SID: ${id}`);
+
+                console.log(`[自动发现] 服务器已批准: ${server.hostname} (${server.ip}), SID: ${id}, 分组ID: ${groupId || "default"}`);
                 return { success: true, serverId: id, ip: server.ip, hostname: server.hostname };
             } catch (error) {
                 console.error(`[自动发现] 批准服务器失败: ${id}`, error);
@@ -230,17 +227,17 @@ module.exports = (DB) => {
         async rejectServer(id) {
             try {
                 console.log(`[自动发现] 拒绝服务器: ${id}`);
-                
+
                 // 查询待审核服务器
                 const server = await this.findPendingServerById(id);
                 if (!server) {
                     console.error(`[自动发现] 拒绝服务器失败: 服务器不存在 ${id}`);
                     return false;
                 }
-                
+
                 // 从autodiscovery_servers表中删除服务器
                 await this.deleteServer(id);
-                
+
                 console.log(`[自动发现] 服务器已拒绝并从数据库中删除: ${server.hostname} (${server.ip}), SID: ${id}`);
                 return true;
             } catch (error) {
@@ -260,14 +257,14 @@ module.exports = (DB) => {
                 console.error('[自动发现] 检查服务器状态失败: 无效的服务器数据');
                 return { offline: true };
             }
-            
+
             try {
                 // 尝试通过API检查服务器状态
                 const apiPort = 9999; // 默认API端口
                 const apiKey = server.api_key || ''; // API密钥
-                
+
                 console.log(`[自动发现] 正在检查服务器状态: ${server.hostname || server.ip} (${server.ip}:${apiPort})`);
-                
+
                 // 使用node-fetch或内置的fetch API
                 const fetch = require('node-fetch');
                 const response = await fetch(`http://${server.ip}:${apiPort}/stat`, {
@@ -275,14 +272,14 @@ module.exports = (DB) => {
                     headers: { key: apiKey },
                     timeout: 5000, // 5秒超时
                 });
-                
+
                 if (!response.ok) {
                     console.log(`[自动发现] 服务器响应错误: ${server.ip}:${apiPort}, 状态码: ${response.status}`);
                     return { offline: true };
                 }
-                
+
                 const data = await response.json();
-                
+
                 if (data.success && data.data) {
                     console.log(`[自动发现] 服务器在线: ${server.hostname || server.ip} (${server.ip}:${apiPort})`);
                     return data.data; // 返回服务器状态数据

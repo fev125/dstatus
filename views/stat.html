@@ -123,15 +123,20 @@ h3 .material-icons,
         <div class="px-4 py-3 flex justify-between items-center border-b border-gray-700/50">
             <div class="flex-1 flex items-center justify-between mr-4">
                 <!-- 左侧主机信息 -->
-                <div class="flex items-center gap-3">
-                    <i class="material-icons text-blue-500/70">dns</i>
-                    <h2 class="text-base sm:text-lg font-medium text-gray-200 truncate">{{node.name}}</h2>
-                    <span class="text-xs sm:text-sm text-gray-400">(主机名: <span id="system-hostname"></span>)</span>
+                <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+                    <div class="flex items-center gap-2">
+                        <i class="material-icons text-blue-500/70">dns</i>
+                        <h2 class="text-base sm:text-lg font-medium text-gray-200 truncate">{{node.name}}</h2>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2 ml-6 sm:ml-0">
+                        <span class="text-xs sm:text-sm text-gray-400">(主机名: <span id="system-hostname"></span>)</span>
+                        <span class="text-xs sm:text-sm text-gray-400">| 在线时间: <span id="uptime-display" class="text-green-400"></span></span>
+                    </div>
                 </div>
             </div>
-            
+
             <div class="flex-shrink-0 flex items-center space-x-1 md:space-x-2 action-icon min-w-fit">
-               
+
                 {%if admin%}
                 <a href="/admin/servers/{{sid}}/" class="p-2 text-gray-400 hover:text-gray-200 hover:bg-white/5 rounded-md transition-colors">
                     <i class="material-icons">edit</i>
@@ -174,18 +179,18 @@ h3 .material-icons,
                         <div class="space-y-2">
                             <!-- 总体CPU使用率进度条 -->
                             <div class="progress-container">
-                                <div id="CPU_total_progress" 
+                                <div id="CPU_total_progress"
                                      class="progress-bar bg-blue-500"
                                      style="width: {{node.stat.cpu.multi*100}}%;"></div>
                             </div>
-                            
+
                             <!-- 核心CPU使用率进度条 - 双列布局 -->
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1">
                                 {% for usage in node.stat.cpu.single %}
                                 <div class="flex items-center gap-2">
                                     <span class="text-xs text-gray-400 w-12">核心{{loop.index}}</span>
                                     <div class="progress-container flex-1 relative">
-                                <div id="CPU{{loop.index}}_progress" 
+                                <div id="CPU{{loop.index}}_progress"
                                              class="progress-bar bg-blue-500"
                                              style="width: {{usage}}%;"></div>
                             </div>
@@ -212,12 +217,12 @@ h3 .material-icons,
                         </div>
                         <div class="space-y-2">
                             <div class="progress-container">
-                                <div id="MEM_progress" 
+                                <div id="MEM_progress"
                                      class="progress-bar bg-purple-500"
                                      style="width: {{(node.stat.mem.virtual.used/node.stat.mem.virtual.total*100).toFixed(1)}}%;"></div>
                             </div>
                             <div class="progress-container">
-                                <div id="SWAP_progress" 
+                                <div id="SWAP_progress"
                                      class="progress-bar bg-indigo-500"
                                      style="width: {{(node.stat.mem.swap.used/node.stat.mem.swap.total*100).toFixed(1)}}%;"></div>
                             </div>
@@ -240,7 +245,7 @@ h3 .material-icons,
                         </div>
                         <div class="space-y-2">
                             <div class="progress-container">
-                                <div id="DISK_progress" 
+                                <div id="DISK_progress"
                                      class="progress-bar bg-yellow-500"
                                      style="width: {% if node.stat.disk.total > 0 %}{{ (node.stat.disk.used/node.stat.disk.total*100)|round(2) }}{% else %}0{% endif %}%;"></div>
                             </div>
@@ -281,7 +286,7 @@ h3 .material-icons,
                                     <i class="material-icons text-gray-400 text-sm">data_usage</i>
                                     <span class="text-sm text-gray-400">总流量</span>
                                 </div>
-                                
+
                                 <div class="flex items-center gap-4">
                                     <div class="flex items-center gap-1">
                                         <i class="material-icons text-green-500/70 text-sm" style="width:16px;height:16px;font-size:16px;">arrow_downward</i>
@@ -300,7 +305,7 @@ h3 .material-icons,
                                         <i class="material-icons text-blue-500/70">data_usage</i>
                                         <span class="text-sm text-gray-200">月度流量</span>
                                     </div>
-                                    
+
                                     <!-- 流量信息 - 自适应布局 -->
                                     <div class="w-full flex flex-wrap justify-center">
                                         <div class="flex-1 flex items-center justify-center gap-1 min-w-[100px] max-w-[180px]">
@@ -326,7 +331,7 @@ h3 .material-icons,
                                             <span class="text-sm px-2 py-0.5 rounded-full" id="traffic-status"></span>
                                         </div>
                                         <div class="progress-container">
-                                            <div class="progress-bar bg-blue-500" 
+                                            <div class="progress-bar bg-blue-500"
                                                  id="monthly-progress"></div>
                                         </div>
                                     </div>
@@ -560,14 +565,14 @@ h3 .material-icons,
     // 监听StatManager初始化完成事件
     document.addEventListener('DOMContentLoaded', function() {
         console.log('[Stats] 页面加载完成，等待StatManager初始化...');
-        
+
         // 检查StatManager是否已经初始化
         if (window.StatManager) {
             window.trafficSummaryInitialized = true;
             console.log('[Stats] StatManager已就绪');
         }
     });
-    
+
     // 如果3秒后仍未完成初始化，显示错误信息
     setTimeout(function() {
         if (!window.trafficSummaryInitialized) {
