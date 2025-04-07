@@ -199,71 +199,21 @@ jobs:
           # 再复制ubuntu的构建文件（会覆盖重复的文件）
           cp -f artifacts/binaries-ubuntu-latest/* release/ || true
 
-          # 创建打包目录
-          mkdir -p packages
+          # 直接使用原始二进制文件，不创建压缩包
           cd release
 
-          # 为每个平台创建单独的压缩包
-          echo "打包所有平台二进制文件..."
+          echo "准备所有平台二进制文件..."
 
-          # 主要平台
-          for platform in linux_amd64 linux_arm64 linux_386 darwin_amd64 darwin_arm64 darwin_universal; do
-            if [ -f "neko-status_${platform}" ]; then
-              echo "打包 ${platform}..."
-              tar -czf "../packages/neko-status_${platform}.tar.gz" "neko-status_${platform}"
-            fi
-          done
+          # 设置所有文件的可执行权限
+          chmod +x neko-status_* || true
 
-          # ARM平台
-          for platform in linux_arm7 linux_arm6 linux_arm5; do
-            if [ -f "neko-status_${platform}" ]; then
-              echo "打包 ${platform}..."
-              tar -czf "../packages/neko-status_${platform}.tar.gz" "neko-status_${platform}"
-            fi
-          done
-
-          # MIPS平台
-          for platform in linux_mips linux_mipsle linux_mips64 linux_mips64le; do
-            if [ -f "neko-status_${platform}" ]; then
-              echo "打包 ${platform}..."
-              tar -czf "../packages/neko-status_${platform}.tar.gz" "neko-status_${platform}"
-            fi
-          done
-
-          # BSD系列
-          for platform in freebsd_amd64 freebsd_386 freebsd_arm64 netbsd_amd64 netbsd_386 openbsd_amd64 openbsd_386 dragonfly_amd64; do
-            if [ -f "neko-status_${platform}" ]; then
-              echo "打包 ${platform}..."
-              tar -czf "../packages/neko-status_${platform}.tar.gz" "neko-status_${platform}"
-            fi
-          done
-
-          # 其他架构
-          for platform in linux_ppc64le linux_s390x linux_riscv64; do
-            if [ -f "neko-status_${platform}" ]; then
-              echo "打包 ${platform}..."
-              tar -czf "../packages/neko-status_${platform}.tar.gz" "neko-status_${platform}"
-            fi
-          done
-
-          # Windows平台 (特殊处理.exe后缀)
+          # 为Windows文件创建一个简单的说明文件
           for platform in windows_amd64 windows_386 windows_arm64; do
             if [ -f "neko-status_${platform}.exe" ]; then
-              echo "打包 ${platform}..."
-              zip -j "../packages/neko-status_${platform}.zip" "neko-status_${platform}.exe"
+              echo "准备 ${platform} 说明文件..."
+              echo "Windows平台使用说明: 请右键点击文件，选择“以管理员身份运行”或直接双击运行。" > "neko-status_${platform}_readme.txt"
             fi
           done
-
-          # 通用版本
-          for platform in linux_universal universal; do
-            if [ -f "neko-status_${platform}" ]; then
-              echo "打包 ${platform}..."
-              tar -czf "../packages/neko-status_${platform}.tar.gz" "neko-status_${platform}"
-            fi
-          done
-
-          # 复制打包文件到发布目录
-          cp -f ../packages/* .
 
           # 生成校验和
           echo "生成校验和..."
