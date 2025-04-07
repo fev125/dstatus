@@ -13,14 +13,21 @@ Neko-Status 是一个轻量级的服务器状态监控客户端，用于收集�
 
 ## 支持的平台
 
-- Linux (amd64, arm64, arm7, arm6, arm5, 386, mips, mipsle, mips64, mips64le, ppc64le)
-- macOS (amd64, arm64/M1)
-- FreeBSD (amd64, 386)
-- NetBSD (amd64, 386)
-- 通用版本:
-  - Linux通用版本 (linux_universal)
-  - macOS通用版本 (darwin_universal)
-  - 全局通用版本 (universal)
+### 主要操作系统
+
+- **Linux** (amd64, arm64, arm7, arm6, arm5, 386, mips, mipsle, mips64, mips64le, ppc64le, s390x, riscv64)
+- **macOS** (amd64, arm64/M1/M2/M3, 通用二进制)
+- **Windows** (amd64, 386, arm64)
+- **FreeBSD** (amd64, 386, arm64)
+- **NetBSD** (amd64, 386)
+- **OpenBSD** (amd64, 386)
+- **DragonFly BSD** (amd64)
+
+### 通用版本
+
+- Linux通用版本 (linux_universal)
+- macOS通用版本 (darwin_universal)
+- 全局通用版本 (universal)
 
 ## 安装
 
@@ -129,21 +136,47 @@ GET /iperf3?key=<your_api_key>&host=<target_host>&port=<port>
 
 ## 平台选择指南
 
-- **Linux x86_64**: 使用 `neko-status_linux_amd64` 或 `neko-status_linux_universal`
-- **Linux x86**: 使用 `neko-status_linux_386`
-- **Linux ARM (树莓派等)**: 
-  - 树莓派4/3B+: 使用 `neko-status_linux_arm7`
-  - 树莓派3/2: 使用 `neko-status_linux_arm7`
-  - 树莓派1/Zero: 使用 `neko-status_linux_arm6`
+### Linux系统
+
+- **Linux x86_64 (64位)**: 使用 `neko-status_linux_amd64` 或 `neko-status_linux_universal`
+- **Linux x86 (32位)**: 使用 `neko-status_linux_386`
+- **Linux ARM (树莓派等)**:
+  - 树莓派 4/3B+/3/2: 使用 `neko-status_linux_arm7`
+  - 树莓派 1/Zero: 使用 `neko-status_linux_arm6`
+  - 旧版ARM设备: 使用 `neko-status_linux_arm5`
 - **Linux ARM64 (新型ARM设备)**: 使用 `neko-status_linux_arm64`
+- **MIPS设备 (路由器等)**:
+  - 大端序: 使用 `neko-status_linux_mips` 或 `neko-status_linux_mips64`
+  - 小端序: 使用 `neko-status_linux_mipsle` 或 `neko-status_linux_mips64le`
+  - 软浮点: 使用带 `softfloat` 后缀的版本
+- **其他特殊架构**:
+  - IBM Power: 使用 `neko-status_linux_ppc64le`
+  - IBM Z: 使用 `neko-status_linux_s390x`
+  - RISC-V: 使用 `neko-status_linux_riscv64`
+
+### macOS系统
+
 - **macOS Intel**: 使用 `neko-status_darwin_amd64` 或 `neko-status_darwin_universal`
-- **macOS M1/M2/M3**: 使用 `neko-status_darwin_arm64`
-- **FreeBSD/NetBSD**: 根据系统架构选择对应版本
-- **MIPS设备 (路由器等)**: 根据设备架构选择对应的MIPS版本
-- **不确定使用哪个版本**: 
-  - Linux系统: 尝试 `neko-status_linux_universal`
-  - macOS系统: 尝试 `neko-status_darwin_universal`
-  - 其他系统: 尝试 `neko-status_universal`
+- **macOS M1/M2/M3**: 使用 `neko-status_darwin_arm64` 或 `neko-status_darwin_universal`
+
+### Windows系统
+
+- **Windows x64 (64位)**: 使用 `neko-status_windows_amd64.exe`
+- **Windows x86 (32位)**: 使用 `neko-status_windows_386.exe`
+- **Windows ARM64**: 使用 `neko-status_windows_arm64.exe`
+
+### BSD系统
+
+- **FreeBSD**: 使用 `neko-status_freebsd_amd64` 或 `neko-status_freebsd_386` 或 `neko-status_freebsd_arm64`
+- **NetBSD**: 使用 `neko-status_netbsd_amd64` 或 `neko-status_netbsd_386`
+- **OpenBSD**: 使用 `neko-status_openbsd_amd64` 或 `neko-status_openbsd_386`
+- **DragonFly BSD**: 使用 `neko-status_dragonfly_amd64`
+
+### 不确定使用哪个版本
+
+- **Linux系统**: 尝试 `neko-status_linux_universal`
+- **macOS系统**: 尝试 `neko-status_darwin_universal`
+- **其他系统**: 尝试 `neko-status_universal`
 
 ## 注意事项
 
@@ -151,4 +184,6 @@ GET /iperf3?key=<your_api_key>&host=<target_host>&port=<port>
 - 请确保API密钥的安全性
 - 建议在防火墙后面运行，限制对API端口的访问
 - 通用版本是针对特定操作系统的，不是真正的跨平台二进制文件
-- 由于依赖库兼容性问题，暂不支持OpenBSD平台 
+- 某些平台版本（如OpenBSD、RISC-V等）可能因依赖库兼容性问题而构建失败
+- Windows版本使用.exe文件后缀，并以zip格式打包
+- 如果您的平台不在支持列表中，请尝试使用通用版本或联系我们请求支持
