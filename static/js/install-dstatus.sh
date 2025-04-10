@@ -59,10 +59,10 @@ get_system_info() {
 
     # 获取系统信息
     HOSTNAME=$(hostname)
-    
+
     # 更可靠的IP获取方法，尤其对于Alpine系统
     IP=$(curl -s -m 5 https://api.ipify.org || curl -s -m 5 https://ipinfo.io/ip || hostname -I 2>/dev/null | awk '{print $1}' || ip -4 addr show | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | grep -v 127.0.0.1 | head -n1)
-    
+
     # IP获取失败时的后备方案
     if [ -z "$IP" ]; then
         if command -v ifconfig >/dev/null 2>&1; then
@@ -74,7 +74,7 @@ get_system_info() {
             print_warning "无法获取外部IP，使用本地IP: $IP"
         fi
     fi
-    
+
     SYSTEM="$OS $VERSION"
     VERSION_INFO=$(uname -r)
 
@@ -102,20 +102,20 @@ get_system_info() {
 # 安装必要的命令
 install_dependencies() {
     print_info "安装必要的工具..."
-    
+
     if [[ "$OS" == "alpine" ]]; then
         print_info "安装Alpine Linux依赖..."
         # 更新包列表，避免安装错误
         apk update
-        
+
         # 安装基本工具包和OpenRC需要的包
         apk add --no-cache curl wget bash procps iptables ip6tables
-        
+
         # 检查是否需要安装OpenRC (可能在某些最小化安装中缺失)
         if ! command -v rc-service >/dev/null 2>&1; then
             apk add --no-cache openrc
         fi
-        
+
         # 安装用于防火墙持久化的工具
         apk add --no-cache iptables-persistent || apk add --no-cache iptables
     elif [[ "$OS" == "ubuntu" || "$OS" == "debian" ]]; then
@@ -240,7 +240,7 @@ detect_architecture() {
 # 停止服务 - 增强对Alpine的支持
 stop_service() {
     print_info "尝试停止已存在的服务..."
-    
+
     if [ "$OS" == "alpine" ] && command -v rc-service &> /dev/null; then
         # 对Alpine使用OpenRC
         rc-service nekonekostatus stop 2>/dev/null || true
@@ -257,10 +257,10 @@ stop_service() {
         # 尝试通过进程查找并关闭
         pkill -f "neko-status -c /etc/neko-status/config.yaml" 2>/dev/null || true
     fi
-    
+
     # 强制结束可能残留的进程
     pkill -9 -f "neko-status" 2>/dev/null || true
-    
+
     # 等待进程完全退出
     sleep 2
 
@@ -281,7 +281,7 @@ download_neko_status() {
     BASE_URL="https://github.com/fev125/dstatus/releases/download/v1.0.1"
     DOWNLOAD_URL="${BASE_URL}/neko-status_${OS_TYPE}_${ARCH}"
     SERVER_ARCH_URL="${SERVER_URL}/neko-status_${OS_TYPE}_${ARCH}"
-    
+
     print_info "使用下载链接: $DOWNLOAD_URL"
     print_info "备用下载链接: $SERVER_ARCH_URL"
 
@@ -290,7 +290,7 @@ download_neko_status() {
 
     # 尝试从不同源下载
     print_info "开始下载..."
-    
+
     # 使用更安全的下载方法，显示进度
     if wget -q --show-progress --timeout=30 --tries=3 "$DOWNLOAD_URL" -O "$TEMP_FILE"; then
         print_success "从GitHub下载成功"
@@ -333,21 +333,21 @@ download_neko_status() {
 # 配置防火墙 - 改进Alpine支持
 configure_firewall() {
     print_info "配置防火墙规则..."
-    
+
     # 对Alpine系统的特殊处理
     if [ "$OS" == "alpine" ]; then
         # 确保iptables模块已加载
         modprobe -q iptables || true
-        
+
         # 添加防火墙规则
         iptables -C INPUT -p tcp --dport 9999 -j ACCEPT 2>/dev/null || iptables -A INPUT -p tcp --dport 9999 -j ACCEPT
-        
+
         # 保存iptables规则 - 针对Alpine的几种可能情况
         if command -v iptables-save >/dev/null 2>&1; then
             # 尝试直接保存
             mkdir -p /etc/iptables 2>/dev/null
             iptables-save > /etc/iptables/rules.v4 2>/dev/null || true
-            
+
             # 确保在启动时恢复规则
             if [ ! -f /etc/local.d/iptables.start ]; then
                 mkdir -p /etc/local.d
@@ -358,7 +358,7 @@ if [ -f /etc/iptables/rules.v4 ]; then
 fi
 EOF
                 chmod +x /etc/local.d/iptables.start
-                
+
                 # 确保local服务已启用
                 if command -v rc-update >/dev/null 2>&1; then
                     rc-update add local default 2>/dev/null || true
@@ -376,7 +376,7 @@ EOF
         # Generic iptables
         iptables -C INPUT -p tcp --dport 9999 -j ACCEPT 2>/dev/null || iptables -A INPUT -p tcp --dport 9999 -j ACCEPT
     fi
-    
+
     print_success "防火墙配置完成"
 }
 
@@ -392,13 +392,15 @@ create_service() {
 key: ${API_KEY}
 port: 9999
 debug: false
+# 数据目录配置
+data_path: /etc/neko-status/data
 EOF
 
     # 根据系统类型创建不同服务管理文件
     if [ "$OS" == "alpine" ] && command -v rc-service &> /dev/null; then
         # 为Alpine创建OpenRC服务
         print_info "为Alpine创建OpenRC服务..."
-        
+
         cat > /etc/init.d/nekonekostatus <<EOF
 #!/sbin/openrc-run
 
@@ -419,10 +421,10 @@ start_pre() {
 }
 EOF
         chmod +x /etc/init.d/nekonekostatus
-        
+
         # 添加到启动项
         rc-update add nekonekostatus default 2>/dev/null
-        
+
     elif command -v systemctl &> /dev/null; then
         # 创建systemd服务 (对于使用systemd的系统)
         cat > /etc/systemd/system/nekonekostatus.service <<EOF
@@ -440,7 +442,7 @@ WantedBy=multi-user.target
 EOF
         # 重新加载systemd配置
         systemctl daemon-reload
-        
+
     # 对于使用init.d的系统
     elif [ -d /etc/init.d ]; then
         cat > /etc/init.d/nekonekostatus <<EOF
@@ -509,10 +511,10 @@ EOF
     else
         # 创建简单的启动脚本
         print_info "创建基本启动脚本..."
-        
+
         # 创建目录
         mkdir -p /usr/local/bin /var/log
-        
+
         cat > /usr/local/bin/nekonekostatus-start <<EOF
 #!/bin/sh
 nohup /usr/bin/neko-status -c /etc/neko-status/config.yaml > /var/log/nekonekostatus.log 2>&1 &
@@ -529,7 +531,7 @@ fi
 pkill -f "neko-status" 2>/dev/null || true
 EOF
         chmod +x /usr/local/bin/nekonekostatus-stop
-        
+
         # 如果是Alpine但没有OpenRC，创建启动脚本
         if [ "$OS" == "alpine" ]; then
             # 在开机时自动启动
@@ -540,7 +542,7 @@ EOF
 /usr/local/bin/nekonekostatus-start
 EOF
                 chmod +x /etc/local.d/nekonekostatus.start
-                
+
                 # 确保local服务已启用
                 if command -v rc-update >/dev/null 2>&1; then
                     rc-update add local default 2>/dev/null || true
@@ -548,14 +550,33 @@ EOF
             fi
         fi
     fi
-    
+
     print_success "服务创建完成"
 }
 
 # 启动服务 - 增强Alpine支持
 start_service() {
     print_info "正在启动服务..."
-    
+
+    # 再次检查并确保所有目录权限正确
+    print_info "启动前再次检查目录权限..."
+
+    # 确保数据目录存在并有正确权限
+    if [ -d "/app" ]; then
+        mkdir -p /app/data/backups /app/data/temp 2>/dev/null || true
+        chmod -R 777 /app/data 2>/dev/null || true
+    fi
+
+    mkdir -p /etc/neko-status/data/backups /etc/neko-status/data/temp 2>/dev/null || true
+    chmod -R 777 /etc/neko-status/data 2>/dev/null || true
+
+    # 如果是Docker环境，尝试修复所有权限
+    if [ -f /.dockerenv ]; then
+        print_info "检测到Docker环境，尝试修复所有权限"
+        find /app -type d -exec chmod 777 {} \; 2>/dev/null || true
+        find /etc/neko-status -type d -exec chmod 777 {} \; 2>/dev/null || true
+    fi
+
     if [ "$OS" == "alpine" ] && command -v rc-service &> /dev/null; then
         # 对Alpine使用OpenRC
         rc-service nekonekostatus start
@@ -568,23 +589,68 @@ start_service() {
     elif [ -f /usr/local/bin/nekonekostatus-start ]; then
         /usr/local/bin/nekonekostatus-start
     fi
-    
+
     # 验证服务是否正在运行
     sleep 2
     if pgrep -f "neko-status" > /dev/null; then
         print_success "服务已成功启动"
     else
         print_warning "服务启动失败，尝试手动启动"
-        nohup /usr/bin/neko-status -c /etc/neko-status/config.yaml > /var/log/nekonekostatus.log 2>&1 &
-        
+        print_info "尝试使用自定义数据路径启动..."
+
+        # 尝试使用不同的数据路径
+        if [ -d "/app" ]; then
+            print_info "尝试使用 /app/data 路径"
+            nohup /usr/bin/neko-status -c /etc/neko-status/config.yaml -d /app/data > /var/log/nekonekostatus.log 2>&1 &
+        else
+            print_info "尝试使用默认路径"
+            nohup /usr/bin/neko-status -c /etc/neko-status/config.yaml > /var/log/nekonekostatus.log 2>&1 &
+        fi
+
         # 再次检查
         sleep 2
         if pgrep -f "neko-status" > /dev/null; then
             print_success "服务已手动启动成功"
         else
             print_error "服务无法启动，请检查日志: /var/log/nekonekostatus.log"
+            print_info "尝试最后的解决方案: 使用当前目录作为数据路径"
+            mkdir -p ./data/backups ./data/temp
+            chmod -R 777 ./data
+            nohup /usr/bin/neko-status -c /etc/neko-status/config.yaml -d ./data > /var/log/nekonekostatus.log 2>&1 &
+
+            sleep 2
+            if pgrep -f "neko-status" > /dev/null; then
+                print_success "服务已成功启动（使用当前目录作为数据路径）"
+            else
+                print_error "所有启动尝试均失败，请检查日志或联系管理员"
+            fi
         fi
     fi
+}
+
+# 创建必要的目录并设置权限
+create_directories() {
+    print_info "创建必要的目录并设置权限..."
+
+    # 创建应用数据目录
+    if [ -d "/app" ]; then
+        # 如果在Docker环境中
+        mkdir -p /app/data/backups /app/data/temp
+        chmod -R 777 /app/data
+        print_success "已创建并设置Docker环境目录权限"
+    fi
+
+    # 创建本地数据目录
+    mkdir -p ~/.neko-status/data/backups ~/.neko-status/data/temp
+    chmod -R 777 ~/.neko-status/data
+
+    # 创建系统级目录
+    if [ -w "/etc" ]; then
+        mkdir -p /etc/neko-status/data/backups /etc/neko-status/data/temp
+        chmod -R 777 /etc/neko-status/data
+    fi
+
+    print_success "目录创建和权限设置完成"
 }
 
 # 安装DStatus客户端
@@ -606,6 +672,9 @@ install_dstatus() {
 
     # 安装必要的命令
     install_dependencies
+
+    # 创建必要的目录并设置权限
+    create_directories
 
     # 注册到自动发现服务
     if ! register_autodiscovery "$REGISTRATION_KEY" "$SERVER_URL"; then
@@ -650,16 +719,163 @@ install_dstatus() {
     exit 0
 }
 
+# 增强版自动修复权限问题
+auto_fix_permissions() {
+    print_info "正在尝试自动修复权限问题..."
+
+    # 检查是否在Docker环境中
+    if [ -f /.dockerenv ]; then
+        print_info "检测到Docker环境 - 执行增强版权限修复"
+
+        # 尝试修复所有可能的目录权限
+        for DIR in "/app" "/app/data" "/etc/neko-status" "/etc/neko-status/data" "/var/log" "/var/run" "/tmp" "/usr/bin" "/usr/local/bin"; do
+            if [ -d "$DIR" ]; then
+                print_info "设置 $DIR 目录权限"
+                chmod -R 777 "$DIR" 2>/dev/null || true
+
+                # 如果存在用户，尝试更改所有权
+                if id node >/dev/null 2>&1; then
+                    chown -R node:node "$DIR" 2>/dev/null || true
+                elif id nobody >/dev/null 2>&1; then
+                    chown -R nobody:nobody "$DIR" 2>/dev/null || true
+                fi
+            else
+                print_info "创建并设置 $DIR 目录权限"
+                mkdir -p "$DIR" 2>/dev/null || true
+                chmod -R 777 "$DIR" 2>/dev/null || true
+            fi
+        done
+
+        # 创建必要的子目录
+        for SUBDIR in "/app/data/backups" "/app/data/temp" "/etc/neko-status/data/backups" "/etc/neko-status/data/temp" "/tmp/neko-status/data/backups" "/tmp/neko-status/data/temp"; do
+            print_info "创建并设置 $SUBDIR 目录权限"
+            mkdir -p "$SUBDIR" 2>/dev/null || true
+            chmod -R 777 "$SUBDIR" 2>/dev/null || true
+        done
+
+        # 尝试修复常见的Docker权限问题
+        print_info "尝试修复常见的Docker权限问题"
+
+        # 使用find命令递归设置所有目录的权限
+        find /app -type d -exec chmod 777 {} \; 2>/dev/null || true
+        find /etc/neko-status -type d -exec chmod 777 {} \; 2>/dev/null || true
+        find /tmp/neko-status -type d -exec chmod 777 {} \; 2>/dev/null || true
+
+        # 确保日志文件可写
+        touch /var/log/nekonekostatus.log 2>/dev/null || true
+        chmod 666 /var/log/nekonekostatus.log 2>/dev/null || true
+
+        # 尝试使用不同的数据目录配置
+        if [ -f "/etc/neko-status/config.yaml" ]; then
+            print_info "修改配置文件以使用多个可能的数据路径"
+            # 备份原始配置
+            cp /etc/neko-status/config.yaml /etc/neko-status/config.yaml.bak 2>/dev/null || true
+
+            # 添加数据路径配置
+            if ! grep -q "data_path" /etc/neko-status/config.yaml; then
+                echo "# 数据目录配置" >> /etc/neko-status/config.yaml
+                echo "data_path: /app/data" >> /etc/neko-status/config.yaml
+            fi
+        fi
+
+        print_success "Docker环境权限增强修复完成"
+    else
+        # 非Docker环境
+        print_info "非Docker环境，创建并设置必要目录权限"
+
+        # 创建并设置必要目录权限
+        for DIR in "/etc/neko-status" "/etc/neko-status/data" "/var/log" "/var/run" "$HOME/.neko-status" "$HOME/.neko-status/data" "/tmp/neko-status" "/tmp/neko-status/data"; do
+            print_info "创建并设置 $DIR 目录权限"
+            mkdir -p "$DIR" 2>/dev/null || true
+            chmod -R 777 "$DIR" 2>/dev/null || true
+        done
+
+        # 创建必要的子目录
+        for SUBDIR in "/etc/neko-status/data/backups" "/etc/neko-status/data/temp" "$HOME/.neko-status/data/backups" "$HOME/.neko-status/data/temp" "/tmp/neko-status/data/backups" "/tmp/neko-status/data/temp"; do
+            print_info "创建并设置 $SUBDIR 目录权限"
+            mkdir -p "$SUBDIR" 2>/dev/null || true
+            chmod -R 777 "$SUBDIR" 2>/dev/null || true
+        done
+
+        # 在当前目录也创建数据目录（作为备用）
+        print_info "在当前目录创建数据目录"
+        mkdir -p ./data/backups ./data/temp 2>/dev/null || true
+        chmod -R 777 ./data 2>/dev/null || true
+
+        # 确保日志文件可写
+        touch /var/log/nekonekostatus.log 2>/dev/null || true
+        chmod 666 /var/log/nekonekostatus.log 2>/dev/null || true
+
+        # 尝试修改配置文件以使用多个可能的数据路径
+        if [ -f "/etc/neko-status/config.yaml" ]; then
+            print_info "修改配置文件以使用多个可能的数据路径"
+            # 备份原始配置
+            cp /etc/neko-status/config.yaml /etc/neko-status/config.yaml.bak 2>/dev/null || true
+
+            # 添加数据路径配置
+            if ! grep -q "data_path" /etc/neko-status/config.yaml; then
+                echo "# 数据目录配置" >> /etc/neko-status/config.yaml
+                echo "data_path: /etc/neko-status/data" >> /etc/neko-status/config.yaml
+            fi
+        fi
+
+        print_success "标准环境权限增强修复完成"
+    fi
+}
+
 # 主函数
 main() {
+    # 记录安装日志
+    print_info "开始安装 DStatus 客户端 - 时间: $(date)"
+    print_info "脚本版本: Alpine优化增强版本 ($(date +%Y-%m-%d))"
+
+    # 检查是否在Docker环境中
+    if [ -f /.dockerenv ]; then
+        print_info "检测到Docker环境，将执行特殊处理"
+    fi
+
     # 检查root权限
     check_root
 
     # 获取系统信息
     get_system_info
 
+    # 安装前自动修复权限问题
+    print_info "安装前执行权限修复"
+    auto_fix_permissions
+
     # 安装服务
-    install_dstatus "$1" "$2"
+    print_info "开始安装服务"
+    install_dstatus "$1" "$2" || {
+        print_error "安装过程中出现错误，尝试再次修复权限后继续"
+        auto_fix_permissions
+        install_dstatus "$1" "$2" || {
+            print_error "安装再次失败，尝试最后的应急方案"
+            # 尝试使用当前目录作为数据目录
+            mkdir -p ./data/backups ./data/temp
+            chmod -R 777 ./data
+
+            # 修改配置文件使用当前目录
+            if [ -f "/etc/neko-status/config.yaml" ]; then
+                print_info "修改配置文件使用当前目录作为数据路径"
+                cp /etc/neko-status/config.yaml /etc/neko-status/config.yaml.bak 2>/dev/null || true
+                echo "data_path: $(pwd)/data" >> /etc/neko-status/config.yaml
+            fi
+
+            # 再次尝试安装
+            install_dstatus "$1" "$2" || {
+                print_error "所有安装尝试均失败，请手动检查系统权限和配置"
+                exit 1
+            }
+        }
+    }
+
+    # 安装完成后再次修复权限
+    print_info "安装完成后再次修复权限"
+    auto_fix_permissions
+
+    print_info "安装完成 - 时间: $(date)"
+    print_success "如果遇到权限问题，请手动运行: chmod -R 777 /app/data"
 }
 
 # 执行主函数
