@@ -105,12 +105,12 @@ svr.get('/login',(req,res)=>{
 svr.post('/login',(req,res)=>{
     var {password, originalPassword}=req.body;
     const currentPassword = db.setting.get("password");
-    
+
     if(password==md5(currentPassword)){
         var token=uuid.v4();
         admin_tokens.add(token);
         res.cookie("token",token);
-        
+
         // 检查是否为默认密码
         const isDefaultPassword = currentPassword === "dstatus" || originalPassword === "dstatus";
         res.json(pr(1, {
@@ -185,7 +185,7 @@ if (setting.telegram?.enabled && setting.telegram?.token) {
             webhookPort: setting.telegram.webhookPort || 8443,
             baseApiUrl: setting.telegram.baseApiUrl || 'https://api.telegram.org'
         };
-        
+
         console.log('[系统] 开始初始化 Telegram bot...');
         console.log('[系统] Bot 配置信息:', JSON.stringify({
             enabled: setting.telegram.enabled,
@@ -194,7 +194,7 @@ if (setting.telegram?.enabled && setting.telegram?.token) {
             chatIdsCount: setting.telegram?.chatIds?.length || 0,
             baseApiUrl: botOptions.baseApiUrl
         }));
-        
+
         const botWrapper = require("./bot")(setting.telegram.token, setting.telegram.chatIds, botOptions);
         // 确保我们获取了正确的bot对象
         if (botWrapper && botWrapper.bot) {
@@ -202,13 +202,13 @@ if (setting.telegram?.enabled && setting.telegram?.token) {
             // 添加funcs到bot对象
             bot.funcs = botWrapper.funcs;
             console.log('[系统] Telegram bot 初始化成功');
-            
+
             // 使用立即执行的异步函数(IIFE)包装await调用
             (async () => {
                 try {
                     // 等待核心模块加载完成
                     await new Promise(resolve => setTimeout(resolve, 2000));
-                    
+
                     // 使用通知管理器发送测试消息
                     if (svr.locals.notification && setting.telegram?.chatIds?.length > 0) {
                         console.log('[系统] 使用通知管理器发送启动测试消息');
@@ -218,7 +218,7 @@ if (setting.telegram?.enabled && setting.telegram?.token) {
                             setting.telegram.chatIds,
                             { priority: 'normal' }
                         );
-                        
+
                         if (result.success) {
                             console.log('[系统] 启动测试消息发送成功');
                         } else {
@@ -270,14 +270,14 @@ async function loadCoreModule(moduleName) {
         console.log(`[系统] 模块 ${moduleName} 已加载，跳过`);
         return;
     }
-    
+
     console.log(`[系统] 加载${moduleName}模块...`);
     try {
         // 确保setting模块在其他模块之前加载
         if (moduleName !== 'setting' && !loadedModules.has('setting')) {
             await loadCoreModule('setting');
         }
-        
+
         // 如果是notification模块，确保setting已经完全初始化
         if (moduleName === 'notification') {
             if (!svr.locals.setting) {
@@ -285,11 +285,11 @@ async function loadCoreModule(moduleName) {
                 return;
             }
         }
-        
+
         const moduleExports = await require(`./modules/${moduleName}`)(svr, db);
         if (moduleExports) {
             svr.locals[moduleName] = moduleExports;
-            
+
             // 如果是setting模块，将其导出的setting对象添加到svr.locals中
             if (moduleName === 'setting' && moduleExports.setting) {
                 svr.locals.setting = moduleExports.setting;
@@ -306,12 +306,12 @@ async function loadCoreModule(moduleName) {
 const coreModules = [
     'setting',      // 先加载设置模块
     'notification', // 提前加载通知模块
-    'groups',       
-    'servers',      
+    'groups',
+    'servers',
     'autodiscovery',
-    'admin',        
-    'restart',      
-    'stats'         
+    'admin',
+    'restart',
+    'stats'
 ];
 
 // 加载核心模块
@@ -319,7 +319,7 @@ const coreModules = [
     for (const moduleName of coreModules) {
         await loadCoreModule(moduleName);
     }
-    
+
     // 加载其他模块
     const modules = fs.readdirSync(__dirname+'/modules',{withFileTypes:1});
     for (const file of modules) {
@@ -348,7 +348,7 @@ svr.ws('/ws/stats', function(ws, req) {
     // 1. 安全性验证
     const isAdmin = admin_tokens.has(req.cookies.token);
     const clientIP = req.ip;
-    
+
     // 2. 连接数量限制
     if(wsClients.has(clientIP)) {
         const existingConnections = wsClients.get(clientIP);
@@ -361,16 +361,16 @@ svr.ws('/ws/stats', function(ws, req) {
     } else {
         wsClients.set(clientIP, 1);
     }
-    
+
     console.log(`[${new Date().toISOString()}] WebSocket连接建立 - 管理员:${isAdmin} IP:${clientIP}`);
-    
+
     // 3. 数据发送定时器
     const timer = setInterval(() => {
         try {
             if (ws.readyState === ws.OPEN && svr.locals.stats) {
                 // 获取完整数据
                 const statsData = svr.locals.stats.getStatsData(isAdmin, true);
-                
+
                 // 数据完整性检查
                 if (!statsData || typeof statsData !== 'object') {
                     console.error(`[${new Date().toISOString()}] 无效的统计数据 - IP:${clientIP}`);
@@ -387,7 +387,7 @@ svr.ws('/ws/stats', function(ws, req) {
                 if (setting.debug) {
                     console.debug(`[${new Date().toISOString()}] 发送数据 - IP:${clientIP} 数据大小:${JSON.stringify(message).length} 节点数:${Object.keys(message.data).length}`);
                 }
-                
+
                 // 检查WebSocket状态并发送数据
                 if (ws.readyState === ws.OPEN) {
                     ws.send(JSON.stringify(message));
@@ -399,7 +399,7 @@ svr.ws('/ws/stats', function(ws, req) {
             console.error(`[${new Date().toISOString()}] WebSocket数据发送错误 - IP:${clientIP}:`, error);
         }
     }, UPDATE_INTERVAL);
-    
+
     // 4. 连接关闭处理
     ws.on('close', () => {
         clearInterval(timer);
@@ -412,7 +412,7 @@ svr.ws('/ws/stats', function(ws, req) {
         }
         console.log(`[${new Date().toISOString()}] WebSocket连接关闭 - IP:${clientIP}`);
     });
-    
+
     // 5. 错误处理
     ws.on('error', (error) => {
         console.error(`[${new Date().toISOString()}] WebSocket错误 - IP:${clientIP}:`, error);
@@ -431,11 +431,11 @@ svr.ws('/ws/stats', function(ws, req) {
 svr.ws('/ws/stats/:sid', function(ws, req) {
     // 获取节点ID
     const nodeSid = req.params.sid;
-    
+
     // 1. 安全性验证
     const isAdmin = admin_tokens.has(req.cookies.token);
     const clientIP = req.ip;
-    
+
     // 2. 连接数量限制
     if(wsClients.has(clientIP)) {
         const existingConnections = wsClients.get(clientIP);
@@ -448,16 +448,16 @@ svr.ws('/ws/stats/:sid', function(ws, req) {
     } else {
         wsClients.set(clientIP, 1);
     }
-    
+
     console.log(`[${new Date().toISOString()}] 节点WebSocket连接建立 - 管理员:${isAdmin} IP:${clientIP} 节点:${nodeSid}`);
-    
+
     // 3. 数据发送定时器
     const timer = setInterval(() => {
         try {
             if (ws.readyState === ws.OPEN && svr.locals.stats) {
                 // 获取完整数据
                 const statsData = svr.locals.stats.getStatsData(isAdmin, true);
-                
+
                 // 数据完整性检查
                 if (!statsData || typeof statsData !== 'object') {
                     console.error(`[${new Date().toISOString()}] 无效的统计数据 - IP:${clientIP}`);
@@ -484,7 +484,7 @@ svr.ws('/ws/stats/:sid', function(ws, req) {
                 if (setting.debug) {
                     console.debug(`[${new Date().toISOString()}] 发送节点数据 - IP:${clientIP} 节点:${nodeSid} 数据存在:${Object.keys(filteredData).length > 0}`);
                 }
-                
+
                 // 检查WebSocket状态并发送数据
                 if (ws.readyState === ws.OPEN) {
                     ws.send(JSON.stringify(message));
@@ -496,7 +496,7 @@ svr.ws('/ws/stats/:sid', function(ws, req) {
             console.error(`[${new Date().toISOString()}] WebSocket数据发送错误 - IP:${clientIP}:`, error);
         }
     }, UPDATE_INTERVAL);
-    
+
     // 4. 连接关闭处理
     ws.on('close', () => {
         clearInterval(timer);
@@ -509,7 +509,7 @@ svr.ws('/ws/stats/:sid', function(ws, req) {
         }
         console.log(`[${new Date().toISOString()}] 节点WebSocket连接关闭 - IP:${clientIP} 节点:${nodeSid}`);
     });
-    
+
     // 5. 错误处理
     ws.on('error', (error) => {
         console.error(`[${new Date().toISOString()}] 节点WebSocket错误 - IP:${clientIP} 节点:${nodeSid}:`, error);
@@ -524,8 +524,16 @@ svr.ws('/ws/stats/:sid', function(ws, req) {
     });
 });
 
+// 确保全局设置可用
+svr.locals.setting = db.setting.all();
+
+// 定期更新设置
+setInterval(() => {
+    svr.locals.setting = db.setting.all();
+}, 60000); // 每分钟更新一次
+
 const port=process.env.PORT||db.setting.get("listen"),host=process.env.HOST||'';
-svr.server=svr.listen(port,host,()=>{console.log(`server running @ http://${host ? host : 'localhost'}:${port}`);})
+svr.server=svr.listen(port,host,()=>{console.log(`server running @ http://${host ? host : 'localhost'}:${port} (v${svr.locals.setting.version || '2.5.0'})`);})
 
 // 添加主页路由处理
 svr.get('/', (req, res) => {
@@ -533,17 +541,17 @@ svr.get('/', (req, res) => {
         // 获取用户偏好主题
         let theme = req.query.theme || req.cookies.theme;
         const isAdmin = req.admin;
-        
+
         // 如果是移动设备且没有明确指定主题或保存的偏好，默认使用列表视图
         if (req.isMobile && !theme) {
             theme = 'list';
         }
-        
+
         // 如果还没有主题，使用系统默认主题
         theme = theme || setting.theme || 'card';
-        
+
         console.log(`[${new Date().toISOString()}] 主页请求 - 主题:${theme} 管理员:${isAdmin} 移动端:${req.isMobile}`);
-        
+
         // 渲染对应视图
         res.render(`stats/${theme}`, {
             stats: svr.locals.stats ? svr.locals.stats.getStatsData(isAdmin) : {},
@@ -563,11 +571,11 @@ svr.get('/admin/change-password', (req, res) => {
     if (!req.admin) {
         return res.redirect('/login');
     }
-    
+
     // 检查当前密码是否为默认密码
     const currentPassword = db.setting.get("password");
     const isDefaultPassword = currentPassword === "dstatus";
-    
+
     res.render('admin/change-password', {
         forceChange: isDefaultPassword
     });
@@ -578,17 +586,17 @@ svr.post('/admin/change-password', (req, res) => {
     if (!req.admin) {
         return res.json(pr(0, "未授权，请先登录"));
     }
-    
+
     try {
         const { newPassword } = req.body;
-        
+
         if (!newPassword) {
             return res.json(pr(0, "请提供新密码"));
         }
-        
+
         // 更新密码
         db.setting.set("password", newPassword);
-        
+
         return res.json(pr(1, "密码修改成功"));
     } catch (error) {
         console.error('修改密码失败:', error);
@@ -602,10 +610,10 @@ svr.get('/admin/setting', (req, res) => {
         // 获取最新设置
         const currentSettings = db.setting.all();
         console.log('[设置] 加载设置页面，当前设置:', currentSettings);
-        
-        res.render('admin/setting.html', { 
+
+        res.render('admin/setting.html', {
             setting: currentSettings,
-            title: '系统设置' 
+            title: '系统设置'
         });
     } catch (err) {
         console.error('[设置] 加载设置页面失败:', err);
@@ -682,48 +690,48 @@ svr.post('/admin/personalization', async (req, res) => {
             if (typeof updatedSettings.blur.enabled !== 'boolean') {
                 throw new Error('blur.enabled 必须是布尔值');
             }
-            if (updatedSettings.blur.amount !== undefined && 
-                (typeof updatedSettings.blur.amount !== 'number' || 
-                 updatedSettings.blur.amount < 0 || 
+            if (updatedSettings.blur.amount !== undefined &&
+                (typeof updatedSettings.blur.amount !== 'number' ||
+                 updatedSettings.blur.amount < 0 ||
                  updatedSettings.blur.amount > 20)) {
                 throw new Error('blur.amount 必须是0-20之间的数字');
             }
-            if (updatedSettings.blur.quality !== undefined && 
+            if (updatedSettings.blur.quality !== undefined &&
                 !['normal', 'low'].includes(updatedSettings.blur.quality)) {
                 throw new Error('blur.quality 必须是 normal 或 low');
             }
         }
-        
+
         // 验证卡片设置
         if (updatedSettings.card) {
-            if (updatedSettings.card.backgroundOpacity !== undefined && 
-                (typeof updatedSettings.card.backgroundOpacity !== 'number' || 
-                 updatedSettings.card.backgroundOpacity < 0.1 || 
+            if (updatedSettings.card.backgroundOpacity !== undefined &&
+                (typeof updatedSettings.card.backgroundOpacity !== 'number' ||
+                 updatedSettings.card.backgroundOpacity < 0.1 ||
                  updatedSettings.card.backgroundOpacity > 1)) {
                 throw new Error('card.backgroundOpacity 必须是0.1-1之间的数字');
             }
-            
+
             // 只有当 backgroundImage 存在且不为空对象时才验证
-            if (updatedSettings.card.backgroundImage && 
+            if (updatedSettings.card.backgroundImage &&
                 Object.keys(updatedSettings.card.backgroundImage).length > 0) {
-                
+
                 // 验证 enabled 是否为布尔值（如果存在）
-                if (updatedSettings.card.backgroundImage.enabled !== undefined && 
+                if (updatedSettings.card.backgroundImage.enabled !== undefined &&
                     typeof updatedSettings.card.backgroundImage.enabled !== 'boolean') {
                     throw new Error('card.backgroundImage.enabled 必须是布尔值');
                 }
-                
+
                 // 只有当 enabled 为 true 时才验证其他属性
                 if (updatedSettings.card.backgroundImage.enabled === true) {
                     // 验证 url 不为空
                     if (!updatedSettings.card.backgroundImage.url) {
                         throw new Error('启用背景图片时，URL不能为空');
                     }
-                    
+
                     // 验证透明度范围
-                    if (updatedSettings.card.backgroundImage.opacity !== undefined && 
-                        (typeof updatedSettings.card.backgroundImage.opacity !== 'number' || 
-                         updatedSettings.card.backgroundImage.opacity < 0.1 || 
+                    if (updatedSettings.card.backgroundImage.opacity !== undefined &&
+                        (typeof updatedSettings.card.backgroundImage.opacity !== 'number' ||
+                         updatedSettings.card.backgroundImage.opacity < 0.1 ||
                          updatedSettings.card.backgroundImage.opacity > 1)) {
                         throw new Error('card.backgroundImage.opacity 必须是0.1-1之间的数字');
                     }
@@ -753,11 +761,11 @@ svr.get('/admin/personalization', (req, res) => {
         // 获取最新设置
         const currentSettings = db.setting.all();
         console.log('[设置] 加载个性化设置页面，当前设置:', currentSettings);
-        
-        res.render('admin/personalization.html', { 
+
+        res.render('admin/personalization.html', {
             setting: currentSettings,
             personalization: currentSettings.personalization || {},
-            title: '美化设置' 
+            title: '美化设置'
         });
     } catch (err) {
         console.error('[设置] 加载个性化设置页面失败:', err);

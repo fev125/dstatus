@@ -4,7 +4,7 @@
 
 {%block styles%}
 <style>
-/* 
+/*
  * 自定义背景样式分离
  * 使用CSS变量隔离全局背景和卡片背景
  */
@@ -16,7 +16,7 @@
   --global-bg-position: var(--bg-position);
   --global-bg-repeat: var(--bg-repeat);
   --global-bg-overlay: var(--bg-overlay);
-  
+
   --card-bg-color: #1e293b;
   --card-bg-image: none;
   --card-overlay-opacity: 0.6;
@@ -142,14 +142,18 @@ input:focus, select:focus, textarea:focus {
         <div class="bg-slate-900/80 backdrop-blur rounded-lg border border-slate-700/50">
             <!-- 卡片标题 -->
             <div class="flex items-center justify-between p-4 border-b border-slate-700/50">
-            <div class="flex items-center gap-3">
+                <div class="flex items-center gap-3">
                     <i class="material-icons text-purple-500">palette</i>
-                <div>
+                    <div>
                         <h3 class="text-lg font-medium text-white">个性化设置</h3>
-                    <p class="text-sm text-slate-400">Personalization Settings</p>
+                        <p class="text-sm text-slate-400">Personalization Settings</p>
+                    </div>
+                </div>
+                <div class="px-2 py-1 bg-amber-500/20 border border-amber-500/30 rounded text-amber-300 text-xs font-medium flex items-center">
+                    <i class="material-icons text-amber-400 text-sm mr-1">science</i>
+                    备注：内测试中
                 </div>
             </div>
-        </div>
 
             <!-- 卡片内容 -->
             <div class="p-6 space-y-8">
@@ -166,7 +170,7 @@ input:focus, select:focus, textarea:focus {
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-2">
                                 <label class="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" 
+                                    <input type="checkbox"
                                            id="wallpaper-enabled"
                                            {%if personalization and personalization.wallpaper and personalization.wallpaper.enabled%}checked{%endif%}
                                            class="sr-only peer">
@@ -181,13 +185,13 @@ input:focus, select:focus, textarea:focus {
                             <!-- 壁纸URL -->
                             <div>
                                 <label class="block text-sm font-medium text-slate-400 mb-2">壁纸URL</label>
-                                <input type="text" 
+                                <input type="text"
                                        id="wallpaper-url"
-                                       value="{%if personalization and personalization.wallpaper and personalization.wallpaper.url%}{{personalization.wallpaper.url}}{%endif%}" 
+                                       value="{%if personalization and personalization.wallpaper and personalization.wallpaper.url%}{{personalization.wallpaper.url}}{%endif%}"
                                        class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                                        placeholder="请输入壁纸图片URL">
                             </div>
-                            
+
                             <!-- 预设壁纸选择 -->
                             <div>
                                 <label class="block text-sm font-medium text-slate-400 mb-2">预设壁纸</label>
@@ -222,7 +226,7 @@ input:focus, select:focus, textarea:focus {
                             <!-- 背景填充模式 -->
                             <div>
                                 <label class="block text-sm font-medium text-slate-400 mb-2">背景填充模式</label>
-                                <select id="wallpaper-size" 
+                                <select id="wallpaper-size"
                                         class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
                                     <option value="cover" {%if personalization and personalization.wallpaper and personalization.wallpaper.size == 'cover'%}selected{%endif%}>等比例填充</option>
                                     <option value="100% 100%" {%if personalization and personalization.wallpaper and personalization.wallpaper.size == '100% 100%'%}selected{%endif%}>拉伸填充</option>
@@ -235,7 +239,7 @@ input:focus, select:focus, textarea:focus {
                                 <label class="block text-sm font-medium text-slate-400 mb-2">平铺方向</label>
                                 <div class="flex gap-4">
                                     <label class="inline-flex items-center">
-                                        <input type="radio" 
+                                        <input type="radio"
                                                name="wallpaper-repeat"
                                                value="repeat"
                                                {%if personalization and personalization.wallpaper and personalization.wallpaper.repeat == 'repeat'%}checked{%endif%}
@@ -243,7 +247,7 @@ input:focus, select:focus, textarea:focus {
                                         <span class="ml-2 text-sm text-slate-400">双向平铺</span>
                                     </label>
                                     <label class="inline-flex items-center">
-                                        <input type="radio" 
+                                        <input type="radio"
                                                name="wallpaper-repeat"
                                                value="repeat-x"
                                                {%if personalization and personalization.wallpaper and personalization.wallpaper.repeat == 'repeat-x'%}checked{%endif%}
@@ -251,7 +255,7 @@ input:focus, select:focus, textarea:focus {
                                         <span class="ml-2 text-sm text-slate-400">水平平铺</span>
                                     </label>
                                     <label class="inline-flex items-center">
-                                        <input type="radio" 
+                                        <input type="radio"
                                                name="wallpaper-repeat"
                                                value="repeat-y"
                                                {%if personalization and personalization.wallpaper and personalization.wallpaper.repeat == 'repeat-y'%}checked{%endif%}
@@ -265,12 +269,12 @@ input:focus, select:focus, textarea:focus {
                             <div>
                                 <label class="block text-sm font-medium text-slate-400 mb-2">亮度调整</label>
                                 <div class="flex items-center gap-2">
-                                    <input type="range" 
+                                    <input type="range"
                                            id="wallpaper-brightness"
-                                           min="10" 
-                                           max="100" 
-                                           step="5" 
-                                           value="{%if personalization and personalization.wallpaper and personalization.wallpaper.brightness%}{{personalization.wallpaper.brightness}}{%else%}75{%endif%}" 
+                                           min="10"
+                                           max="100"
+                                           step="5"
+                                           value="{%if personalization and personalization.wallpaper and personalization.wallpaper.brightness%}{{personalization.wallpaper.brightness}}{%else%}75{%endif%}"
                                            class="w-full">
                                     <output class="text-sm text-slate-400">{%if personalization and personalization.wallpaper and personalization.wallpaper.brightness%}{{personalization.wallpaper.brightness}}{%else%}75{%endif%}%</output>
                                 </div>
@@ -279,7 +283,7 @@ input:focus, select:focus, textarea:focus {
                             <!-- 固定背景 -->
                             <div>
                                 <label class="inline-flex items-center">
-                                    <input type="checkbox" 
+                                    <input type="checkbox"
                                            id="wallpaper-fixed"
                                            {%if personalization and personalization.wallpaper and personalization.wallpaper.fixed%}checked{%endif%}
                                            class="form-checkbox h-4 w-4 text-purple-500 bg-slate-800 border-slate-700 rounded focus:ring-purple-500">
@@ -292,7 +296,7 @@ input:focus, select:focus, textarea:focus {
                                 <div class="flex items-center justify-between">
                                     <div class="flex items-center gap-2">
                                         <label class="relative inline-flex items-center cursor-pointer">
-                                            <input type="checkbox" 
+                                            <input type="checkbox"
                                                    id="wallpaper_blur_enabled"
                                                    name="wallpaper_blur_enabled"
                                                    class="sr-only peer"
@@ -302,7 +306,7 @@ input:focus, select:focus, textarea:focus {
                                         <span class="text-sm text-slate-400">启用壁纸模糊效果</span>
                                     </div>
                                 </div>
-                                
+
                                 <!-- 模糊强度 -->
                                 <div class="space-y-2" id="wallpaper_blur_settings" {% if not personalization or not personalization.wallpaper or not personalization.wallpaper.blur or not personalization.wallpaper.blur.enabled %}style="display:none"{% endif %}>
                                     <div class="flex items-center justify-between">
@@ -311,12 +315,12 @@ input:focus, select:focus, textarea:focus {
                                             {{personalization.wallpaper.blur.amount|default(5)}}px
                                         </span>
                                     </div>
-                                    <input type="range" 
+                                    <input type="range"
                                            id="wallpaper_blur_amount"
                                            name="wallpaper_blur_amount"
-                                           min="0" 
-                                           max="20" 
-                                           step="1" 
+                                           min="0"
+                                           max="20"
+                                           step="1"
                                            value="{{personalization.wallpaper.blur.amount|default(5)}}"
                                            class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer">
                                 </div>
@@ -334,7 +338,7 @@ input:focus, select:focus, textarea:focus {
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-2">
                             <label class="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" 
+                                <input type="checkbox"
                                        id="blur_enabled"
                                        name="blur_enabled"
                                        class="sr-only peer"
@@ -348,7 +352,7 @@ input:focus, select:focus, textarea:focus {
                             可能影响性能
                         </div>
                     </div>
-                    
+
                     <!-- 模糊强度 -->
                     <div class="space-y-2" id="blur_settings" {% if not personalization or not personalization.blur or not personalization.blur.enabled %}style="display:none"{% endif %}>
                         <div class="flex items-center justify-between">
@@ -357,31 +361,31 @@ input:focus, select:focus, textarea:focus {
                                 {{personalization.blur.amount|default(5)}}px
                             </span>
                         </div>
-                        <input type="range" 
+                        <input type="range"
                                id="blur_amount"
                                name="blur_amount"
-                               min="0" 
-                               max="20" 
-                               step="1" 
+                               min="0"
+                               max="20"
+                               step="1"
                                value="{{personalization.blur.amount|default(5)}}"
                                class="w-full h-2 bg-slate-700 rounded-lg appearance-none cursor-pointer">
-                        
+
                         <!-- 性能模式选择 -->
                         <div class="mt-4">
                             <label class="text-sm text-slate-400 block mb-2">性能模式</label>
                                                 <div class="space-y-2">
                                 <label class="flex items-center">
-                                    <input type="radio" 
-                                           name="blur_quality" 
-                                           value="normal" 
+                                    <input type="radio"
+                                           name="blur_quality"
+                                           value="normal"
                                            {% if personalization.blur.quality != 'low' %}checked{% endif %}
                                            class="form-radio h-4 w-4 text-purple-500 bg-slate-800 border-slate-700 focus:ring-purple-500">
                                     <span class="ml-2 text-sm text-slate-300">标准质量（更好的视觉效果）</span>
                                 </label>
                                 <label class="flex items-center">
-                                    <input type="radio" 
-                                           name="blur_quality" 
-                                           value="low" 
+                                    <input type="radio"
+                                           name="blur_quality"
+                                           value="low"
                                            {% if personalization.blur.quality == 'low' %}checked{% endif %}
                                            class="form-radio h-4 w-4 text-purple-500 bg-slate-800 border-slate-700 focus:ring-purple-500">
                                     <span class="ml-2 text-sm text-slate-300">低质量（更好的性能）</span>
@@ -391,7 +395,7 @@ input:focus, select:focus, textarea:focus {
                     </div>
                 </div>
             </div>
-            
+
             <!-- 卡片美化设置 -->
             <div class="bg-blur-card p-6 rounded-lg space-y-4">
                 <h4 class="text-base font-medium text-slate-200">卡片美化设置</h4>
@@ -400,13 +404,13 @@ input:focus, select:focus, textarea:focus {
                     <div>
                         <label class="block text-sm font-medium text-slate-400 mb-2">卡片背景颜色</label>
                         <div class="flex items-center gap-2">
-                            <input type="color" 
+                            <input type="color"
                                    id="card-background-color"
-                                   value="{%if personalization and personalization.card and personalization.card.backgroundColor%}{{personalization.card.backgroundColor}}{%else%}#1e293b{%endif%}" 
+                                   value="{%if personalization and personalization.card and personalization.card.backgroundColor%}{{personalization.card.backgroundColor}}{%else%}#1e293b{%endif%}"
                                    class="h-8 w-12 rounded border-0">
-                            <input type="text" 
+                            <input type="text"
                                    id="card-background-color-text"
-                                   value="{%if personalization and personalization.card and personalization.card.backgroundColor%}{{personalization.card.backgroundColor}}{%else%}#1e293b{%endif%}" 
+                                   value="{%if personalization and personalization.card and personalization.card.backgroundColor%}{{personalization.card.backgroundColor}}{%else%}#1e293b{%endif%}"
                                    class="px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 w-32">
                         </div>
                     </div>
@@ -415,23 +419,23 @@ input:focus, select:focus, textarea:focus {
                     <div>
                         <label class="block text-sm font-medium text-slate-400 mb-2">卡片背景透明度</label>
                         <div class="flex items-center gap-2">
-                            <input type="range" 
+                            <input type="range"
                                    id="card-background-opacity"
-                                   min="0.1" 
-                                   max="1" 
-                                   step="0.05" 
-                                   value="{%if personalization and personalization.card and personalization.card.backgroundOpacity%}{{personalization.card.backgroundOpacity}}{%else%}0.95{%endif%}" 
+                                   min="0.1"
+                                   max="1"
+                                   step="0.05"
+                                   value="{%if personalization and personalization.card and personalization.card.backgroundOpacity%}{{personalization.card.backgroundOpacity}}{%else%}0.95{%endif%}"
                                    class="w-full">
                             <output class="text-sm text-slate-400">{%if personalization and personalization.card and personalization.card.backgroundOpacity%}{{personalization.card.backgroundOpacity * 100}}{%else%}95{%endif%}%</output>
                         </div>
                     </div>
-                    
+
                     <!-- 卡片背景图片 -->
                     <div class="space-y-4">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-2">
                                 <label class="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" 
+                                    <input type="checkbox"
                                            id="card-background-image-enabled"
                                            class="sr-only peer"
                                            {% if personalization and personalization.card and personalization.card.backgroundImage and personalization.card.backgroundImage.enabled %}checked{% endif %}>
@@ -440,19 +444,19 @@ input:focus, select:focus, textarea:focus {
                                 <span class="text-sm text-slate-400">启用卡片背景图片</span>
                             </div>
                         </div>
-                        
+
                         <!-- 卡片背景图片设置 -->
                         <div id="card-background-image-settings" class="space-y-4" {% if not personalization or not personalization.card or not personalization.card.backgroundImage or not personalization.card.backgroundImage.enabled %}style="display:none"{% endif %}>
                             <!-- 背景图片URL -->
                             <div>
                                 <label class="block text-sm font-medium text-slate-400 mb-2">背景图片URL</label>
-                                <input type="text" 
+                                <input type="text"
                                        id="card-background-image-url"
-                                       value="{%if personalization and personalization.card and personalization.card.backgroundImage and personalization.card.backgroundImage.url%}{{personalization.card.backgroundImage.url}}{%endif%}" 
+                                       value="{%if personalization and personalization.card and personalization.card.backgroundImage and personalization.card.backgroundImage.url%}{{personalization.card.backgroundImage.url}}{%endif%}"
                                        class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                                        placeholder="请输入背景图片URL">
                             </div>
-                            
+
                             <!-- 预制卡片效果 -->
                             <div>
                                 <label class="block text-sm font-medium text-slate-400 mb-2">预制卡片效果</label>
@@ -477,17 +481,17 @@ input:focus, select:focus, textarea:focus {
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <!-- 图片透明度 -->
                             <div>
                                 <label class="block text-sm font-medium text-slate-400 mb-2">图片透明度</label>
                                 <div class="flex items-center gap-2">
-                                    <input type="range" 
+                                    <input type="range"
                                            id="card-background-image-opacity"
-                                           min="0.1" 
-                                           max="1" 
-                                           step="0.05" 
-                                           value="{%if personalization and personalization.card and personalization.card.backgroundImage and personalization.card.backgroundImage.opacity%}{{personalization.card.backgroundImage.opacity}}{%else%}0.8{%endif%}" 
+                                           min="0.1"
+                                           max="1"
+                                           step="0.05"
+                                           value="{%if personalization and personalization.card and personalization.card.backgroundImage and personalization.card.backgroundImage.opacity%}{{personalization.card.backgroundImage.opacity}}{%else%}0.8{%endif%}"
                                            class="w-full">
                                     <output class="text-sm text-slate-400">{%if personalization and personalization.card and personalization.card.backgroundImage and personalization.card.backgroundImage.opacity%}{{personalization.card.backgroundImage.opacity * 100}}{%else%}80{%endif%}%</output>
                                 </div>
@@ -496,12 +500,12 @@ input:focus, select:focus, textarea:focus {
                     </div>
                 </div>
             </div>
-            
+
             <!-- 保存按钮 -->
             <div class="flex justify-end p-4 border-t border-slate-700/50">
                 <!-- 添加加载动画 -->
                 <div id="saveSpinner" class="hidden w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin mr-2"></div>
-                <button onclick="saveAllSettings()" 
+                <button onclick="saveAllSettings()"
                         class="inline-flex items-center px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-900">
                     <i class="material-icons mr-2">save</i>
                     保存设置
@@ -548,18 +552,18 @@ document.addEventListener('DOMContentLoaded', function() {
             } catch (e) {
                 console.warn('无法初始化设置缓存:', e);
             }
-            
+
             // 初始化壁纸设置
             if (personalizationData.wallpaper) {
                 const wpSettings = personalizationData.wallpaper;
-                
+
                 // 初始化基本设置
                 if (document.getElementById('wallpaper-enabled')) {
                     document.getElementById('wallpaper-enabled').checked = wpSettings.enabled || false;
                 }
                 if (document.getElementById('wallpaper-url')) {
                     document.getElementById('wallpaper-url').value = wpSettings.url || '';
-                    
+
                     // 如果当前已有壁纸URL，高亮显示对应的预设（如果是预设之一）
                     if (wpSettings.url) {
                         const presetItems = document.querySelectorAll('.wallpaper-preset-item');
@@ -607,11 +611,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 // 更新预览
                 updatePreview();
             }
-            
+
             // 初始化卡片设置
             if (personalizationData.card) {
                 const cardSettings = personalizationData.card;
-                
+
                 // 初始化卡片背景颜色
                 if (document.getElementById('card-background-color')) {
                     document.getElementById('card-background-color').value = cardSettings.backgroundColor || '#1e293b';
@@ -619,32 +623,32 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (document.getElementById('card-background-color-text')) {
                     document.getElementById('card-background-color-text').value = cardSettings.backgroundColor || '#1e293b';
                 }
-                
+
                 // 初始化卡片背景透明度
                 if (document.getElementById('card-background-opacity')) {
                     document.getElementById('card-background-opacity').value = cardSettings.backgroundOpacity || 0.95;
                     if (document.getElementById('card-background-opacity').nextElementSibling) {
-                        document.getElementById('card-background-opacity').nextElementSibling.textContent = 
+                        document.getElementById('card-background-opacity').nextElementSibling.textContent =
                             Math.round((cardSettings.backgroundOpacity || 0.95) * 100) + '%';
                     }
                 }
-                
+
                 // 初始化卡片背景图片设置
                 if (cardSettings.backgroundImage) {
                     const bgImg = cardSettings.backgroundImage;
-                    
+
                     if (document.getElementById('card-background-image-enabled')) {
                         document.getElementById('card-background-image-enabled').checked = bgImg.enabled || false;
                     }
-                    
+
                     if (document.getElementById('card-background-image-settings')) {
-                        document.getElementById('card-background-image-settings').style.display = 
+                        document.getElementById('card-background-image-settings').style.display =
                             bgImg.enabled ? 'block' : 'none';
                     }
-                    
+
                     if (document.getElementById('card-background-image-url')) {
                         document.getElementById('card-background-image-url').value = bgImg.url || '';
-                        
+
                         // 根据当前URL高亮显示对应的预制效果
                         if (bgImg.url) {
                             const presetItems = document.querySelectorAll('.card-preset-item');
@@ -655,16 +659,16 @@ document.addEventListener('DOMContentLoaded', function() {
                             });
                         }
                     }
-                    
+
                     if (document.getElementById('card-background-image-opacity')) {
                         document.getElementById('card-background-image-opacity').value = bgImg.opacity || 0.8;
                         if (document.getElementById('card-background-image-opacity').nextElementSibling) {
-                            document.getElementById('card-background-image-opacity').nextElementSibling.textContent = 
+                            document.getElementById('card-background-image-opacity').nextElementSibling.textContent =
                                 Math.round((bgImg.opacity || 0.8) * 100) + '%';
                         }
                     }
                 }
-                
+
                 // 初始预览卡片效果
                 updateCardPreview();
             }
@@ -672,10 +676,10 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('解析设置数据失败:', e);
         }
     }
-    
+
     // 绑定卡片背景颜色事件
     bindCardEvents();
-    
+
     // 绑定壁纸预设点击事件
     bindWallpaperPresets();
 
@@ -683,7 +687,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('beforeunload', function() {
         // 清除自定义预览类，避免影响其他页面
         document.body.classList.remove('custom-wallpaper-preview');
-        
+
         // 如果有最终样式，移除它
         const finalStyle = document.getElementById('final-wallpaper-style');
         if (finalStyle) {
@@ -710,22 +714,22 @@ function updatePreview() {
         preview.style.setProperty('--global-bg-size', size);
         preview.style.setProperty('--global-bg-repeat', repeat);
         preview.style.setProperty('--global-bg-overlay', `rgba(0, 0, 0, ${(100 - brightness) / 100})`);
-        
+
         // 实时同步到页面背景
         document.body.classList.add('has-background-image');
         document.body.classList.add('wallpaper-loaded');
         document.body.classList.add('custom-wallpaper-preview');
-        
+
         // 移除之前的动态样式
         const oldStyle = document.getElementById('dynamic-wallpaper-style');
         if (oldStyle) {
             oldStyle.remove();
         }
-        
+
         // 创建新的动态样式 - 使用更高优先级的选择器
         const bodyStyle = document.createElement('style');
         bodyStyle.id = 'dynamic-wallpaper-style';
-        
+
         // 使用!important提高优先级
         let styleText = `
         body.custom-wallpaper-preview:before {
@@ -742,13 +746,13 @@ function updatePreview() {
             border: none !important;
             ${wallpaperBlurEnabled ? `filter: blur(${wallpaperBlurAmount}px) !important; -webkit-filter: blur(${wallpaperBlurAmount}px) !important;` : 'filter: none !important; -webkit-filter: none !important;'}
         }
-        
+
         /* 确保卡片背景相关样式被应用 */
         .server-card {
             position: relative !important;
             z-index: 1 !important;
         }
-        
+
         /* 清除可能的残留边框和阴影效果 */
         body.custom-wallpaper-preview *:before {
             box-shadow: none !important;
@@ -756,10 +760,10 @@ function updatePreview() {
             border-color: transparent !important;
         }
         `;
-        
+
         bodyStyle.textContent = styleText;
         document.head.appendChild(bodyStyle);
-        
+
         // 通知所有frames（如果有）更新壁纸
         try {
             // 存储临时预览设置到sessionStorage
@@ -776,9 +780,9 @@ function updatePreview() {
                 },
                 isPreview: true
             };
-            
+
             sessionStorage.setItem('wallpaper-preview-settings', JSON.stringify(previewSettings));
-            
+
             // 创建自定义事件通知其他可能的组件
             const event = new CustomEvent('wallpaper-preview-updated', {
                 detail: previewSettings
@@ -790,20 +794,20 @@ function updatePreview() {
     } else {
         preview.style.setProperty('--global-bg-image', 'none');
         preview.style.setProperty('--global-bg-overlay', 'rgba(0, 0, 0, 0.5)');
-        
+
         // 移除实时背景
         document.body.classList.remove('custom-wallpaper-preview');
         document.body.classList.remove('has-background-image');
-        
+
         const oldStyle = document.getElementById('dynamic-wallpaper-style');
         if (oldStyle) {
             oldStyle.remove();
         }
-        
+
         // 清除预览设置
         try {
             sessionStorage.removeItem('wallpaper-preview-settings');
-            
+
             // 通知移除预览
             const event = new CustomEvent('wallpaper-preview-updated', {
                 detail: { isPreview: false }
@@ -821,7 +825,7 @@ function bindWallpaperPresets() {
     const wallpaperUrl = document.getElementById('wallpaper-url');
     const wallpaperEnabled = document.getElementById('wallpaper-enabled');
     const wallpaperSettings = document.getElementById('wallpaper-settings');
-    
+
     if (presetItems.length > 0 && wallpaperUrl) {
         presetItems.forEach(item => {
             item.addEventListener('click', function() {
@@ -835,7 +839,7 @@ function bindWallpaperPresets() {
                         // 高亮当前选中项
                         presetItems.forEach(el => el.classList.remove('active'));
                         item.classList.add('active');
-                        
+
                         // 如果壁纸未启用，则自动启用
                         if (wallpaperEnabled && !wallpaperEnabled.checked) {
                             wallpaperEnabled.checked = true;
@@ -843,16 +847,16 @@ function bindWallpaperPresets() {
                                 wallpaperSettings.style.display = 'block';
                             }
                         }
-                        
+
                         // 更新预览
                         updatePreview();
                     };
-                    
+
                     preloadImg.onerror = function() {
                         // 图片加载失败
                         notice(`壁纸预设加载失败: ${svgUrl}`, 'error');
                     };
-                    
+
                     // 设置图片源以开始加载
                     preloadImg.src = svgUrl;
                 }
@@ -896,13 +900,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const wallpaperBlurSettings = document.getElementById('wallpaper_blur_settings');
     const wallpaperBlurAmount = document.getElementById('wallpaper_blur_amount');
     const wallpaperBlurAmountValue = document.getElementById('wallpaper_blur_amount_value');
-    
+
     // 更新模糊强度显示
     function updateWallpaperBlurValue() {
         if (wallpaperBlurAmountValue) {
             wallpaperBlurAmountValue.textContent = `${wallpaperBlurAmount.value}px`;
         }
-        
+
         // 实时更新壁纸预览 - 先设置CSS变量
         if (wallpaperBlurEnabled && wallpaperBlurEnabled.checked) {
             document.documentElement.style.setProperty('--wallpaper-blur-enabled', '1');
@@ -910,11 +914,11 @@ document.addEventListener('DOMContentLoaded', function() {
         } else if (wallpaperBlurEnabled) {
             document.documentElement.style.setProperty('--wallpaper-blur-enabled', '0');
         }
-        
+
         // 然后更新预览 - 这样能确保模糊效果立即应用
         updatePreview();
     }
-    
+
     // 监听启用状态变化
     if (wallpaperBlurEnabled) {
         wallpaperBlurEnabled.addEventListener('change', function() {
@@ -924,12 +928,12 @@ document.addEventListener('DOMContentLoaded', function() {
             updateWallpaperBlurValue();
         });
     }
-    
+
     // 监听模糊强度变化
     if (wallpaperBlurAmount) {
         wallpaperBlurAmount.addEventListener('input', updateWallpaperBlurValue);
     }
-    
+
     // 初始化值
     if (wallpaperBlurEnabled && wallpaperBlurAmount) {
         updateWallpaperBlurValue();
@@ -953,7 +957,7 @@ function bindCardEvents() {
             cardBackgroundColorText.value = this.value;
             updateCardPreview();
         });
-        
+
         cardBackgroundColorText.addEventListener('input', function() {
             cardBackgroundColor.value = this.value;
             updateCardPreview();
@@ -994,7 +998,7 @@ function bindCardEvents() {
             updateCardPreview();
         });
     }
-    
+
     // 预制卡片效果选择
     const cardPresetItems = document.querySelectorAll('.card-preset-item');
     if(cardPresetItems.length > 0 && cardBackgroundImageUrl) {
@@ -1021,12 +1025,12 @@ function bindCardEvents() {
                             updateCardPreview();
                         }
                     };
-                    
+
                     preloadImg.onerror = function() {
                         // 图片加载失败
                         notice(`预制模板加载失败: ${svgUrl}`, 'error');
                     };
-                    
+
                     // 设置图片源以开始加载
                     preloadImg.src = svgUrl;
                 }
@@ -1043,30 +1047,30 @@ function updateCardPreview() {
     const cardBackgroundImageEnabled = document.getElementById('card-background-image-enabled');
     const cardBackgroundImageUrl = document.getElementById('card-background-image-url');
     const cardBackgroundImageOpacity = document.getElementById('card-background-image-opacity');
-    
+
     if (!cardBackgroundColor) return;
-    
+
     // 获取预览元素
     const bgColor = cardBackgroundColor.value || '#1e293b';
     const bgOpacity = cardBackgroundOpacity.value || 0.95;
     const bgImageEnabled = cardBackgroundImageEnabled.checked;
     const bgImageUrl = cardBackgroundImageUrl.value || '';
     const bgImageOpacity = cardBackgroundImageOpacity.value || 0.8;
-    
+
     // 应用到样式变量
     document.documentElement.style.setProperty('--card-bg-color', hexToRgba(bgColor, bgOpacity));
-    
+
     if (bgImageEnabled && bgImageUrl) {
         document.documentElement.style.setProperty('--card-bg-image', `url(${bgImageUrl})`);
         document.documentElement.style.setProperty('--card-bg-image-opacity', bgImageOpacity);
-        
+
         // 为预览卡片添加背景图片类
         document.querySelectorAll('.server-card').forEach(card => {
             card.classList.add('has-bg-image');
         });
     } else {
         document.documentElement.style.setProperty('--card-bg-image', 'none');
-        
+
         // 移除预览卡片的背景图片类
         document.querySelectorAll('.server-card').forEach(card => {
             card.classList.remove('has-bg-image');
@@ -1083,7 +1087,7 @@ function hexToRgba(hex, opacity) {
     const r = parseInt(hex.substring(0, 2), 16);
     const g = parseInt(hex.substring(2, 4), 16);
     const b = parseInt(hex.substring(4, 6), 16);
-    
+
     return `rgba(${r}, ${g}, ${b}, ${opacity})`;
 }
 
@@ -1092,7 +1096,7 @@ async function saveAllSettings() {
     // 显示加载动画
     const spinner = document.getElementById('saveSpinner');
     if (spinner) spinner.classList.remove('hidden');
-    
+
     // 使用标准loading效果
     startloading();
 
@@ -1100,7 +1104,7 @@ async function saveAllSettings() {
         // 获取当前设置
         const settingDataElem = document.getElementById('personalization_data');
         let currentSettings = {};
-        
+
         if (settingDataElem && settingDataElem.textContent) {
             try {
                 currentSettings = JSON.parse(settingDataElem.textContent);
@@ -1148,12 +1152,12 @@ async function saveAllSettings() {
         const wallpaperRepeat = document.querySelector('input[name="wallpaper-repeat"]:checked')?.value || 'repeat';
         const wallpaperBlurEnabled = document.getElementById('wallpaper_blur_enabled')?.checked || false;
         const wallpaperBlurAmount = parseInt(document.getElementById('wallpaper_blur_amount')?.value) || 5;
-        
+
         // 收集模糊效果设置
         const blurEnabled = document.getElementById('blur_enabled').checked;
         const blurAmount = parseInt(document.getElementById('blur_amount').value) || 5;
         const blurQuality = document.querySelector('input[name="blur_quality"]:checked')?.value || 'normal';
-        
+
         // 收集卡片设置
         const cardBackgroundColor = document.getElementById('card-background-color').value;
         const cardBackgroundOpacity = parseFloat(document.getElementById('card-background-opacity').value) || 0.95;
@@ -1167,7 +1171,7 @@ async function saveAllSettings() {
         if (cardBackgroundImageEnabled) {
             const cardBackgroundImageUrl = document.getElementById('card-background-image-url').value.trim();
             const cardBackgroundImageOpacity = parseFloat(document.getElementById('card-background-image-opacity').value) || 0.8;
-            
+
             cardBackgroundImageSettings.url = cardBackgroundImageUrl;
             cardBackgroundImageSettings.opacity = cardBackgroundImageOpacity;
         }
@@ -1196,7 +1200,7 @@ async function saveAllSettings() {
                 backgroundImage: cardBackgroundImageSettings
             }
         });
-        
+
         // 构造新的设置对象
         const newSettings = {
             wallpaper: {
@@ -1222,7 +1226,7 @@ async function saveAllSettings() {
                 backgroundImage: cardBackgroundImageSettings
             }
         };
-        
+
         // 对比新旧设置，只保留修改过的字段
         const changedSettings = {};
 
@@ -1251,7 +1255,7 @@ async function saveAllSettings() {
             changedSettings.wallpaper = changedSettings.wallpaper || {};
             changedSettings.wallpaper.repeat = newSettings.wallpaper.repeat;
         }
-        
+
         // 检查壁纸模糊设置变化
         if (JSON.stringify(currentSettings.wallpaper?.blur?.enabled) !== JSON.stringify(newSettings.wallpaper.blur.enabled)) {
             changedSettings.wallpaper = changedSettings.wallpaper || {};
@@ -1277,7 +1281,7 @@ async function saveAllSettings() {
             changedSettings.blur = changedSettings.blur || {};
             changedSettings.blur.quality = newSettings.blur.quality;
         }
-        
+
         // 检查卡片设置变化
         if (currentSettings.card?.backgroundColor !== newSettings.card.backgroundColor) {
             changedSettings.card = changedSettings.card || {};
@@ -1289,7 +1293,7 @@ async function saveAllSettings() {
         }
 
         // 检查背景图片的启用状态
-        if (JSON.stringify(currentSettings.card?.backgroundImage?.enabled) !== 
+        if (JSON.stringify(currentSettings.card?.backgroundImage?.enabled) !==
             JSON.stringify(newSettings.card.backgroundImage.enabled)) {
             changedSettings.card = changedSettings.card || {};
             changedSettings.card.backgroundImage = changedSettings.card.backgroundImage || {};
@@ -1309,7 +1313,7 @@ async function saveAllSettings() {
                 changedSettings.card.backgroundImage.opacity = newSettings.card.backgroundImage.opacity;
             }
         }
-        
+
         // 如果没有修改，直接返回
         if (Object.keys(changedSettings).length === 0) {
             notice('没有需要保存的更改', 'info');
@@ -1317,15 +1321,15 @@ async function saveAllSettings() {
             endloading(); // 确保loading效果消失
             return;
         }
-        
+
         console.log('修改的设置:', changedSettings);
-        
+
         // 构造请求数据
         const requestData = {
             personalization: changedSettings
         };
         console.log('发送的请求数据:', requestData);
-        
+
         // 发送到服务器保存
         const response = await fetch('/admin/personalization', {
             method: 'POST',
@@ -1334,27 +1338,27 @@ async function saveAllSettings() {
             },
             body: JSON.stringify(requestData)
         });
-        
+
         const result = await response.json();
         console.log('服务器响应:', result);
-        
+
         if (result.code === 1) {
             // 更新本地设置缓存
             try {
                 // 深度合并设置
                 const mergedSettings = mergeSettings(currentSettings, newSettings);
-                
+
                 // 更新设置数据区域
                 if (settingDataElem) {
                     settingDataElem.textContent = JSON.stringify(mergedSettings);
                 }
-                
+
                 // 保存设置到会话存储，以便其他页面可以使用
                 sessionStorage.setItem('personalization-settings', JSON.stringify(mergedSettings));
-                
+
                 // 应用最终保存的设置
                 applyFinalSettings(mergedSettings);
-                
+
                 // 显示成功通知
                 notice('设置保存成功', 'success');
             } catch (e) {
@@ -1378,7 +1382,7 @@ async function saveAllSettings() {
 function mergeSettings(target, source) {
     // 创建目标对象的副本
     const result = JSON.parse(JSON.stringify(target || {}));
-    
+
     // 遍历源对象的所有属性
     for (const key in source) {
         // 检查属性是否为对象且不为null
@@ -1390,7 +1394,7 @@ function mergeSettings(target, source) {
             result[key] = source[key];
         }
     }
-    
+
     return result;
 }
 
@@ -1398,19 +1402,19 @@ function mergeSettings(target, source) {
 function applyFinalSettings(settings) {
     // 清除预览相关的类和样式
     document.body.classList.remove('custom-wallpaper-preview');
-    
+
     const oldStyle = document.getElementById('dynamic-wallpaper-style');
     if (oldStyle) {
         oldStyle.remove();
     }
-    
+
     // 清除会话存储中的预览设置
     sessionStorage.removeItem('wallpaper-preview-settings');
-    
+
     // 创建最终的样式
     const finalStyle = document.createElement('style');
     finalStyle.id = 'final-personalization-style';
-    
+
     // 使用更高优先级的选择器和 !important 规则
     const styleText = `
         /* 卡片基础样式 */
@@ -1420,14 +1424,14 @@ function applyFinalSettings(settings) {
             background-color: ${hexToRgba(settings.card?.backgroundColor || '#1e293b', settings.card?.backgroundOpacity || 0.95)} !important;
             transition: all 0.3s ease !important;
         }
-        
+
         /* 卡片背景图片样式 */
         .server-card.has-bg-image::before,
         .server-card.has-background-image::before {
             content: '' !important;
             position: absolute !important;
             inset: 0 !important;
-            background-image: ${settings.card?.backgroundImage?.enabled && settings.card?.backgroundImage?.url ? 
+            background-image: ${settings.card?.backgroundImage?.enabled && settings.card?.backgroundImage?.url ?
                              `url(${settings.card.backgroundImage.url})` : 'none'} !important;
             background-size: cover !important;
             background-position: center !important;
@@ -1435,7 +1439,7 @@ function applyFinalSettings(settings) {
             z-index: -2 !important;
             transition: all 0.3s ease !important;
         }
-        
+
         /* 卡片背景叠加层 */
         .server-card.has-bg-image::after,
         .server-card.has-background-image::after {
@@ -1446,7 +1450,7 @@ function applyFinalSettings(settings) {
             z-index: -1 !important;
             transition: all 0.3s ease !important;
         }
-        
+
         /* 壁纸样式（如果启用） */
         ${settings.wallpaper?.enabled && settings.wallpaper?.url ? `
         body:before {
@@ -1458,25 +1462,25 @@ function applyFinalSettings(settings) {
             background-color: rgba(0, 0, 0, ${(100 - (settings.wallpaper.brightness || 75)) / 100}) !important;
             background-blend-mode: darken !important;
             opacity: 1 !important;
-            ${settings.wallpaper.blur?.enabled ? 
-              `filter: blur(${settings.wallpaper.blur.amount || 5}px) !important; 
-               -webkit-filter: blur(${settings.wallpaper.blur.amount || 5}px) !important;` : 
+            ${settings.wallpaper.blur?.enabled ?
+              `filter: blur(${settings.wallpaper.blur.amount || 5}px) !important;
+               -webkit-filter: blur(${settings.wallpaper.blur.amount || 5}px) !important;` :
               'filter: none !important; -webkit-filter: none !important;'}
         }
         ` : ''}
     `;
-    
+
     finalStyle.textContent = styleText;
-    
+
     // 移除旧的最终样式（如果存在）
     const oldFinalStyle = document.getElementById('final-personalization-style');
     if (oldFinalStyle) {
         oldFinalStyle.remove();
     }
-    
+
     // 添加新样式
     document.head.appendChild(finalStyle);
-    
+
     // 更新所有卡片的类名
     document.querySelectorAll('.server-card').forEach(card => {
         if (settings.card?.backgroundImage?.enabled && settings.card?.backgroundImage?.url) {
@@ -1487,7 +1491,7 @@ function applyFinalSettings(settings) {
             card.classList.remove('has-background-image');
         }
     });
-    
+
     // 更新壁纸相关的类名
     if (settings.wallpaper?.enabled && settings.wallpaper?.url) {
         document.body.classList.add('has-background-image');
@@ -1496,46 +1500,71 @@ function applyFinalSettings(settings) {
         document.body.classList.remove('has-background-image');
         document.body.classList.remove('wallpaper-loaded');
     }
-    
+
     // 保存设置到会话存储
     try {
         sessionStorage.setItem('personalization-settings', JSON.stringify(settings));
     } catch (e) {
         console.warn('无法保存设置到会话存储:', e);
     }
-    
+
     // 广播设置更新事件
     try {
+        console.log('将触发设置更新事件:', settings);
+
         // 创建自定义事件
         const event = new CustomEvent('personalization-settings-updated', {
-            detail: settings
+            detail: settings,
+            bubbles: true, // 确保事件冒泡
+            cancelable: false
         });
-        
+
         // 发送到当前文档
         document.dispatchEvent(event);
-        
+        console.log('已在当前文档触发设置更新事件');
+
         // 尝试发送到所有iframe
         const iframes = document.querySelectorAll('iframe');
         iframes.forEach(iframe => {
             try {
                 if (iframe.contentDocument) {
                     iframe.contentDocument.dispatchEvent(new CustomEvent('personalization-settings-updated', {
-                        detail: settings
+                        detail: settings,
+                        bubbles: true,
+                        cancelable: false
                     }));
+                    console.log('已在iframe中触发设置更新事件');
                 }
             } catch (e) {
                 console.warn('无法更新iframe:', e);
             }
         });
-        
+
         // 发送到父窗口（如果在iframe中）
         if (window.parent !== window) {
             try {
                 window.parent.document.dispatchEvent(new CustomEvent('personalization-settings-updated', {
-                    detail: settings
+                    detail: settings,
+                    bubbles: true,
+                    cancelable: false
                 }));
+                console.log('已在父窗口触发设置更新事件');
             } catch (e) {
                 console.warn('无法更新父窗口:', e);
+            }
+        }
+
+        // 尝试使用全局事件总线
+        if (window.postMessage) {
+            try {
+                // 向当前窗口发送消息，这将被所有页面接收
+                window.postMessage({
+                    type: 'personalization-settings-updated',
+                    settings: settings
+                }, '*');
+                console.log('已通过postMessage发送设置更新事件');
+            } catch (e) {
+                console.warn('无法使用postMessage:', e);
             }
         }
     } catch (e) {
@@ -1543,4 +1572,4 @@ function applyFinalSettings(settings) {
     }
 }
 </script>
-{%endblock%} 
+{%endblock%}

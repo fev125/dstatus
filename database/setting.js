@@ -12,7 +12,7 @@ const setting={
         this._ins.run(key,S(val));
     },
     _ins:DB.prepare("INSERT INTO setting (key,val) VALUES (?,?)"),
-    
+
     set(key,val){
         console.log(`正在保存设置: ${key}`, JSON.stringify(val));
         try {
@@ -33,19 +33,19 @@ const setting={
         }
     },
     _set:DB.prepare("REPLACE INTO setting (key,val) VALUES (?,?)"),
-    
+
     get(key){
         const result = P(this._get.get(key));
         console.log(`获取设置: ${key}`, result ? '成功' : '失败');
         return result;
     },
     _get:DB.prepare("SELECT * FROM setting WHERE key=?"),
-    
+
     del(key){
         console.log(`删除设置: ${key}`);
         DB.prepare("DELETE FROM setting WHERE key=?").run(key);
     },
-    
+
     all(){
         var s={};
         for(var {key,val} of this._all.all())s[key]=JSON.parse(val);
@@ -63,6 +63,8 @@ init("site",{
 });
 init("neko_status_url","https://github.com/nkeonkeo/nekonekostatus/releases/download/v0.1/neko-status");
 init("debug",0);
+// 初始化版本号设置
+init("version", "2.5.0");
 init("telegram", {
     enabled: false,
     token: "",
@@ -124,14 +126,14 @@ if (existingPersonalization) {
             amount: 5
         }
     };
-    
+
     // 默认模糊效果配置
     const defaultBlur = {
         enabled: false,
         amount: 5,
         quality: 'normal'
     };
-    
+
     // 默认卡片美化配置
     const defaultCard = {
         backgroundColor: "#1e293b",
@@ -142,25 +144,25 @@ if (existingPersonalization) {
             opacity: 0.8
         }
     };
-    
+
     // 合并现有配置和默认配置
     existingPersonalization.wallpaper = {
         ...defaultWallpaper,
         ...(existingPersonalization.wallpaper || {})
     };
-    
+
     // 添加模糊效果配置
     existingPersonalization.blur = {
         ...defaultBlur,
         ...(existingPersonalization.blur || {})
     };
-    
+
     // 添加卡片美化配置
     existingPersonalization.card = {
         ...defaultCard,
         ...(existingPersonalization.card || {})
     };
-    
+
     // 更新设置
     setting.set("personalization", existingPersonalization);
     console.log('已更新personalization设置:', existingPersonalization);
@@ -175,13 +177,13 @@ if (existingTelegram) {
         trafficLimit: true,
         testNotification: true
     };
-    
+
     // 合并现有配置和默认配置
     existingTelegram.notificationTypes = {
         ...defaultNotificationTypes,
         ...(existingTelegram.notificationTypes || {})
     };
-    
+
     // 更新设置
     setting.set("telegram", existingTelegram);
 }

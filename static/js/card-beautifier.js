@@ -27,7 +27,7 @@ function initCardBeautifier() {
 // 应用卡片样式
 function applyCardStyles(settings) {
     if (!settings) return;
-    
+
     const cards = document.querySelectorAll('.server-card');
     cards.forEach(card => {
         // 更新背景图片类名和样式
@@ -36,7 +36,7 @@ function applyCardStyles(settings) {
         } else {
             card.classList.remove('has-bg-image');
         }
-        
+
         // 更新模糊效果
         if (settings.blur?.enabled) {
             card.classList.add('blur-enabled');
@@ -49,9 +49,18 @@ function applyCardStyles(settings) {
 
 // 监听设置更新事件
 document.addEventListener('personalization-settings-updated', function(event) {
+    console.log('卡片美化器收到设置更新事件:', event.detail);
     const settings = event.detail;
     if (settings) {
         applyCardStyles(settings);
+    }
+});
+
+// 监听 postMessage 事件，实现跨页面通信
+window.addEventListener('message', function(event) {
+    if (event.data && event.data.type === 'personalization-settings-updated' && event.data.settings) {
+        console.log('卡片美化器收到 postMessage 设置更新:', event.data.settings);
+        applyCardStyles(event.data.settings);
     }
 });
 
@@ -74,24 +83,24 @@ function setupTouchHandlers(card) {
     let isScrolling = false;
     let startTouchY = 0;
     let startTouchX = 0;
-    
+
     card.addEventListener('touchstart', function(e) {
         isScrolling = false;
         startTouchY = e.touches[0].clientY;
         startTouchX = e.touches[0].clientX;
     }, {passive: true});
-    
+
     card.addEventListener('touchmove', function(e) {
         const touchY = e.touches[0].clientY;
         const touchX = e.touches[0].clientX;
         const deltaY = Math.abs(touchY - startTouchY);
         const deltaX = Math.abs(touchX - startTouchX);
-        
+
         if (deltaY > 10 || deltaX > 10) {
             isScrolling = true;
         }
     }, {passive: true});
-    
+
     card.addEventListener('touchend', function() {
         isScrolling = false;
     }, {passive: true});
@@ -105,4 +114,4 @@ document.addEventListener('statsSyncComplete', function() {
 // 监听卡片创建事件
 document.addEventListener('cardCreated', function() {
     initCardBeautifier();
-}); 
+});

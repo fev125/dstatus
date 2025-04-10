@@ -5,55 +5,55 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, minimal-ui">
     <meta name="is-admin" content="{{admin|default(false)}}">
-    
+
     <!-- PWA 支持 -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <meta name="apple-mobile-web-app-title" content="{{Title}}">
     <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)">
     <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: light)">
-    
+
     <!-- 使用 SVG 图标 -->
     <link rel="icon" href="/img/logo.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/img/logo.svg">
     <link rel="mask-icon" href="/img/logo.svg" color="#3b82f6">
-    
+
     <!-- PWA manifest -->
     <link rel="manifest" href="/manifest.json">
-    
+
     <title>{{Title}} - Dstatus</title>
     <link rel="shortcut icon" href="/img/logo.svg">
-    
+
     <!-- Material Icons 字体预加载 -->
     <link rel="preload" href="/fonts/MaterialIcons-Regular.woff2" as="font" type="font/woff2" crossorigin>
     <link rel="stylesheet" href="/css/material-icons.css">
-    
+
     <!-- 编译后的 Tailwind CSS -->
     <link rel="stylesheet" href="/css/style.min.css">
     <link rel="stylesheet" href="/css/components/card.css">
-    
+
 
     <style>
         /* 设置系统字体栈 */
         :root {
             --font-family-sans: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Helvetica, Arial, sans-serif;
-            
+
             /* 卡片模糊效果变量 */
             --blur-enabled: {% if setting.personalization and setting.personalization.blur and setting.personalization.blur.enabled %}1{% else %}0{% endif %};
             --blur-amount: {% if setting.personalization and setting.personalization.blur %}{{setting.personalization.blur.amount|default(5)}}{% else %}5{% endif %}px;
             --blur-quality: {% if setting.personalization and setting.personalization.blur %}{{setting.personalization.blur.quality|default('normal')}}{% else %}normal{% endif %};
-            
+
             /* 壁纸模糊效果变量 */
             --wallpaper-blur-enabled: {% if setting.personalization and setting.personalization.wallpaper and setting.personalization.wallpaper.blur and setting.personalization.wallpaper.blur.enabled %}1{% else %}0{% endif %};
             --wallpaper-blur-amount: {% if setting.personalization and setting.personalization.wallpaper and setting.personalization.wallpaper.blur %}{{setting.personalization.wallpaper.blur.amount|default(5)}}{% else %}5{% endif %}px;
-            
+
             /* 卡片背景变量 */
             --card-bg-color: {% if setting.personalization and setting.personalization.card and setting.personalization.card.backgroundColor %}{{setting.personalization.card.backgroundColor}}{% else %}#1e293b{% endif %};
             --card-bg-opacity: {% if setting.personalization and setting.personalization.card %}{{setting.personalization.card.backgroundOpacity|default(0.95)}}{% else %}0.95{% endif %};
             --card-bg-image: {% if setting.personalization and setting.personalization.card and setting.personalization.card.backgroundImage and setting.personalization.card.backgroundImage.enabled and setting.personalization.card.backgroundImage.url %}url({{setting.personalization.card.backgroundImage.url}}){% else %}none{% endif %};
             --card-bg-image-opacity: {% if setting.personalization and setting.personalization.card and setting.personalization.card.backgroundImage %}{{setting.personalization.card.backgroundImage.opacity|default(0.8)}}{% else %}0.8{% endif %};
         }
-        
+
         body {
             font-family: var(--font-family-sans);
             -webkit-font-smoothing: antialiased;
@@ -86,6 +86,25 @@
             }
         }
 
+        /* 壁纸相关样式 */
+        body:before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0; /* 初始透明 */
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+            background-position: center;
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-color: rgba(0, 0, 0, 0.5);
+            background-blend-mode: darken;
+        }
+
         /* 确保背景图片加载完成后显示 */
         body.wallpaper-loaded:before {
             opacity: 1;
@@ -94,6 +113,12 @@
         /* 添加背景图片类 */
         body.has-background-image {
             background: transparent;
+        }
+
+        /* 壁纸模糊效果 */
+        body.has-background-image.has-blur-effect:before {
+            filter: blur(var(--wallpaper-blur-amount));
+            -webkit-filter: blur(var(--wallpaper-blur-amount));
         }
 
         html,body{margin:0;padding:0;color:#eee;-webkit-tap-highlight-color:rgba(0, 0, 0, 0);font-family:system-ui,-apple-system,BlinkMacSystemFont,segoe ui,Roboto,helvetica neue,Arial,noto sans,sans-serif,apple color emoji,segoe ui emoji,segoe ui symbol,noto color emoji;}
@@ -135,21 +160,21 @@
             to { transform: rotate(360deg); }
         }
     </style>
-    
+
     <!-- 主题模式样式 -->
     {% if setting.personalization and setting.personalization.theme %}
     <style>
         :root {
             /* 强调色 */
             --accent-color: {{setting.personalization.theme.accentColor|default('#3b82f6')}};
-            
+
             /* 日间模式变量 */
             --light-bg-color: {{setting.personalization.theme.light.backgroundColor|default('#f8fafc')}};
             --light-card-bg-color: {{setting.personalization.theme.light.cardBackgroundColor|default('#ffffff')}};
             --light-text-color: {{setting.personalization.theme.light.textColor|default('#1e293b')}};
             --light-secondary-text-color: {{setting.personalization.theme.light.secondaryTextColor|default('#64748b')}};
             --light-border-color: {{setting.personalization.theme.light.borderColor|default('#e2e8f0')}};
-            
+
             /* 夜间模式变量 */
             --dark-bg-color: {{setting.personalization.theme.dark.backgroundColor|default('#191d2e')}};
             --dark-card-bg-color: {{setting.personalization.theme.dark.cardBackgroundColor|default('#1e293b')}};
@@ -158,14 +183,14 @@
             --dark-border-color: {{setting.personalization.theme.dark.borderColor|default('#334155')}};
         }
     </style>
-    
-   
+
+
     <script>
         // 设置主题模式
         (function() {
             {% if setting.personalization and setting.personalization.theme %}
             const mode = "{{setting.personalization.theme.mode|default('auto')}}";
-            
+
             if (mode === 'light') {
                 document.documentElement.classList.remove('dark');
             } else if (mode === 'dark') {
@@ -174,7 +199,7 @@
                 // 自动模式，跟随系统
                 const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
                 document.documentElement.classList.toggle('dark', prefersDark);
-                
+
                 // 监听系统主题变化
                 window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
                     document.documentElement.classList.toggle('dark', event.matches);
@@ -188,7 +213,7 @@
         })();
     </script>
     {% endif %}
-    
+
     <!-- 背景样式处理 -->
     {% if setting.personalization and setting.personalization.wallpaper %}
     <style>
@@ -197,7 +222,7 @@
             position: relative;
             min-height: 100vh;
         }
-        
+
         body:before {
             content: "";
             position: fixed;
@@ -244,7 +269,7 @@
             background: transparent;
         }
     </style>
-    
+
     <!-- 预加载壁纸图片 -->
     {% if setting.personalization.wallpaper.enabled and setting.personalization.wallpaper.url %}
     <link rel="preload" href="{{setting.personalization.wallpaper.url}}" as="image">
@@ -260,37 +285,37 @@
                 brightness: {{(100 - setting.personalization.wallpaper.brightness) / 100}},
                 timestamp: Date.now()
             };
-            
+
             // 保存设置到sessionStorage(仅在当前会话有效)
             try {
                 sessionStorage.setItem('wallpaper-settings', JSON.stringify(wallpaperSettings));
             } catch(e) {
                 console.warn('无法保存壁纸设置到会话存储:', e);
             }
-            
+
             // 创建并缓存壁纸图片
             function loadAndCacheWallpaper() {
                 // 检查是否已经加载过壁纸
                 if (document.body.classList.contains('wallpaper-loaded')) {
                     return; // 已加载过，跳过
                 }
-                
+
                 var img = new Image();
-                
+
                 img.onload = function() {
                     // 图片加载成功
                     document.body.classList.add('wallpaper-loaded');
                     document.body.classList.add('has-background-image');
                 };
-                
+
                 img.onerror = function() {
                     console.error('壁纸图片加载失败:', wallpaperSettings.url);
                 };
-                
+
                 // 使用缓存加载图片
                 img.src = wallpaperSettings.url;
             }
-            
+
             // 页面加载完成后加载壁纸
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', loadAndCacheWallpaper);
@@ -301,7 +326,7 @@
     </script>
     {% endif %}
 {% endif %}
-    
+
     <script>
         // 检测字体加载
         if ("fonts" in document) {
@@ -343,7 +368,7 @@
         // 检测设备性能
         function checkDevicePerformance() {
             const performanceAPI = window.performance || window.mozPerformance || window.msPerformance || window.webkitPerformance || {};
-            
+
             // 检查是否为低端设备
             const isLowEndDevice = () => {
                 if ('deviceMemory' in navigator) {
@@ -367,13 +392,13 @@
         function applyPerformanceOptimizations() {
             const performance = checkDevicePerformance();
             const root = document.documentElement;
-            
+
             if (performance.isLowEnd || performance.isMobile) {
                 // 降低模糊质量
                 root.style.setProperty('--blur-quality', 'low');
                 // 减少透明度计算
                 root.style.setProperty('--blur-opacity', '0.9');
-                
+
                 // 添加低性能标记
                 document.querySelectorAll('.blur-enabled').forEach(el => {
                     el.setAttribute('data-quality', 'low');
@@ -384,7 +409,7 @@
         // 监听页面加载完成
         document.addEventListener('DOMContentLoaded', () => {
             applyPerformanceOptimizations();
-            
+
             // 应用模糊效果
             const blurEnabled = {% if setting.personalization.blur and setting.personalization.blur.enabled %}true{% else %}false{% endif %};
             if (blurEnabled) {
@@ -423,7 +448,7 @@
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
     </style>
-    
+
     <!-- 加载延迟优化 -->
 </head>
 <body class="min-h-screen bg-slate-900 text-slate-100">
@@ -457,7 +482,7 @@
             const hasBackgroundImage = document.body.classList.contains('has-background-image');
             // 获取footer元素
             const footer = document.querySelector('footer');
-            
+
             if (hasBackgroundImage && footer) {
                 // 如果有背景图，增强footer的背景模糊效果
                 footer.classList.add('backdrop-blur-md');
@@ -514,13 +539,13 @@
     function isSupportedDevice() {
         // 检查是否为移动设备
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        
+
         // 检查是否为支持的浏览器
         const isSupportedBrowser = !/Edge|Firefox/i.test(navigator.userAgent);
-        
+
         // 检查是否已经安装为 PWA
         const isAlreadyInstalled = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
-        
+
         return isMobile && isSupportedBrowser && !isAlreadyInstalled;
     }
 
@@ -648,7 +673,7 @@
                 loadingEl.remove();
             }, 300);
         }
-        
+
         // 为兼容性，也尝试清除旧的loading类元素
         document.querySelector('.loading')?.remove();
     }
@@ -679,27 +704,27 @@
     (function() {
         // 仅在支持sessionStorage的浏览器上启用
         if (typeof sessionStorage === 'undefined') return;
-        
+
         // 为所有导航链接添加事件
         document.addEventListener('click', function(e) {
             // 检查是否是站内导航链接
             if (e.target.tagName === 'A' || e.target.closest('a')) {
                 const link = e.target.tagName === 'A' ? e.target : e.target.closest('a');
                 const href = link.getAttribute('href');
-                
+
                 // 如果是站内链接(不是外部链接、锚点链接或javascript链接)
                 if (href && !href.startsWith('http') && !href.startsWith('#') && !href.startsWith('javascript')) {
                     // 获取当前的壁纸设置
                     try {
                         const wallpaperSettings = sessionStorage.getItem('wallpaper-settings');
-                        
+
                         if (wallpaperSettings) {
                             // 存在壁纸设置，将其添加到历史状态，使下一页面可以获取
                             const historyState = {
                                 wallpaperApplied: true,
                                 timestamp: Date.now()
                             };
-                            
+
                             // 记录当前滚动位置
                             if (history && history.replaceState) {
                                 history.replaceState(historyState, document.title);
@@ -711,7 +736,7 @@
                 }
             }
         }, false);
-        
+
         // 页面加载时检查是否有缓存的壁纸设置
         window.addEventListener('pageshow', function(e) {
             // 如果是从缓存加载的页面，可能需要特殊处理
@@ -727,7 +752,7 @@
                 }
             }
         });
-        
+
         // 页面卸载前保存状态
         window.addEventListener('beforeunload', function() {
             // 如果页面有壁纸加载标记，确保会话存储保留
@@ -747,6 +772,91 @@
             }
         });
     })();
+    </script>
+
+    <!-- 个性化设置同步脚本 -->
+    <script src="/js/settings-sync.js"></script>
+    <script src="/js/card-beautifier.js"></script>
+
+    <!-- 初始化壁纸脚本 -->
+    <script>
+    // 在页面加载时初始化壁纸
+    document.addEventListener('DOMContentLoaded', function() {
+        // 监听 postMessage 事件，实现跨页面通信
+        window.addEventListener('message', function(event) {
+            if (event.data && event.data.type === 'personalization-settings-updated' && event.data.settings) {
+                console.log('接收到 postMessage 设置更新:', event.data.settings);
+
+                // 更新缓存
+                try {
+                    sessionStorage.setItem('personalization-settings', JSON.stringify(event.data.settings));
+
+                    // 刷新页面以应用新设置
+                    window.location.reload();
+                } catch (e) {
+                    console.warn('无法更新设置缓存:', e);
+                }
+            }
+        });
+        try {
+            // 从 sessionStorage 读取设置
+            const settingsJson = sessionStorage.getItem('personalization-settings');
+            if (settingsJson) {
+                const settings = JSON.parse(settingsJson);
+                console.log('页面加载时读取到的设置:', settings);
+
+                // 应用壁纸设置
+                if (settings.wallpaper && settings.wallpaper.enabled && settings.wallpaper.url) {
+                    // 设置壁纸图片
+                    document.body.classList.add('has-background-image');
+
+                    // 创建样式元素
+                    const styleEl = document.createElement('style');
+                    styleEl.id = 'dynamic-wallpaper-style';
+
+                    // 构建样式
+                    let css = `
+                    body:before {
+                        background-image: url('${settings.wallpaper.url}') !important;
+                        background-position: center !important;
+                        background-size: ${settings.wallpaper.size || 'cover'} !important;
+                        background-repeat: ${settings.wallpaper.repeat || 'no-repeat'} !important;
+                        ${settings.wallpaper.fixed ? 'background-attachment: fixed !important;' : ''}
+                        background-color: rgba(0, 0, 0, ${(100 - (settings.wallpaper.brightness || 75)) / 100}) !important;
+                    }`;
+
+                    // 添加样式
+                    styleEl.textContent = css;
+                    document.head.appendChild(styleEl);
+
+                    // 添加模糊效果
+                    if (settings.wallpaper.blur && settings.wallpaper.blur.enabled) {
+                        document.body.classList.add('has-blur-effect');
+                    }
+
+                    // 标记壁纸已加载
+                    setTimeout(() => {
+                        document.body.classList.add('wallpaper-loaded');
+                    }, 100);
+                }
+
+                // 应用卡片设置
+                if (settings.card) {
+                    // 应用卡片背景图片
+                    if (settings.card.backgroundImage && settings.card.backgroundImage.enabled && settings.card.backgroundImage.url) {
+                        // 添加类名到所有卡片
+                        setTimeout(() => {
+                            document.querySelectorAll('.server-card').forEach(card => {
+                                card.classList.add('has-bg-image');
+                            });
+                        }, 100);
+                    }
+                }
+            }
+        } catch (e) {
+            console.error('初始化壁纸失败:', e);
+        }
+    });
     </script>
 </body>
 </html>
