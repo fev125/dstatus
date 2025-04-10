@@ -55,7 +55,7 @@
             </div>
             <!-- 状态筛选提示 -->
             <div class="mt-1 text-xs text-gray-500 text-center">点击上方卡片可筛选节点状态</div>
-           
+
             <!-- 地区分布 -->
             <div class="mt-3 mb-2 border-t border-gray-700/50 relative">
                 <h3 class="text-sm text-gray-400 mt-2 mb-1 px-0.5 flex items-center gap-1">
@@ -326,7 +326,7 @@
                     <i class="material-icons text-base">dns</i>
                     <span class="ml-1.5">全部节点</span>
                 </button>
-                
+
                 {% for group in groups %}
                 <button class="tab-btn shrink-0 flex items-center px-3 h-8 text-sm text-slate-400 bg-slate-800/40 rounded-full mr-2 hover:bg-slate-700/60" data-group="{{group.id}}">
                     <i class="material-icons text-base">folder</i>
@@ -349,8 +349,8 @@
                     <i class="material-icons text-base">folder</i>
                     <span class="ml-1.5 text-xs sm:text-sm">分组</span>
                 </a>
-                <!-- 拖拽排序开关 -->
-                <div class="flex items-center px-2 h-8 text-sm text-gray-400">
+                <!-- 拖拽排序开关 - 移动端隐藏 -->
+                <div class="hidden md:flex items-center px-2 h-8 text-sm text-gray-400">
                     <label class="flex items-center cursor-pointer">
                         <input type="checkbox" id="enable-drag-sort" class="sr-only peer">
                         <div class="relative w-8 sm:w-9 h-4 sm:h-5 bg-gray-700 rounded-full peer peer-checked:bg-blue-600 peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-3 sm:after:h-4 after:w-3 sm:after:w-4 after:transition-all"></div>
@@ -433,23 +433,23 @@
 // 为图表应用自定义主题颜色
 function getThemeColors() {
     const isDark = document.documentElement.classList.contains('dark');
-    
+
     // 设置默认颜色
     const defaultLightColors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
     const defaultDarkColors = ['#60a5fa', '#34d399', '#fbbf24', '#f87171', '#a78bfa'];
-    
+
     // 初始化颜色数组
     let chartColors = isDark ? defaultDarkColors : defaultLightColors;
-    
+
     // 尝试从CSS变量获取颜色
     const getComputedVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-    
+
     // 检查是否存在主题变量
     if (getComputedVar('--accent-color')) {
         const accentColor = getComputedVar('--accent-color');
         chartColors[0] = accentColor; // 使用强调色作为第一个图表颜色
     }
-    
+
     return chartColors;
 }
 
@@ -457,21 +457,21 @@ function getThemeColors() {
 function setupThemeChangeListener() {
     // 创建一个自定义事件
     const themeChangeEvent = new CustomEvent('themeChanged');
-    
+
     // 监听类变化来检测主题切换
     const observer = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
-            if (mutation.attributeName === 'class' && 
+            if (mutation.attributeName === 'class' &&
                 mutation.target === document.documentElement) {
                 // 触发主题变化事件
                 document.dispatchEvent(themeChangeEvent);
             }
         });
     });
-    
+
     // 开始观察html元素的class变化
     observer.observe(document.documentElement, { attributes: true });
-    
+
     console.log('主题变化监听器已设置');
 }
 
@@ -489,7 +489,7 @@ document.addEventListener('themeChanged', function() {
 window.addEventListener('load', function() {
     const chartColors = getThemeColors();
     console.log('图表颜色已初始化:', chartColors);
-    
+
     // 如果有echarts或其他图表，在这里应用主题色
     // 例如：更新已初始化的图表
 });
