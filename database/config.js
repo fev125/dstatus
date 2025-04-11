@@ -13,7 +13,7 @@ class DatabaseConfig {
         this.MAIN_DB = 'db.db';
         this.BACKUP_PREFIX = 'backup-';
         this.TEMP_PREFIX = 'temp-';
-        
+
         // 初始化时验证路径
         this.validateAndCreatePaths();
     }
@@ -46,11 +46,25 @@ class DatabaseConfig {
         directories.forEach(dir => {
             if (!fs.existsSync(dir)) {
                 try {
-                    fs.mkdirSync(dir, { recursive: true });
+                    fs.mkdirSync(dir, { recursive: true, mode: 0o777 });
                     console.log(`创建目录: ${dir}`);
                 } catch (error) {
                     console.error(`创建目录失败 ${dir}: ${error.message}`);
-                    throw error;
+                    // 尝试使用临时目录作为备选
+                    try {
+                        const tempDir = path.join(require('os').tmpdir(), 'dstatus', path.basename(dir));
+                        fs.mkdirSync(tempDir, { recursive: true, mode: 0o777 });
+                        console.log(`使用临时目录: ${tempDir}`);
+
+                        // 更新路径
+                        if (dir === this.BASE_PATH) {
+                            this.BASE_PATH = path.join(require('os').tmpdir(), 'dstatus');
+                        }
+                    } catch (tempError) {
+                        console.error(`创建临时目录也失败: ${tempError.message}`);
+                        // 不抛出错误，而是继续运行，让应用程序尝试处理
+                        console.warn('将继续运行，但某些功能可能不可用');
+                    }
                 }
             }
         });
@@ -77,13 +91,13 @@ class DatabaseConfig {
         try {
             const files = fs.readdirSync(this.BASE_PATH);
             const now = Date.now();
-            
+
             files.forEach(file => {
-                if (file.startsWith(this.TEMP_PREFIX) || 
+                if (file.startsWith(this.TEMP_PREFIX) ||
                     (file.startsWith(this.BACKUP_PREFIX) && file.endsWith('.db.db'))) {
                     const filePath = path.join(this.BASE_PATH, file);
                     const stats = fs.statSync(filePath);
-                    
+
                     if (now - stats.mtimeMs > maxAge) {
                         fs.unlinkSync(filePath);
                         console.log(`清理过期文件: ${file}`);
@@ -116,4 +130,4 @@ class DatabaseConfig {
 }
 
 // 导出单例实例
-module.exports = new DatabaseConfig(); 
+module.exports = new DatabaseConfig();

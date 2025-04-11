@@ -6,9 +6,27 @@ const fs = require("fs");
 module.exports = (conf = {}) => {
     // 获取数据库路径
     const paths = dbConfig.getPaths();
+
+    // 输出详细的数据库目录信息
+    console.log('=== 数据库初始化 ===');
+    console.log('数据库主目录:', paths.base);
+    console.log('数据库文件路径:', paths.main);
+    console.log('备份目录:', path.join(paths.base, 'backups'));
+    console.log('临时目录:', path.join(paths.base, 'temp'));
+
+    // 检查目录权限
+    try {
+        const testFile = path.join(paths.base, '.write-test');
+        fs.writeFileSync(testFile, 'test');
+        fs.unlinkSync(testFile);
+        console.log('目录写入测试: 成功');
+    } catch (err) {
+        console.error('目录写入测试: 失败 -', err.message);
+        console.warn('请检查目录权限或使用 fix-docker-permissions.sh 脚本修复权限问题');
+    }
+
     var DB = new Database(paths.main);
-    
-    console.log('数据库路径:', paths.main);
+
     try {
         const dbInfo = fs.statSync(paths.main);
         console.log('数据库文件信息:', {
@@ -83,7 +101,7 @@ module.exports = (conf = {}) => {
 
         // 创建SSH脚本表 - 使用简化结构与现有数据库兼容
         DB.prepare("CREATE TABLE IF NOT EXISTS ssh_scripts (id,name,content,PRIMARY KEY(id))").run();
-        
+
         // 输出调试信息
         try {
             const tableInfo = DB.prepare("PRAGMA table_info(ssh_scripts)").all();
@@ -119,7 +137,7 @@ module.exports = (conf = {}) => {
         {groups} = require("./groups")(DB);
 
     function getServers() { return servers.all(); }
-    
+
     // 全局设置存储函数
     function set(key, value) {
         if (key === 'setting') {
@@ -129,7 +147,7 @@ module.exports = (conf = {}) => {
             }
             return;
         }
-        
+
         // 处理其他键值存储
         if (setting && typeof setting.set === 'function') {
             setting.set(key, value);
@@ -137,7 +155,7 @@ module.exports = (conf = {}) => {
             console.error(`[数据库] 无法保存设置: ${key}, setting对象不可用`);
         }
     }
-    
+
     return {
         DB,
         servers, getServers,

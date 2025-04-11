@@ -23,21 +23,19 @@ WORKDIR /app
 COPY --from=builder /app ./
 
 # 创建目录并设置权限（分步执行以便于调试）
-RUN mkdir -p /database && \
-    mkdir -p /logs && \
-    touch /tokens.json 
+RUN mkdir -p /app/data/backups && \
+    mkdir -p /app/data/temp && \
+    mkdir -p /app/logs && \
+    touch /app/tokens.json
 
 # 设置所有权和权限
 RUN chown -R node:node /app && \
-    chown node:node /database && \
-    chown node:node /logs && \
-    chown node:node /tokens.json && \
-    chmod 755 /database && \
-    chmod 755 /logs && \
-    chmod 644 /tokens.json
+    chmod -R 777 /app/data && \
+    chmod -R 755 /app/logs && \
+    chmod 644 /app/tokens.json
 
 # 设置数据卷
-VOLUME ["/database", "/logs"]
+VOLUME ["/app/data", "/app/logs"]
 
 USER node
 
