@@ -178,8 +178,8 @@ install_dstatus() {
     fi
 
     # 拉取镜像并启动容器
-    echo -e "${BLUE}拉取${VERSION_TAG}镜像并启动容器...${NC}"
-    docker pull ghcr.io/fev125/dstatus:${VERSION_TAG}
+    echo -e "${BLUE}强制拉取最新的${VERSION_TAG}镜像并启动容器...${NC}"
+    docker pull --no-cache ghcr.io/fev125/dstatus:${VERSION_TAG}
 
     docker run -d \
         --name dstatus \
@@ -266,8 +266,8 @@ update_dstatus() {
     docker rm dstatus
 
     # 拉取最新镜像
-    echo -e "${BLUE}拉取${VERSION_TAG}镜像...${NC}"
-    docker pull ghcr.io/fev125/dstatus:${VERSION_TAG}
+    echo -e "${BLUE}强制拉取最新的${VERSION_TAG}镜像...${NC}"
+    docker pull --no-cache ghcr.io/fev125/dstatus:${VERSION_TAG}
 
     # 启动新容器
     echo -e "${BLUE}启动新容器...${NC}"
