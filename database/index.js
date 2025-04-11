@@ -2,6 +2,7 @@
 const Database = require("better-sqlite3");
 const dbConfig = require("./config");
 const fs = require("fs");
+const path = require("path");
 
 module.exports = (conf = {}) => {
     // 获取数据库路径
