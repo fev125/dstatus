@@ -33,6 +33,62 @@ check_root() {
     fi
 }
 
+# 检查和创建Docker挂载目录
+check_docker_directories() {
+    print_banner
+    echo -e "${BLUE}检查Docker挂载目录...${NC}"
+
+    # 设置目录路径
+    DATA_DIR="/opt/dstatus/data"
+    LOGS_DIR="/opt/dstatus/logs"
+
+    # 创建主目录
+    echo -e "${BLUE}创建主目录...${NC}"
+    mkdir -p "${DATA_DIR}" "${LOGS_DIR}"
+
+    # 创建子目录
+    echo -e "${BLUE}创建数据库子目录...${NC}"
+    mkdir -p "${DATA_DIR}/backups" "${DATA_DIR}/temp"
+
+    # 设置权限
+    echo -e "${BLUE}设置目录权限...${NC}"
+    chmod -R 777 "${DATA_DIR}"
+    chmod -R 755 "${LOGS_DIR}"
+
+    # 测试写入权限
+    echo -e "${BLUE}测试目录写入权限...${NC}"
+    TEST_FILE="${DATA_DIR}/.write-test"
+    if touch "${TEST_FILE}" 2>/dev/null; then
+        echo -e "${GREEN}目录写入测试成功${NC}"
+        rm -f "${TEST_FILE}"
+    else
+        echo -e "${RED}警告: 无法写入数据目录${NC}"
+        echo -e "${YELLOW}尝试使用sudo设置权限...${NC}"
+        sudo chmod -R 777 "${DATA_DIR}" 2>/dev/null
+
+        # 再次测试
+        if touch "${TEST_FILE}" 2>/dev/null; then
+            echo -e "${GREEN}权限设置成功${NC}"
+            rm -f "${TEST_FILE}"
+        else
+            echo -e "${RED}错误: 仍然无法写入数据目录${NC}"
+            echo -e "${YELLOW}请手动运行以下命令:${NC}"
+            echo -e "  sudo mkdir -p ${DATA_DIR}/backups ${DATA_DIR}/temp ${LOGS_DIR}"
+            echo -e "  sudo chmod -R 777 ${DATA_DIR}"
+            echo -e "  sudo chmod -R 755 ${LOGS_DIR}"
+
+            read -p "是否继续安装? (y/n): " continue_install
+            if [[ ! $continue_install =~ ^[Yy]$ ]]; then
+                echo -e "${RED}安装已取消${NC}"
+                return 1
+            fi
+        fi
+    fi
+
+    echo -e "${GREEN}目录检查和创建完成${NC}"
+    return 0
+}
+
 # 安装Docker
 install_docker() {
     print_banner
@@ -105,10 +161,14 @@ install_dstatus() {
     mkdir -p /opt/dstatus
     cd /opt/dstatus
 
-    # 创建数据目录并设置权限
-    echo -e "${BLUE}创建数据目录...${NC}"
-    mkdir -p data
-    chmod -R 777 data
+    # 检查和创建Docker挂载目录
+    check_docker_directories
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}目录准备失败，安装中止${NC}"
+        echo ""
+        read -p "按Enter键返回主菜单" pause
+        return
+    fi
 
     # 检查容器是否已存在
     if docker ps -a | grep -q dstatus; then
@@ -128,6 +188,7 @@ install_dstatus() {
         -e TZ=Asia/Shanghai \
         -e NODE_ENV=production \
         -v /opt/dstatus/data:/app/data \
+        -v /opt/dstatus/logs:/app/logs \
         ghcr.io/fev125/dstatus:${VERSION_TAG}
 
     # 检查容器是否成功启动
@@ -171,6 +232,15 @@ update_dstatus() {
 
     # 确保在正确的目录
     cd /opt/dstatus || mkdir -p /opt/dstatus && cd /opt/dstatus
+
+    # 检查和创建Docker挂载目录
+    check_docker_directories
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}目录准备失败，更新中止${NC}"
+        echo ""
+        read -p "按Enter键返回主菜单" pause
+        return
+    fi
 
     # 检查容器是否存在
     if ! docker ps -a | grep -q dstatus; then
