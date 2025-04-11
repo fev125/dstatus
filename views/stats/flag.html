@@ -1,48 +1,57 @@
 {# 根据国家代码显示对应的国旗图标 #}
-{%- macro get_flag(country_code) -%}
-    {%- if country_code == "CN" -%}
-        🇨🇳
-    {%- elif country_code == "HK" -%}
-        🇭🇰
-    {%- elif country_code == "TW" -%}
-        🇹🇼
-    {%- elif country_code == "JP" -%}
-        🇯🇵
-    {%- elif country_code == "KR" -%}
-        🇰🇷
-    {%- elif country_code == "SG" -%}
-        🇸🇬
-    {%- elif country_code == "US" -%}
-        🇺🇸
-    {%- elif country_code == "CA" -%}
-        🇨🇦
-    {%- elif country_code == "UK" or country_code == "GB" -%}
-        🇬🇧
-    {%- elif country_code == "DE" -%}
-        🇩🇪
-    {%- elif country_code == "FR" -%}
-        🇫🇷
-    {%- elif country_code == "AU" -%}
-        🇦🇺
-    {%- elif country_code == "RU" -%}
-        🇷🇺
-    {%- elif country_code == "UA" -%}
-        🇺🇦
-    {%- elif country_code == "BR" -%}
-        🇧🇷
-    {%- elif country_code == "IN" -%}
-        🇮🇳
-    {%- elif country_code == "ZA" -%}
-        🇿🇦
-    {%- elif country_code == "CL" -%}
-        🇨🇱
-    {%- elif country_code == "LO" -%}
-        🏠
-    {%- elif country_code == "OT" -%}
-        🌍
+{%- macro get_flag(country_code, flag_url) -%}
+    {%- if flag_url and flag_url.startsWith('http') -%}
+        <img src="{{ flag_url }}" alt="{{ country_code }}" class="flag-img" title="{{ country_code }}">
     {%- else -%}
-        🌎
+        {%- if country_code == "CN" -%}
+            🇨🇳
+        {%- elif country_code == "HK" -%}
+            🇭🇰
+        {%- elif country_code == "TW" -%}
+            🇹🇼
+        {%- elif country_code == "JP" -%}
+            🇯🇵
+        {%- elif country_code == "KR" -%}
+            🇰🇷
+        {%- elif country_code == "SG" -%}
+            🇸🇬
+        {%- elif country_code == "US" -%}
+            🇺🇸
+        {%- elif country_code == "CA" -%}
+            🇨🇦
+        {%- elif country_code == "UK" or country_code == "GB" -%}
+            🇬🇧
+        {%- elif country_code == "DE" -%}
+            🇩🇪
+        {%- elif country_code == "FR" -%}
+            🇫🇷
+        {%- elif country_code == "AU" -%}
+            🇦🇺
+        {%- elif country_code == "RU" -%}
+            🇷🇺
+        {%- elif country_code == "UA" -%}
+            🇺🇦
+        {%- elif country_code == "BR" -%}
+            🇧🇷
+        {%- elif country_code == "IN" -%}
+            🇮🇳
+        {%- elif country_code == "ZA" -%}
+            🇿🇦
+        {%- elif country_code == "CL" -%}
+            🇨🇱
+        {%- elif country_code == "LO" -%}
+            🏠
+        {%- elif country_code == "OT" -%}
+            🌍
+        {%- else -%}
+            🌎
+        {%- endif -%}
     {%- endif -%}
 {%- endmacro -%}
 
-{{ get_flag(code) }}
+{# 检查是否有国旗图片URL #}
+{%- if node and node.data and node.data.location and node.data.location.country and node.data.location.country.flag and node.data.location.country.flag.startsWith('http') -%}
+    {{ get_flag(code, node.data.location.country.flag) }}
+{%- else -%}
+    {{ get_flag(code, '') }}
+{%- endif -%}
