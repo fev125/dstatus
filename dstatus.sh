@@ -37,7 +37,7 @@ check_root() {
 install_docker() {
     print_banner
     echo -e "${BLUE}正在检查Docker安装状态...${NC}"
-    
+
     if command -v docker &> /dev/null; then
         echo -e "${GREEN}Docker已安装!${NC}"
         docker_version=$(docker --version | cut -d ' ' -f3 | sed 's/,//')
@@ -45,16 +45,16 @@ install_docker() {
     else
         echo -e "${YELLOW}Docker未安装, 开始安装...${NC}"
         curl -fsSL https://get.docker.com | sh
-        
+
         # 启用Docker服务
         systemctl enable docker
         systemctl start docker
-        
+
         # 安装Docker Compose
         echo -e "${BLUE}正在安装Docker Compose...${NC}"
         curl -L "https://github.com/docker/compose/releases/download/v2.21.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
         chmod +x /usr/local/bin/docker-compose
-        
+
         if command -v docker &> /dev/null; then
             docker_version=$(docker --version | cut -d ' ' -f3 | sed 's/,//')
             echo -e "${GREEN}Docker安装成功! 版本: ${docker_version}${NC}"
@@ -63,7 +63,7 @@ install_docker() {
             exit 1
         fi
     fi
-    
+
     echo ""
     echo -e "${GREEN}Docker环境准备就绪!${NC}"
     echo ""
@@ -73,66 +73,54 @@ install_docker() {
 # 选择DStatus版本
 select_dstatus_version() {
     print_banner
-    echo -e "${YELLOW}请选择要安装的DStatus版本:${NC}"
-    echo -e "${GREEN}1. 稳定版本 (latest)${NC}"
-    echo -e "${CYAN}2. 开发版本 (develop)${NC}"
+    echo -e "${GREEN}将安装稳定版本 (latest)${NC}"
+    echo -e "${YELLOW}注意：为了确保系统稳定性，现在只提供稳定版本${NC}"
     echo -e "${RED}0. 返回主菜单${NC}"
     echo ""
-    
-    read -p "请输入选项 [0-2]: " version_choice
-    
-    case $version_choice in
-        1)
-            VERSION_TAG="latest"
-            ;;
-        2)
-            VERSION_TAG="develop"
-            ;;
-        0)
-            return 1
-            ;;
-        *)
-            echo -e "${RED}无效选项，默认使用稳定版本${NC}"
-            VERSION_TAG="latest"
-            sleep 2
-            ;;
-    esac
-    
+
+    read -p "按Enter键继续安装或输入0返回: " version_choice
+
+    if [ "$version_choice" = "0" ]; then
+        return 1
+    fi
+
+    # 始终使用稳定版本
+    VERSION_TAG="latest"
     return 0
 }
 
 # 安装DStatus
 install_dstatus() {
     print_banner
-    
+
     # 选择版本
     select_dstatus_version
     if [ $? -ne 0 ]; then
         return
     fi
-    
+
     echo -e "${BLUE}开始安装DStatus (${VERSION_TAG}版本)...${NC}"
-    
+
     # 创建安装目录
     mkdir -p /opt/dstatus
     cd /opt/dstatus
-    
+
     # 创建数据目录并设置权限
     echo -e "${BLUE}创建数据目录...${NC}"
     mkdir -p data
     chmod -R 777 data
-    
+
     # 检查容器是否已存在
     if docker ps -a | grep -q dstatus; then
         echo -e "${YELLOW}发现已有DStatus容器，正在移除...${NC}"
         docker stop dstatus &>/dev/null
         docker rm dstatus &>/dev/null
     fi
-    
+
     # 拉取镜像并启动容器
     echo -e "${BLUE}拉取${VERSION_TAG}镜像并启动容器...${NC}"
     docker pull ghcr.io/fev125/dstatus:${VERSION_TAG}
-    
+
     docker run -d \
         --name dstatus \
         -p 5555:5555 \
@@ -141,17 +129,17 @@ install_dstatus() {
         -e NODE_ENV=production \
         -v /opt/dstatus/data:/app/data \
         ghcr.io/fev125/dstatus:${VERSION_TAG}
-    
+
     # 检查容器是否成功启动
     if [ $? -eq 0 ] && docker ps | grep -q dstatus; then
         echo -e "${GREEN}DStatus (${VERSION_TAG}版本) 安装成功!${NC}"
-        
+
         # 获取IP地址 - 尝试多种方法
         IP=$(curl -s -m 5 https://api.ipify.org || echo "")
         if [ -z "$IP" ]; then
             IP=$(hostname -I | awk '{print $1}')
         fi
-        
+
         echo ""
         echo -e "${PURPLE}==============================================${NC}"
         echo -e "${GREEN}DStatus 已成功安装并运行!${NC}"
@@ -164,7 +152,7 @@ install_dstatus() {
         echo -e "${YELLOW}请检查错误信息并重试，或手动运行Docker命令:${NC}"
         echo "docker run -d --name dstatus -p 5555:5555 --restart unless-stopped -e TZ=Asia/Shanghai -e NODE_ENV=production -v /opt/dstatus/data:/app/data ghcr.io/fev125/dstatus:${VERSION_TAG}"
     fi
-    
+
     echo ""
     read -p "按Enter键返回主菜单" pause
 }
@@ -172,18 +160,18 @@ install_dstatus() {
 # 更新DStatus
 update_dstatus() {
     print_banner
-    
+
     # 选择版本
     select_dstatus_version
     if [ $? -ne 0 ]; then
         return
     fi
-    
+
     echo -e "${BLUE}开始更新DStatus至${VERSION_TAG}版本...${NC}"
-    
+
     # 确保在正确的目录
     cd /opt/dstatus || mkdir -p /opt/dstatus && cd /opt/dstatus
-    
+
     # 检查容器是否存在
     if ! docker ps -a | grep -q dstatus; then
         echo -e "${RED}未发现DStatus容器，请先安装!${NC}"
@@ -191,26 +179,26 @@ update_dstatus() {
         read -p "按Enter键返回主菜单" pause
         return
     fi
-    
+
     # 获取当前版本信息
     CURRENT_IMAGE=$(docker inspect --format='{{.Config.Image}}' dstatus 2>/dev/null)
     echo -e "${CYAN}当前版本: ${CURRENT_IMAGE}${NC}"
     echo -e "${CYAN}目标版本: ghcr.io/fev125/dstatus:${VERSION_TAG}${NC}"
-    
+
     # 备份数据
     BACKUP_DIR="data_backup_$(date +%Y%m%d_%H%M%S)"
     echo -e "${BLUE}备份当前数据到 ${BACKUP_DIR}...${NC}"
     cp -r data ${BACKUP_DIR} 2>/dev/null
-    
+
     # 停止并删除旧容器
     echo -e "${BLUE}停止旧容器...${NC}"
     docker stop dstatus
     docker rm dstatus
-    
+
     # 拉取最新镜像
     echo -e "${BLUE}拉取${VERSION_TAG}镜像...${NC}"
     docker pull ghcr.io/fev125/dstatus:${VERSION_TAG}
-    
+
     # 启动新容器
     echo -e "${BLUE}启动新容器...${NC}"
     docker run -d \
@@ -221,17 +209,17 @@ update_dstatus() {
         -e NODE_ENV=production \
         -v /opt/dstatus/data:/app/data \
         ghcr.io/fev125/dstatus:${VERSION_TAG}
-    
+
     # 检查容器是否成功启动
     if [ $? -eq 0 ] && docker ps | grep -q dstatus; then
         echo -e "${GREEN}DStatus 更新成功!${NC}"
-        
+
         # 获取IP地址
         IP=$(curl -s -m 5 https://api.ipify.org || echo "")
         if [ -z "$IP" ]; then
             IP=$(hostname -I | awk '{print $1}')
         fi
-        
+
         echo ""
         echo -e "${PURPLE}==============================================${NC}"
         echo -e "${GREEN}DStatus 已成功更新至${VERSION_TAG}版本并重新启动!${NC}"
@@ -241,7 +229,7 @@ update_dstatus() {
     else
         echo -e "${RED}DStatus 更新失败!${NC}"
         echo -e "${YELLOW}尝试还原之前的容器...${NC}"
-        
+
         # 尝试从之前的镜像恢复
         if [ ! -z "$CURRENT_IMAGE" ]; then
             docker run -d \
@@ -252,7 +240,7 @@ update_dstatus() {
                 -e NODE_ENV=production \
                 -v /opt/dstatus/data:/app/data \
                 $CURRENT_IMAGE
-            
+
             if [ $? -eq 0 ]; then
                 echo -e "${GREEN}已恢复到原版本!${NC}"
             else
@@ -260,7 +248,7 @@ update_dstatus() {
             fi
         fi
     fi
-    
+
     echo ""
     read -p "按Enter键返回主菜单" pause
 }
@@ -270,7 +258,7 @@ view_status() {
     print_banner
     echo -e "${BLUE}DStatus 状态信息:${NC}"
     echo ""
-    
+
     # 检查容器是否存在
     if ! docker ps -a | grep -q dstatus; then
         echo -e "${RED}未发现DStatus容器，请先安装!${NC}"
@@ -278,29 +266,29 @@ view_status() {
         read -p "按Enter键返回主菜单" pause
         return
     fi
-    
+
     # 获取容器状态
     CONTAINER_STATUS=$(docker inspect --format='{{.State.Status}}' dstatus 2>/dev/null)
     CONTAINER_IMAGE=$(docker inspect --format='{{.Config.Image}}' dstatus 2>/dev/null)
     CONTAINER_CREATED=$(docker inspect --format='{{.Created}}' dstatus 2>/dev/null | cut -d'T' -f1)
     CONTAINER_UPTIME=$(docker ps --format "{{.RunningFor}}" --filter "name=dstatus" 2>/dev/null)
-    
+
     # 获取IP地址
     IP=$(curl -s -m 5 https://api.ipify.org || echo "")
     if [ -z "$IP" ]; then
         IP=$(hostname -I | awk '{print $1}')
     fi
-    
+
     echo -e "${CYAN}容器状态: ${CONTAINER_STATUS}${NC}"
     echo -e "${CYAN}镜像版本: ${CONTAINER_IMAGE}${NC}"
     echo -e "${CYAN}创建时间: ${CONTAINER_CREATED}${NC}"
     echo -e "${CYAN}运行时间: ${CONTAINER_UPTIME}${NC}"
     echo -e "${CYAN}访问地址: http://${IP}:5555${NC}"
-    
+
     echo ""
     echo -e "${YELLOW}容器日志 (最近10条):${NC}"
     docker logs --tail 10 dstatus 2>/dev/null
-    
+
     echo ""
     read -p "按Enter键返回主菜单" pause
 }
@@ -311,7 +299,7 @@ uninstall_dstatus() {
     echo -e "${YELLOW}即将卸载DStatus...${NC}"
     echo -e "${RED}警告: 此操作将停止并删除DStatus容器!${NC}"
     echo ""
-    
+
     # 检查容器是否存在
     if ! docker ps -a | grep -q dstatus; then
         echo -e "${RED}未发现DStatus容器，无需卸载!${NC}"
@@ -319,7 +307,7 @@ uninstall_dstatus() {
         read -p "按Enter键返回主菜单" pause
         return
     fi
-    
+
     read -p "是否备份数据? (y/n): " backup
     if [[ $backup =~ ^[Yy]$ ]]; then
         BACKUP_DIR="backup/data_backup_$(date +%Y%m%d_%H%M%S)"
@@ -332,22 +320,22 @@ uninstall_dstatus() {
             echo -e "${YELLOW}未找到数据目录，跳过备份${NC}"
         fi
     fi
-    
+
     echo ""
     read -p "确认要卸载DStatus? (y/n): " confirm
     if [[ $confirm =~ ^[Yy]$ ]]; then
         # 获取当前版本信息
         CURRENT_IMAGE=$(docker inspect --format='{{.Config.Image}}' dstatus 2>/dev/null)
-        
+
         echo -e "${BLUE}停止并删除DStatus容器...${NC}"
         docker stop dstatus 2>/dev/null
         docker rm dstatus 2>/dev/null
-        
+
         echo -e "${BLUE}删除DStatus镜像...${NC}"
         if [ ! -z "$CURRENT_IMAGE" ]; then
             docker rmi $CURRENT_IMAGE 2>/dev/null
         fi
-        
+
         read -p "是否删除全部数据? (y/n): " delete_data
         if [[ $delete_data =~ ^[Yy]$ ]]; then
             echo -e "${RED}删除所有DStatus数据...${NC}"
@@ -356,12 +344,12 @@ uninstall_dstatus() {
         else
             echo -e "${YELLOW}保留数据目录: /opt/dstatus/data${NC}"
         fi
-        
+
         echo -e "${GREEN}DStatus 已成功卸载!${NC}"
     else
         echo -e "${YELLOW}已取消卸载${NC}"
     fi
-    
+
     echo ""
     read -p "按Enter键返回主菜单" pause
 }
@@ -370,7 +358,7 @@ uninstall_dstatus() {
 show_menu() {
     while true; do
         print_banner
-        
+
         # 检查DStatus状态
         if docker ps | grep -q dstatus; then
             STATUS="${GREEN}[运行中]${NC}"
@@ -384,7 +372,7 @@ show_menu() {
             STATUS="${YELLOW}[未安装]${NC}"
             VERSION="N/A"
         fi
-        
+
         echo -e "${YELLOW}DStatus状态: ${STATUS} 版本: ${CYAN}${VERSION}${NC}"
         echo ""
         echo -e "${YELLOW}请选择要执行的操作:${NC}"
@@ -396,7 +384,7 @@ show_menu() {
         echo -e "${BLUE}0. 退出脚本${NC}"
         echo ""
         read -p "请输入选项 [0-5]: " choice
-        
+
         case $choice in
             1)
                 install_docker

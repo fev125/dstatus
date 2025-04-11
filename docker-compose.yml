@@ -8,8 +8,11 @@ services:
     ports:
       - "0.0.0.0:${WEB_PORT:-5555}:5555"      # Web 管理界面端口
     volumes:
-      - /root/dstatus/database:/app/database
+      - /root/dstatus/database:/app/data
       - /root/dstatus/logs:/app/logs
+    # 注意：如果遇到权限问题，请在主机上运行：
+    # mkdir -p /root/dstatus/database /root/dstatus/logs
+    # chmod -R 777 /root/dstatus/database /root/dstatus/logs
     environment:
       - NODE_ENV=production
       - TZ=Asia/Shanghai
@@ -53,3 +56,7 @@ volumes:
       type: none
       o: bind
       device: /root/dstatus/logs
+
+# 初始化命令（首次运行前执行）：
+# mkdir -p /root/dstatus/database /root/dstatus/logs
+# chmod -R 777 /root/dstatus/database /root/dstatus/logs
