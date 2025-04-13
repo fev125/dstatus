@@ -4,7 +4,7 @@
     height: 12px;
     display: inline-block;
     vertical-align: middle;
-    object-fit: cover;
+    object-fit: contain; /* 改为contain以保持SVG比例 */
     border-radius: 2px;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
@@ -18,6 +18,33 @@
 /* 在移动设备上的国旗图片 */
 @media (max-width: 768px) {
     .flag-img {
+        width: 14px;
+        height: 10px;
+    }
+}
+
+/* Material Icons作为国旗图标的样式 */
+.material-icons.md-14 {
+    vertical-align: middle;
+    line-height: 1;
+    display: inline-block;
+    font-size: 14px;
+    width: 16px;
+    height: 12px;
+    text-align: center;
+}
+
+/* 在卡片视图中的Material Icons */
+.card .material-icons.md-14 {
+    font-size: 16px;
+    width: 18px;
+    height: 14px;
+}
+
+/* 在移动设备上的Material Icons */
+@media (max-width: 768px) {
+    .material-icons.md-14 {
+        font-size: 12px;
         width: 14px;
         height: 10px;
     }

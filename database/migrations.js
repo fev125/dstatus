@@ -143,7 +143,7 @@ module.exports = (DB) => {
                 try {
                     // 检查personalization设置是否已存在
                     const currentSetting = DB.prepare("SELECT val FROM setting WHERE key=?").get('personalization');
-                    
+
                     // 如果不存在，则创建初始化结构
                     if (!currentSetting) {
                         const defaultPersonalization = {
@@ -164,18 +164,18 @@ module.exports = (DB) => {
                                 admin: true
                             }
                         };
-                        
+
                         // 存储默认设置
                         DB.prepare("INSERT INTO setting (key, val) VALUES (?, ?)").run(
-                            'personalization', 
+                            'personalization',
                             JSON.stringify(defaultPersonalization)
                         );
-                        
+
                         console.log('已创建默认美化设置');
                     } else {
                         console.log('美化设置已存在，跳过初始化');
                     }
-                    
+
                     return true;
                 } catch (err) {
                     console.error('创建美化设置失败:', err);
@@ -190,11 +190,11 @@ module.exports = (DB) => {
                 try {
                     // 检查现有的personalization设置
                     const currentSetting = DB.prepare("SELECT val FROM setting WHERE key=?").get('personalization');
-                    
+
                     if (currentSetting) {
                         // 解析当前设置
                         let personalization = JSON.parse(currentSetting.val);
-                        
+
                         // 添加主题模式设置（如果不存在）
                         if (!personalization.theme) {
                             personalization.theme = {
@@ -221,7 +221,7 @@ module.exports = (DB) => {
                                 }
                             };
                         }
-                        
+
                         // 添加自定义CSS支持（如果不存在）
                         if (!personalization.customCSS) {
                             personalization.customCSS = {
@@ -229,16 +229,16 @@ module.exports = (DB) => {
                                 code: ""
                             };
                         }
-                        
+
                         // 更新设置
                         DB.prepare("UPDATE setting SET val = ? WHERE key = ?").run(
                             JSON.stringify(personalization),
                             'personalization'
                         );
-                        
+
                         console.log('已更新personalization设置，添加主题模式和自定义CSS支持');
                     }
-                    
+
                     return true;
                 } catch (err) {
                     console.error('添加主题模式和自定义CSS支持失败:', err);
@@ -253,11 +253,11 @@ module.exports = (DB) => {
                 try {
                     // 检查现有的personalization设置
                     const currentSetting = DB.prepare("SELECT val FROM setting WHERE key=?").get('personalization');
-                    
+
                     if (currentSetting) {
                         // 解析当前设置
                         let personalization = JSON.parse(currentSetting.val);
-                        
+
                         // 添加SVG背景支持（如果不存在）
                         if (personalization.background && !personalization.background.svg) {
                             personalization.background.svg = {
@@ -266,17 +266,17 @@ module.exports = (DB) => {
                                 colors: ["#3b82f6", "#8b5cf6", "#ec4899"],
                                 opacity: 0.3
                             };
-                            
+
                             // 更新设置
                             DB.prepare("UPDATE setting SET val = ? WHERE key = ?").run(
                                 JSON.stringify(personalization),
                                 'personalization'
                             );
-                            
+
                             console.log('已更新personalization设置，添加SVG背景支持');
                         }
                     }
-                    
+
                     return true;
                 } catch (err) {
                     console.error('添加SVG背景支持失败:', err);
@@ -291,11 +291,11 @@ module.exports = (DB) => {
                 try {
                     // 获取当前设置
                     const currentSetting = DB.prepare("SELECT val FROM setting WHERE key=?").get('personalization');
-                    
+
                     if (currentSetting) {
                         // 解析当前设置
                         let personalization = JSON.parse(currentSetting.val);
-                        
+
                         // 只保留壁纸设置
                         const simplifiedSettings = {
                             wallpaper: {
@@ -305,19 +305,73 @@ module.exports = (DB) => {
                                 fixed: personalization.wallpaper?.fixed || false
                             }
                         };
-                        
+
                         // 更新设置
                         DB.prepare("UPDATE setting SET val = ? WHERE key = ?").run(
                             JSON.stringify(simplifiedSettings),
                             'personalization'
                         );
-                        
+
                         console.log('已简化个性化设置');
                     }
-                    
+
                     return true;
                 } catch (err) {
                     console.error('简化个性化设置失败:', err);
+                    return false;
+                }
+            }
+        },
+        // 位置数据结构迁移
+        {
+            version: 8,
+            name: '统一位置数据结构',
+            up: () => {
+                try {
+                    // 获取所有服务器
+                    const servers = DB.prepare("SELECT sid, data FROM servers").all();
+                    let migratedCount = 0;
+
+                    // 遍历所有服务器
+                    for (const server of servers) {
+                        try {
+                            // 解析服务器数据
+                            const serverData = typeof server.data === 'object' ? server.data : JSON.parse(server.data);
+
+                            // 检查是否有位置信息
+                            if (serverData.location) {
+                                // 检查是否有旧的数据结构
+                                if (serverData.location.country && serverData.location.country.code && !serverData.location.code) {
+                                    // 创建新的数据结构
+                                    const newLocation = {
+                                        code: serverData.location.country.code,
+                                        flag: serverData.location.country.flag,
+                                        country_name: serverData.location.country.name,
+                                        name_zh: serverData.location.country.name_zh,
+                                        auto_detect: serverData.location.country.auto_detect || true,
+                                        manual: serverData.location.country.manual || false,
+                                        updated_at: serverData.location.updated_at || Date.now()
+                                    };
+
+                                    // 更新数据
+                                    serverData.location = newLocation;
+                                    DB.prepare("UPDATE servers SET data = ? WHERE sid = ?").run(
+                                        JSON.stringify(serverData),
+                                        server.sid
+                                    );
+                                    migratedCount++;
+                                }
+                            }
+                        } catch (error) {
+                            console.error(`处理服务器 ${server.sid} 时出错:`, error);
+                            // 单个服务器处理失败不应该影响整个迁移
+                        }
+                    }
+
+                    console.log(`位置数据结构迁移完成: 已迁移 ${migratedCount} 条记录`);
+                    return true;
+                } catch (err) {
+                    console.error('位置数据结构迁移失败:', err);
                     return false;
                 }
             }

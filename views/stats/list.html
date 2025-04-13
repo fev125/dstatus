@@ -7,7 +7,7 @@
     <!-- 仪表盘区域 -->
     {% include "stats/dashboard.html" %}
 
- 
+
 
     <!-- 服务器卡片网格 -->
     <div class="mt-3 relative min-h-[200px] mb-8" id="groups-container">
@@ -23,14 +23,14 @@
               data-download="{{node.stat.net.delta.in if node.stat and node.stat.net else 0}}"
               data-expiration="{{node.expire_time if node.expire_time else 0}}"
               data-region="{% if node.data.location and node.data.location.code %}{{node.data.location.code}}{% elif node.data.location and node.data.location.country and node.data.location.country.code %}{{node.data.location.country.code}}{% else %}UNKNOWN{% endif %}">
-            
+
             <!-- 卡片标题行 -->
             <div class="flex items-center mb-1">
                 <div class="w-1.5 h-1.5 rounded-full flex-shrink-0 {% if node.stat and node.stat != 0 %}bg-green-500{% else %}bg-red-500{% endif %}"
                      id="{{sid}}_status_indicator_title"
                      title="{% if node.stat and node.stat != 0 %}在线{% else %}离线{% endif %}">
                 </div>
-                
+
                 <!-- 国家/地区标志 -->
                 {% if node.data.location and node.data.location.code %}
                     <span class="country-flag text-base flex-shrink-0 ml-1.5 mr-1.5" title="{{node.data.location.code}}">
@@ -38,14 +38,17 @@
                         {% include "stats/flag.html" %}
                     </span>
                 {% else %}
-                    <span class="country-flag text-base flex-shrink-0 ml-1.5 mr-1.5" title="未知位置">🌎</span>
+                    <span class="country-flag text-base flex-shrink-0 ml-1.5 mr-1.5" title="未知位置">
+                        {% set code = "unknown" %}
+                        {% include "stats/flag.html" %}
+                    </span>
                 {% endif %}
-                
+
                 <!-- 服务器名称 -->
                 <h3 class="font-medium truncate text-sm text-gray-200 whitespace-nowrap">
                     <a href="/stats/{{sid}}/" class="hover:text-primary-400">{{node.name}}</a>
                 </h3>
-                
+
                 <!-- 编辑按钮 -->
                 {%if admin%}
                 <a class="text-gray-500 hover:text-gray-300 ml-auto"
@@ -54,7 +57,7 @@
                 </a>
                 {%endif%}
             </div>
-            
+
             <!-- CPU和内存使用率行 -->
             <div class="flex items-center mb-1">
                 <!-- CPU指标和进度条 -->
@@ -66,10 +69,10 @@
                     </span>
                 </div>
                 <div class="h-1 bg-gray-700/50 rounded-full overflow-hidden flex-1 mr-2">
-                    <div id="{{sid}}_CPU_progress" class="h-full bg-blue-500/50 rounded-full" 
+                    <div id="{{sid}}_CPU_progress" class="h-full bg-blue-500/50 rounded-full"
                          data-width="{{(node.stat.cpu.multi * 100)|float|round(1) if node.stat and node.stat.cpu else 0}}"></div>
                 </div>
-                
+
                 <!-- 内存指标和进度条 -->
                 <div class="flex items-center mr-2 text-xs text-gray-400">
                     <i class="material-icons text-xs mr-1">sd_card</i>
@@ -79,11 +82,11 @@
                     </span>
                 </div>
                 <div class="h-1 bg-gray-700/50 rounded-full overflow-hidden flex-1">
-                    <div id="{{sid}}_MEM_progress" class="h-full bg-purple-500/50 rounded-full" 
+                    <div id="{{sid}}_MEM_progress" class="h-full bg-purple-500/50 rounded-full"
                          data-width="{{((node.stat.mem.virtual.used / node.stat.mem.virtual.total) * 100)|float|round(1) if node.stat and node.stat.mem.virtual else 0}}"></div>
                 </div>
             </div>
-            
+
             <!-- 网络数据行 -->
             <div class="flex justify-between mb-1">
                 <!-- 下载速度 -->
@@ -94,7 +97,7 @@
                         0 Kbps
                     </span>
                 </div>
-                
+
                 <!-- 上传速度 -->
                 <div class="flex items-center">
                     <i class="material-icons text-gray-400 text-xs mr-1">arrow_upward</i>
@@ -103,7 +106,7 @@
                         0 Kbps
                     </span>
                 </div>
-                
+
                 <!-- 下载总量 -->
                 <div class="flex items-center">
                     <i class="material-icons text-gray-400 text-xs mr-1">save_alt</i>
@@ -112,7 +115,7 @@
                         0 GB
                     </span>
                 </div>
-                
+
                 <!-- 上传总量 -->
                 <div class="flex items-center">
                     <i class="material-icons text-gray-400 text-xs mr-1">publish</i>
@@ -122,15 +125,15 @@
                     </span>
                 </div>
             </div>
-            
+
             <!-- 到期时间 -->
-            <div class="text-right text-xs text-gray-400 min-h-[1.25rem]" id="{{sid}}_EXPIRE_TIME" 
+            <div class="text-right text-xs text-gray-400 min-h-[1.25rem]" id="{{sid}}_EXPIRE_TIME"
                  data-expire="{{node.expire_time|default(0)}}">
                {{node.expire if node.expire else '- -'}}
             </div>
         </div>
         {% endmacro %}
-        
+
         <!-- 分组视图容器 - 使用flex布局 -->
         <div class="group-view transition-all duration-300 ease-in-out" data-group="all">
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-2">
@@ -139,7 +142,7 @@
                 {% endfor %}
             </div>
         </div>
-        
+
         {% for group in groups %}
         <div class="group-view hidden transition-all duration-300 ease-in-out" data-group="{{group.id}}">
             <div id="card-grid-{{group.id}}" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-2">
@@ -198,7 +201,7 @@
 document.addEventListener('personalization-settings-updated', function(event) {
     const settings = event.detail;
     if (!settings) return;
-    
+
     // 更新所有服务器卡片
     const cards = document.querySelectorAll('.server-card');
     cards.forEach(card => {
@@ -208,7 +211,7 @@ document.addEventListener('personalization-settings-updated', function(event) {
         } else {
             card.classList.remove('has-bg-image');
         }
-        
+
         // 更新模糊效果
         if (settings.blur?.enabled) {
             card.classList.add('blur-enabled');
@@ -233,19 +236,19 @@ document.addEventListener('DOMContentLoaded', function() {
     } catch (e) {
         console.warn('无法读取存储的个性化设置:', e);
     }
-    
+
     // 设置CPU进度条
     document.querySelectorAll('[id$="_CPU_progress"]').forEach(el => {
         const width = el.getAttribute('data-width');
         if (width) el.style.width = width + '%';
     });
-    
+
     // 设置内存进度条
     document.querySelectorAll('[id$="_MEM_progress"]').forEach(el => {
         const width = el.getAttribute('data-width');
         if (width) el.style.width = width + '%';
     });
-    
+
     // 确保footer可见
     const container = document.getElementById('groups-container');
     if (container) {
@@ -256,46 +259,46 @@ document.addEventListener('DOMContentLoaded', function() {
                 container.style.minHeight = activeGroup.scrollHeight + 'px';
             }
         };
-        
+
         // 监听标签切换
         document.querySelectorAll('.tab-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 setTimeout(updateGroupsHeight, 300); // 在过渡效果结束后调整高度
             });
         });
-        
+
         // 初始化时调整高度
         setTimeout(updateGroupsHeight, 100);
     }
-    
+
     // 添加触屏滑动支持
     const serverCards = document.querySelectorAll('.server-card');
-    
+
     serverCards.forEach(card => {
         // 标记是否正在滑动
         let isScrolling = false;
         let startTouchY = 0;
-        
+
         // 触摸开始时记录位置
         card.addEventListener('touchstart', function(e) {
             isScrolling = false;
             startTouchY = e.touches[0].clientY;
             // 不阻止默认行为，允许正常滚动
         }, {passive: true});
-        
+
         // 触摸移动时检测是否为滚动
         card.addEventListener('touchmove', function(e) {
             const touchY = e.touches[0].clientY;
             const deltaY = Math.abs(touchY - startTouchY);
-            
+
             // 如果垂直移动超过10px，认为是在滚动
             if (deltaY > 10) {
                 isScrolling = true;
             }
-            
+
             // 允许事件传播，以便页面可以滚动
         }, {passive: true});
-        
+
         // 触摸结束时，如果不是滚动，则处理点击
         card.addEventListener('touchend', function(e) {
             if (!isScrolling) {

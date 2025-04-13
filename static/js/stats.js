@@ -38,7 +38,7 @@ if (typeof window.currentGroupId === 'undefined') {
 
             // 2. 解析数据
             const message = JSON.parse(event.data);
-            
+
             // 3. 验证消息格式
             if (!message || typeof message !== 'object') {
                 // 无效的消息格式
@@ -46,7 +46,7 @@ if (typeof window.currentGroupId === 'undefined') {
             }
 
             const {type, data, timestamp} = message;
-            
+
             // 4. 处理stats类型消息
             if (type === 'stats') {
                 // 4.1 验证数据结构
@@ -78,11 +78,11 @@ if (typeof window.currentGroupId === 'undefined') {
                 Object.entries(data).forEach(([sid, node]) => {
                     // 检查节点状态
                     const isOnline = node.stat && typeof node.stat === 'object' && !node.stat.offline;
-                    
+
                     // 更新节点计数
                     if (isOnline) {
                         totals.online++;
-                        
+
                         // 确保网络数据存在且有效
                         if (node.stat.net) {
                             // 转换为数字并确保非负
@@ -90,13 +90,13 @@ if (typeof window.currentGroupId === 'undefined') {
                             const deltaOut = Math.max(0, Number(node.stat.net.delta?.out || 0));
                             const totalIn = Math.max(0, Number(node.stat.net.total?.in || 0));
                             const totalOut = Math.max(0, Number(node.stat.net.total?.out || 0));
-                            
+
                             // 累加到总计
                             totals.download += deltaIn;
                             totals.upload += deltaOut;
                             totals.downloadTotal += totalIn;
                             totals.uploadTotal += totalOut;
-                            
+
                             if (window.setting?.debug) {
                                 // 带宽数据处理完成
                             }
@@ -142,9 +142,9 @@ if (typeof window.currentGroupId === 'undefined') {
                 // 在数据更新完成后触发同步事件（新增）
                 setTimeout(() => {
                     const syncEvent = new CustomEvent('statsSyncComplete', {
-                        detail: { 
+                        detail: {
                             timestamp: Date.now(),
-                            nodeCount: Object.keys(data).length 
+                            nodeCount: Object.keys(data).length
                         }
                     });
                     document.dispatchEvent(syncEvent);
@@ -242,11 +242,11 @@ window.strbps = strbps;
  */
 function formatRemainingDays(expireTimestamp) {
     if (!expireTimestamp) return '永久';
-    
+
     const now = Math.floor(Date.now() / 1000);
     const remainingSeconds = expireTimestamp - now;
     const remainingDays = Math.ceil(remainingSeconds / (24 * 60 * 60));
-    
+
     if (remainingDays < 0) {
         return '已过期';
     } else if (remainingDays === 0) {
@@ -320,14 +320,14 @@ if (typeof window.NodeStyleConfig === 'undefined') {
 function getNodeStatus(node) {
     // 隐藏状态优先判断
     if (node.status === 2) return window.NodeStatus.HIDDEN;
-    
+
     // 检查离线状态
     if (node?.stat?.offline) return window.NodeStatus.OFFLINE;
-    
+
     // 最后检查stat对象是否存在
     const isValidStat = node?.stat && typeof node.stat === 'object';
     const status = isValidStat ? window.NodeStatus.ONLINE : window.NodeStatus.OFFLINE;
-    
+
     return status;
 }
 
@@ -378,7 +378,7 @@ function handleSensitiveInfo(card, shouldHide) {
       nameEl.dataset.originalText = nameEl.textContent;
       nameEl.textContent = SENSITIVE_CONFIG.serverName.mask(nameEl.textContent);
     }
-    
+
     // 隐藏信息按钮
     const infoBtn = card.querySelector(SENSITIVE_CONFIG.infoButton.selector);
     if (infoBtn) {
@@ -390,7 +390,7 @@ function handleSensitiveInfo(card, shouldHide) {
     if (nameEl && nameEl.dataset.originalText) {
       nameEl.textContent = nameEl.dataset.originalText;
     }
-    
+
     // 显示信息按钮
     const infoBtn = card.querySelector(SENSITIVE_CONFIG.infoButton.selector);
     if (infoBtn) {
@@ -415,7 +415,7 @@ function updateNodeStats(stats) {
             // 获取节点状态和对应的样式配置
             const status = getNodeStatus(node);
             const styleConfig = NodeStyleConfig[status];
-            
+
             // 更新所有分组中的节点
             const cards = document.querySelectorAll(`.server-card[data-sid="${sid}"]`);
             cards.forEach(card => {
@@ -424,20 +424,20 @@ function updateNodeStats(stats) {
                     card.classList.remove(config.card);
                     card.classList.remove(config.text);
                 });
-                
+
                 // 添加当前状态对应的类
                 if (styleConfig.card !== 'hidden') {
                     card.classList.add(styleConfig.card);
                 }
                 card.style.display = styleConfig.card === 'hidden' ? 'none' : '';
-                
+
                 // 更新文本样式
                 const textElements = card.querySelectorAll('.text-gray-200, .text-gray-400');
                 textElements.forEach(el => {
                     el.classList.remove('text-gray-200', 'text-gray-400');
                     el.classList.add(styleConfig.text);
                 });
-                
+
             updateNodeDisplay(sid, node);
             });
         });
@@ -478,14 +478,14 @@ function updateNodeDisplay(sid, node) {
                 const cpuValue = (node.stat.cpu.multi * 100).toFixed(2);
                 // 更新根元素数据属性
                 card.dataset.cpu = cpuValue;
-                
+
                 // 更新CPU显示和进度条
                 const cpuElements = card.querySelectorAll(`[id$="_CPU"]`);
                 cpuElements.forEach(el => {
                     el.textContent = `${cpuValue}%`;
                     el.dataset.cpu = cpuValue;
                 });
-                
+
                 const cpuProgress = card.querySelector(`[id$="_CPU_progress"]`);
                 if (cpuProgress) {
                     cpuProgress.style.width = `${Math.min(100, Math.max(0, cpuValue))}%`;
@@ -497,14 +497,14 @@ function updateNodeDisplay(sid, node) {
                 const memValue = ((node.stat.mem.virtual.used / node.stat.mem.virtual.total) * 100).toFixed(2);
                 // 更新根元素数据属性
                 card.dataset.memory = memValue;
-                
+
                 // 更新内存显示和进度条
                 const memElements = card.querySelectorAll(`[id$="_MEM"]`);
                 memElements.forEach(el => {
                     el.textContent = `${memValue}%`;
                     el.dataset.memory = memValue;
                 });
-                
+
                 const memProgress = card.querySelector(`[id$="_MEM_progress"]`);
                 if (memProgress) {
                     memProgress.style.width = `${Math.min(100, Math.max(0, memValue))}%`;
@@ -518,14 +518,14 @@ function updateNodeDisplay(sid, node) {
                     // 更新根元素数据属性
                     card.dataset.download = node.stat.net.delta.in;
                     card.dataset.upload = node.stat.net.delta.out;
-                    
+
                     // 更新下载速度显示
                     const netInElements = card.querySelectorAll(`[id$="_NET_IN"]`);
                     netInElements.forEach(el => {
                         el.textContent = strbps(node.stat.net.delta.in * 8);
                         el.dataset.download = node.stat.net.delta.in;
                     });
-                    
+
                     // 更新上传速度显示
                     const netOutElements = card.querySelectorAll(`[id$="_NET_OUT"]`);
                     netOutElements.forEach(el => {
@@ -539,14 +539,14 @@ function updateNodeDisplay(sid, node) {
                     // 更新根元素数据属性
                     card.dataset.totalDownload = node.stat.net.total.in;
                     card.dataset.totalUpload = node.stat.net.total.out;
-                    
+
                     // 更新总下载量显示
                     const netInTotalElements = card.querySelectorAll(`[id$="_NET_IN_TOTAL"]`);
                     netInTotalElements.forEach(el => {
                         el.textContent = strB(node.stat.net.total.in);
                         el.dataset.totalDownload = node.stat.net.total.in;
                     });
-                    
+
                     // 更新总上传量显示
                     const netOutTotalElements = card.querySelectorAll(`[id$="_NET_OUT_TOTAL"]`);
                     netOutTotalElements.forEach(el => {
@@ -560,7 +560,7 @@ function updateNodeDisplay(sid, node) {
         // 更新状态指示器
         const status = getNodeStatus(node);
         card.dataset.status = status; // 添加状态到根元素
-        
+
         const indicators = card.querySelectorAll('[id$="_status_indicator"]');
         indicators.forEach(indicator => {
             // 移除所有可能的状态类
@@ -658,17 +658,17 @@ function resetOfflineNodeDisplay(sid) {
 // 辅助函数: 更新卡片状态
 function updateCardStatus(card, status) {
     const config = NodeStyleConfig[status];
-    
+
     // 更新状态指示器
     const indicator = card.querySelector('[id$="_status_indicator"]');
     if (indicator) {
         // 保持基础样式类，只更新颜色类
         const baseClasses = 'w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full';
         const colorClasses = Object.values(NodeStyleConfig).map(cfg => cfg.indicator);
-        
+
         // 移除所有颜色类
         colorClasses.forEach(cls => indicator.classList.remove(cls));
-        
+
         // 设置新的类
         indicator.className = `${baseClasses} ${config.indicator}`;
         indicator.setAttribute('title', config.title);
@@ -710,8 +710,8 @@ function updateTotalStats(totals) {
         // 2. 确保所有数值有效
         const stats = {
             // 兼容两种格式：直接数字或对象格式
-            nodes: typeof totals.nodes === 'object' ? 
-                  Object.keys(totals.nodes || {}).length : 
+            nodes: typeof totals.nodes === 'object' ?
+                  Object.keys(totals.nodes || {}).length :
                   Math.max(0, Number(totals.nodes) || 0),
             online: Math.max(0, Number(totals.online) || 0),
             offline: Math.max(0, Number(totals.offline) || 0),
@@ -774,12 +774,12 @@ function updateTotalStats(totals) {
         let expiringCount3Days = 0;
         let expiringCount7Days = 0;
         let expiringCount30Days = 0;
-        
+
         // 7. 处理每个节点 - 提取到期时间检查
         Object.entries(totals.nodes || {}).forEach(([sid, node]) => {
             // 跳过非节点数据
             if (!node || typeof node !== 'object' || !node.name) return;
-            
+
             // 检查到期时间
             if (node.expire_time && node.expire_time > now) {
                 // 3天内到期
@@ -787,45 +787,39 @@ function updateTotalStats(totals) {
                     expiringCount3Days++;
                     expiringCount7Days++;
                     expiringCount30Days++;
-                } 
+                }
                 // 7天内到期
                 else if (node.expire_time <= sevenDaysFromNow) {
                     expiringCount7Days++;
                     expiringCount30Days++;
-                } 
+                }
                 // 30天内到期
                 else if (node.expire_time <= thirtyDaysFromNow) {
                     expiringCount30Days++;
                 }
             }
         });
-        
+
         // 8. 新增 - 处理节点地区信息，便于后续筛选
         // 无论是否使用RegionStatsModule，都需要处理节点的regionCode
-        
+
         // 调试日志 - 检查节点数据结构
         // 节点数据结构检查
-        
+
         let regionCount = 0;
         Object.entries(totals.nodes || {}).forEach(([sid, node]) => {
             if (!node || typeof node !== 'object' || !node.name) return;
-            
-            // 将地区信息添加到节点数据上，用于后续筛选
+
+            // 将地区信息添加到节点数据上，用于后续筛选 - 只使用新的数据结构
             if (!node.regionCode) {
-                // 先检查新的数据结构 data.location.code
                 if (node.data?.location?.code) {
                     node.regionCode = node.data.location.code;
-                    regionCount++;
-                }
-                // 兼容旧的数据结构 data.location.country.code
-                else if (node.data?.location?.country?.code) {
-                    node.regionCode = node.data.location.country.code;
                     regionCount++;
                 }
             }
         });
         // 地区信息处理完成
-        
+
         // 9. 更新地区统计 - 尝试使用新模块
         if (window.RegionStatsModule) {
             // 使用新模块处理地区统计
@@ -898,13 +892,13 @@ if (typeof window.StatsController === 'undefined') {
     window.StatsController = {
     // 防抖计时器
     updateTimer: null,
-    
+
     // 最后一次更新时间
     lastUpdateTime: 0,
-    
+
     // 最小更新间隔（毫秒）
     MIN_UPDATE_INTERVAL: 1000,
-    
+
     // 统一的更新函数
     async update() {
         try {
@@ -923,7 +917,7 @@ if (typeof window.StatsController === 'undefined') {
             this.scheduleRetry();
         }
     },
-    
+
     performInitialUpdate() {
         return new Promise(resolve => {
             const listener = () => {
@@ -933,12 +927,12 @@ if (typeof window.StatsController === 'undefined') {
             document.addEventListener('statsSyncComplete', listener);
         });
     },
-    
+
     // 安排重试更新
     scheduleRetry(delay = 3000) {
         setTimeout(() => this.update(), delay);
     },
-    
+
     // 更新节点状态
     updateNodesStatus(stats) {
         const settings = loadSettings();
@@ -949,18 +943,18 @@ if (typeof window.StatsController === 'undefined') {
             totalDownload: 0,
             totalUpload: 0
         };
-        
+
         for (const [sid, node] of Object.entries(stats)) {
             const status = getNodeStatus(node);
             const styleConfig = NodeStyleConfig[status];
             const isOnline = status === NodeStatus.ONLINE;
-            
+
             // 更新所有匹配的服务器卡片
             const serverCards = document.querySelectorAll(`[data-sid="${sid}"]`);
             serverCards.forEach(serverCard => {
                 // 应用敏感信息设置
                 handleSensitiveInfo(serverCard, settings.hideSensitive);
-                
+
                 // 应用离线节点隐藏设置
                 if (settings.hideOffline && status === NodeStatus.OFFLINE) {
                     serverCard.style.display = 'none';
@@ -975,14 +969,14 @@ if (typeof window.StatsController === 'undefined') {
                 }
                 serverCard.style.display = styleConfig.card === 'hidden' ? 'none' : '';
                 }
-                
+
                 // 更新文本元素
                 const textElements = serverCard.querySelectorAll('.text-gray-200, .text-gray-400');
                 textElements.forEach(el => {
                     el.classList.remove('text-gray-200', 'text-gray-400');
                     el.classList.add(styleConfig.text);
                 });
-                
+
                 // 更新节点数据
                 this.updateCardData(serverCard, node, status);
                     updated = true;
@@ -996,11 +990,11 @@ if (typeof window.StatsController === 'undefined') {
                 totalNetStats.totalUpload += node.stat.net.total?.out || 0;
             }
         }
-        
+
         // 更新仪表盘网络数据
         this.updateDashboardNetwork(totalNetStats);
     },
-    
+
     // 更新仪表盘网络数据
     updateDashboardNetwork(netStats) {
         // 更新实时带宽 - 桌面端
@@ -1043,7 +1037,7 @@ if (typeof window.StatsController === 'undefined') {
             totalUploadMobile.textContent = strB(netStats.totalUpload);
         }
     },
-    
+
     // 更新单个卡片的数据
     updateCardData(card, node, status) {
         if (!card || !node) {
@@ -1056,7 +1050,7 @@ if (typeof window.StatsController === 'undefined') {
             // 卡片缺少sid属性
             return;
         }
-        
+
         // 如果节点有地区信息，添加到卡片上用于筛选
         if (node.data?.location?.country?.code) {
             card.dataset.region = node.data.location.country.code;
@@ -1162,16 +1156,16 @@ if (typeof window.StatsController === 'undefined') {
             expireEl.textContent = formatRemainingDays(node.expire_time);
         }
     },
-    
+
     // 防抖更新
     debounceUpdate() {
         if (this.updateTimer) {
             clearTimeout(this.updateTimer);
         }
-        
+
         const now = Date.now();
         const timeSinceLastUpdate = now - this.lastUpdateTime;
-        
+
         if (timeSinceLastUpdate >= this.MIN_UPDATE_INTERVAL) {
             this.update();
         } else {
@@ -1186,22 +1180,22 @@ if (typeof window.StatsController === 'undefined') {
 // 更新统计数据
 async function updateStats() {
   if (StateManager.getState('isUpdating')) return;
-  
+
   try {
     StateManager.setState({ isUpdating: true });
-    
+
     if (typeof StatsController === 'undefined') {
       throw new Error('StatsController not found');
     }
-    
+
     await StatsController.update();
-    
+
     StateManager.setState({
       lastUpdateTime: Date.now(),
       updateError: null,
       connectionStatus: 'connected'
     });
-    
+
   } catch (error) {
     console.error('数据更新失败:', error);
     StateManager.setState({
@@ -1224,7 +1218,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
         // 等待 SystemInitializer 完成初始化
         await SystemInitializer.init();
-        
+
         // 继续执行 stats.js 特有的初始化逻辑（如果有）
         if (typeof window.StatsController !== 'undefined') {
             await window.StatsController.update();
@@ -1240,28 +1234,28 @@ document.addEventListener('DOMContentLoaded', async () => {
  */
 function filterByGroup(groupId) {
     // 按分组筛选
-    
+
     // 1. 更新当前分组ID
     currentGroupId = groupId;
-    
+
     // 2. 获取所有服务器卡片
     const allCards = Array.from(document.querySelectorAll('.server-card'));
     // 找到服务器卡片
-    
+
     // 3. 判断是否显示所有卡片
     const showAll = groupId === 'all';
-    
+
     // 4. 筛选卡片
     let matchedCards = 0;
     let unmatchedCards = 0;
-    
+
     allCards.forEach(card => {
         // 获取卡片的分组
         const cardGroup = card.dataset.group;
-        
+
         // 判断是否匹配当前选中的分组
         const isMatched = showAll || cardGroup === groupId;
-        
+
         if (isMatched) {
             matchedCards++;
             // 如果卡片只因为分组筛选而隐藏，则显示它
@@ -1280,9 +1274,9 @@ function filterByGroup(groupId) {
             card.classList.add('hidden-by-group');
         }
     });
-    
+
     // 筛选完成
-    
+
     // 5. 更新Tab状态
     const allTabs = document.querySelectorAll('.group-tab');
     allTabs.forEach(tab => {
@@ -1292,7 +1286,7 @@ function filterByGroup(groupId) {
             tab.classList.remove('active-tab');
         }
     });
-    
+
     // 7. 重新应用当前排序
     if (window.currentSortConfig) {
         applySort(window.currentSortConfig.type, window.currentSortConfig.direction);
@@ -1303,7 +1297,7 @@ function initTabs() {
     // 获取所有tab按钮 - 同时支持.tab-btn和.group-tab类
     const tabButtons = document.querySelectorAll('.tab-btn, .group-tab');
     // 初始化分组标签
-    
+
     // 为每个按钮添加点击事件
     tabButtons.forEach(button => {
         button.addEventListener('click', () => {
@@ -1326,11 +1320,11 @@ function initTabs() {
  */
 function applySort(type, direction) {
     // 执行排序
-    
+
     // 获取所有服务器卡片 - 不再依赖标签页和视图组
     let activeView = null;
     let cards = [];
-    
+
     try {
         // 先尝试获取激活的标签页和视图组
         const activeTab = document.querySelector('.tab-btn.active, .group-tab.active-tab');
@@ -1340,7 +1334,7 @@ function applySort(type, direction) {
             // 注意：现在我们使用筛选而不是视图组
             // activeView = document.querySelector(`.group-view[data-group="${activeGroupId}"]`);
         }
-        
+
         // 如果找不到激活的视图组，尝试获取可见的视图组
         if (!activeView) {
             const visibleViews = Array.from(document.querySelectorAll('.group-view:not([style*="display: none"])'));
@@ -1348,7 +1342,7 @@ function applySort(type, direction) {
                 activeView = visibleViews[0];
             }
         }
-        
+
         // 如果还是找不到，尝试获取第一个视图组
         if (!activeView) {
             const allViews = document.querySelectorAll('.group-view');
@@ -1356,7 +1350,7 @@ function applySort(type, direction) {
                 activeView = allViews[0];
             }
         }
-        
+
         // 如果还是找不到，尝试获取所有卡片
         if (!activeView) {
             cards = Array.from(document.querySelectorAll('.server-card'));
@@ -1366,7 +1360,7 @@ function applySort(type, direction) {
             }
         } else {
             // 从激活的视图组中获取卡片
-            cards = Array.from(activeView.querySelectorAll('.server-card')).filter(card => 
+            cards = Array.from(activeView.querySelectorAll('.server-card')).filter(card =>
                 card.style.display !== 'none'
             );
         }
@@ -1376,7 +1370,7 @@ function applySort(type, direction) {
     }
 
     // 不需要重复获取卡片，因为在上面的try块中已经获取了
-    
+
     // 准备排序卡片
 
     // 保存拖拽相关的属性和事件
@@ -1430,10 +1424,10 @@ function applySort(type, direction) {
     const parseNetworkValue = (text) => {
         const match = text.match(/^([\d.]+)\s*(\w+)$/);
         if (!match) return 0;
-        
+
         const [_, value, unit] = match;
         const numValue = parseFloat(value);
-        
+
         switch(unit.toLowerCase()) {
             case 'bps': return numValue;
             case 'kbps': return numValue * 1000;
@@ -1449,7 +1443,7 @@ function applySort(type, direction) {
         // 获取在线状态
         const isOnlineA = a.querySelector('[id$="_status_indicator"]')?.classList.contains('bg-green-500') || false;
         const isOnlineB = b.querySelector('[id$="_status_indicator"]')?.classList.contains('bg-green-500') || false;
-        
+
         // 如果在线状态不同,在线的排在前面
         if (isOnlineA !== isOnlineB) {
             return isOnlineA ? -1 : 1;
@@ -1479,15 +1473,15 @@ function applySort(type, direction) {
 
     // 获取正确的容器
     let container = null;
-    
+
     if (activeView) {
         // 尝试从激活视图中获取容器
         const groupId = activeView.dataset.group || 'all';
-        container = groupId === 'all' ? 
-            activeView.querySelector('.grid') : 
+        container = groupId === 'all' ?
+            activeView.querySelector('.grid') :
             document.getElementById(`card-grid-${groupId}`);
     }
-    
+
     // 如果还是找不到容器，尝试使用第一个可用的卡片容器
     if (!container) {
         container = document.querySelector('.grid') || document.querySelector('.server-grid');
@@ -1497,7 +1491,7 @@ function applySort(type, direction) {
         // 排序完成,更新DOM
         // 重新排序DOM元素
         cards.forEach(card => container.appendChild(card));
-        
+
         // 恢复拖拽状态
         dragStates.forEach(({element, state}) => {
             if (state.dragData) {
@@ -1533,7 +1527,7 @@ function filterByRegion(regionCode) {
                 card.style.display = '';
             }
         });
-        
+
         // 重置筛选器状态
         document.querySelectorAll('.region-filter').forEach(el => {
             el.classList.remove('active-filter');
@@ -1547,13 +1541,13 @@ function applyCurrentSort() {
         // 检查是否启用了实时排序
         const realtimeSort = document.getElementById('realtime-sort');
         const isRealtimeSortEnabled = realtimeSort ? realtimeSort.checked : window.realtimeSortEnabled;
-        
+
         // 如果没有启用实时排序，则不执行排序
         if (isRealtimeSortEnabled === false) {
             // 实时排序未启用，跳过排序
             return;
         }
-        
+
         const currentSortBtn = document.querySelector('.sort-btn.active');
         if (currentSortBtn) {
             const type = currentSortBtn.dataset.sort;
@@ -1596,21 +1590,21 @@ function updateSortButtonStates(type, direction) {
  */
 function filterByExpiry(days) {
     // 按到期时间筛选
-    
+
     // 重置所有过滤状态
     const resetFilter = !days;
-    
+
     // 记录当前激活的筛选器
     window.activeExpiryFilter = resetFilter ? null : days;
-    
+
     // 计算到期时间范围
     const now = Math.floor(Date.now() / 1000);
     const expiryLimit = now + (days * 24 * 60 * 60);
-    
+
     // 获取所有服务器卡片
     let allCards = Array.from(document.querySelectorAll('.server-card'));
     // 找到服务器卡片
-    
+
     if (resetFilter) {
         // 重置所有卡片显示状态
         allCards.forEach(card => {
@@ -1620,26 +1614,26 @@ function filterByExpiry(days) {
             // 移除到期筛选标记
             card.classList.remove('hidden-by-expiry');
         });
-        
+
         // 移除所有到期筛选按钮的激活状态
         document.querySelectorAll('.expiry-filter').forEach(el => {
             el.classList.remove('active-filter');
         });
-        
+
         // 重置到期筛选，显示所有卡片
     } else {
         // 设置新的筛选状态
         // 开始按到期时间筛选
-        
+
         // 记录匹配和不匹配的卡片数量
         let matchedCards = 0;
         let unmatchedCards = 0;
-        
+
         allCards.forEach(card => {
             // 获取卡片的到期时间
             // 先尝试从卡片的data-expiration属性获取
             let expiryTime = parseInt(card.dataset.expiration || '0', 10);
-            
+
             // 如果卡片上没有到期时间，则尝试从内部元素获取
             if (!expiryTime) {
                 const expiryElement = card.querySelector('[data-expire]');
@@ -1647,7 +1641,7 @@ function filterByExpiry(days) {
                     expiryTime = parseInt(expiryElement.dataset.expire, 10);
                 }
             }
-            
+
             // 检查是否在指定天数内到期
             if (expiryTime > now && expiryTime <= expiryLimit) {
                 matchedCards++;
@@ -1663,7 +1657,7 @@ function filterByExpiry(days) {
                 card.classList.add('hidden-by-expiry');
             }
         });
-        
+
         // 筛选完成
         // 更新到期筛选按钮样式
         document.querySelectorAll('.expiry-filter').forEach(el => {
@@ -1682,17 +1676,17 @@ function filterByExpiry(days) {
  */
 function filterByStatus(status) {
     // 按状态筛选
-    
+
     // 重置所有过滤状态
     const resetFilter = !status || status === 'ALL';
-    
+
     // 记录当前激活的筛选器
     window.activeStatusFilter = resetFilter ? null : status;
-    
+
     // 获取所有服务器卡片
     let allCards = Array.from(document.querySelectorAll('.server-card'));
     // 找到服务器卡片
-    
+
     if (resetFilter) {
         // 重置所有卡片显示状态
         allCards.forEach(card => {
@@ -1702,32 +1696,32 @@ function filterByStatus(status) {
             // 移除状态筛选标记
             card.classList.remove('hidden-by-status');
         });
-        
+
         // 移除所有状态筛选按钮的激活状态
         document.querySelectorAll('.status-filter').forEach(el => {
             el.classList.remove('active-filter');
         });
-        
+
         // 激活'ALL'按钮
         const allButton = document.querySelector('.status-filter[data-status="ALL"]');
         if (allButton) {
             allButton.classList.add('active-filter');
         }
-        
+
         // 重置状态筛选，显示所有卡片
     } else {
         // 设置新的筛选状态
         // 开始按状态筛选
-        
+
         // 记录匹配和不匹配的卡片数量
         let matchedCards = 0;
         let unmatchedCards = 0;
-        
+
         allCards.forEach(card => {
             // 获取卡片的状态指示器
             const statusIndicator = card.querySelector('[id$="_status_indicator"]');
             let cardStatus = 'UNKNOWN';
-            
+
             if (statusIndicator) {
                 // 根据状态指示器的类名判断卡片状态
                 if (statusIndicator.classList.contains('bg-green-500')) {
@@ -1738,7 +1732,7 @@ function filterByStatus(status) {
                     cardStatus = 'ERROR';
                 }
             }
-            
+
             if (cardStatus === status || (status === 'OFFLINE' && cardStatus === 'ERROR')) {
                 matchedCards++;
                 if (card.style.display === 'none' && !card.classList.contains('hidden-by-region')) {
@@ -1753,7 +1747,7 @@ function filterByStatus(status) {
                 card.classList.add('hidden-by-status');
             }
         });
-        
+
         // 筛选完成
         // 更新状态筛选按钮样式
         document.querySelectorAll('.status-filter').forEach(el => {
@@ -1776,7 +1770,7 @@ function initRegionStats() {
         // 检查当前页面是否需要地区统计功能
         // 只有仪表板页面才需要，定义为存在region-stats元素的页面
         const needRegionStats = document.getElementById('region-stats') || document.getElementById('region-stats-mobile');
-        
+
         if (needRegionStats) {
             // RegionStatsModule未加载，地区统计功能将不可用
         } else {
@@ -1795,29 +1789,29 @@ function initExpiryFilters() {
     // 获取所有到期筛选按钮
     const expiryFilters = document.querySelectorAll('.expiry-filter');
     // 初始化到期筛选按钮
-    
+
     // 为每个到期筛选按钮添加点击事件
     expiryFilters.forEach(filter => {
         filter.addEventListener('click', (event) => {
             // 防止事件冒泡到文档级别
             event.stopPropagation();
-            
+
             const days = parseInt(filter.dataset.days, 10);
             // 点击到期筛选按钮
-            
+
             // 直接应用筛选，不管是否是当前激活的按钮
             // 移除再次点击就取消筛选的逻辑，只有点击其他区域才会取消筛选
             filterByExpiry(days);
         });
     });
-    
+
     // 添加文档级别的点击事件监听器
     document.addEventListener('click', (event) => {
         // 检查是否有激活的到期筛选
         if (window.activeExpiryFilter) {
             // 检查点击的元素是否是到期筛选按钮或其子元素
             const isExpiryFilter = event.target.closest('.expiry-filter');
-            
+
             // 如果不是到期筛选按钮，则取消筛选
             if (!isExpiryFilter) {
                 filterByExpiry(null);
@@ -1833,13 +1827,13 @@ function initStatusFilters() {
     // 获取所有状态筛选按钮
     const statusFilters = document.querySelectorAll('.status-filter');
     // 初始化状态筛选按钮
-    
+
     // 设置默认激活状态为'ALL'
     const allButton = document.querySelector('.status-filter[data-status="ALL"]');
     if (allButton) {
         allButton.classList.add('active-filter');
     }
-    
+
     // 为每个状态筛选按钮添加点击事件
     statusFilters.forEach(filter => {
         filter.addEventListener('click', () => {
@@ -1854,7 +1848,7 @@ function initStatusFilters() {
 function initSortButtons() {
     const sortButtons = document.querySelectorAll('.sort-btn');
     // 初始化排序按钮
-    
+
     // 设置默认排序按钮
     const defaultSortBtn = document.querySelector('[data-sort="default"]');
     if (defaultSortBtn) {
@@ -1862,32 +1856,32 @@ function initSortButtons() {
         defaultSortBtn.dataset.direction = 'desc';
         defaultSortBtn.querySelector('i').textContent = 'expand_more';
         // 已设置默认排序按钮
-        
+
         // 初始化时执行一次默认排序
         applySort('default', 'desc');
     } else {
         // 未找到默认排序按钮
     }
-    
+
     sortButtons.forEach(btn => {
         btn.addEventListener('click', () => {
             const type = btn.dataset.sort;
-            let direction = !btn.classList.contains('active') ? 'desc' : 
+            let direction = !btn.classList.contains('active') ? 'desc' :
                            (btn.dataset.direction === 'asc' ? 'desc' : 'asc');
-            
+
             btn.dataset.direction = direction;
             sortButtons.forEach(b => {
                 b.classList.remove('active');
                 const icon = b.querySelector('i');
                 if (icon) icon.textContent = 'unfold_more';
             });
-            
+
             btn.classList.add('active');
             const icon = btn.querySelector('i');
             if (icon) {
                 icon.textContent = direction === 'asc' ? 'expand_less' : 'expand_more';
             }
-            
+
             applySort(type, direction);
         });
     });
@@ -1925,14 +1919,14 @@ document.addEventListener('DOMContentLoaded', () => {
     initStatusFilters();
     // 初始化到期节点筛选功能
     initExpiryFilters();
-    
+
     // 加载保存的设置
     const settings = loadSettings();
-    
+
     // 设置复选框初始状态
     const sensitiveCheckbox = document.getElementById('show-sensitive');
     const offlineCheckbox = document.getElementById('hide-offline');
-    
+
     if (sensitiveCheckbox) {
         sensitiveCheckbox.checked = settings.hideSensitive;
         sensitiveCheckbox.addEventListener('change', function(e) {
@@ -1941,7 +1935,7 @@ document.addEventListener('DOMContentLoaded', () => {
             window.StatsController.update();
         });
     }
-    
+
     if (offlineCheckbox) {
         offlineCheckbox.checked = settings.hideOffline;
         offlineCheckbox.addEventListener('change', function(e) {
@@ -1950,7 +1944,7 @@ document.addEventListener('DOMContentLoaded', () => {
             window.StatsController.update();
         });
     }
-    
+
     // 应用初始排序
     applyCurrentSort();
 });

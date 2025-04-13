@@ -357,17 +357,14 @@ class IPLocationService {
                     serverData.location = {};
                 }
 
-                // 更新位置信息
+                // 更新位置信息 - 使用新的数据结构
                 serverData.location = {
                     code: locationData.countryCode,
-                    country: {
-                        code: locationData.countryCode,
-                        name: locationData.country,
-                        name_zh: this.getCountryNameZh(locationData.countryCode),
-                        flag: this.getCountryFlag(locationData.countryCode, locationData.flag),
-                        auto_detect: true,
-                        manual: false
-                    },
+                    flag: this.getCountryFlag(locationData.countryCode, locationData.flag),
+                    country_name: locationData.country,
+                    name_zh: this.getCountryNameZh(locationData.countryCode),
+                    auto_detect: true,
+                    manual: false,
                     updated_at: now
                 };
 
@@ -498,35 +495,27 @@ class IPLocationService {
      * @returns {string} 国家旗帜表情
      */
     getCountryFlag(countryCode, flagUrl) {
-        // 如果有旗帜图片URL，优先使用
-        if (flagUrl) {
+        // 如果有国家代码，优先使用本地文件
+        if (countryCode && countryCode !== '--') {
+            // 特殊情况处理
+            if (countryCode === 'UK') {
+                return '/img/flags/GB.SVG'; // 英国使用GB代码
+            } else if (countryCode === 'LO' || countryCode === 'OT' || countryCode === '--') {
+                // 对于特殊代码，返回null表示使用图标字体
+                return null;
+            }
+
+            // 返回本地文件路径（注意扩展名是大写的）
+            return `/img/flags/${countryCode}.SVG`;
+        }
+
+        // 如果没有国家代码但有旗帜图片URL，使用API返回的URL
+        if (flagUrl && flagUrl.startsWith('http')) {
             return flagUrl;
         }
 
-        // 否则使用emoji旗帜
-        const flagMap = {
-            'CN': '🇨🇳',
-            'HK': '🇭🇰',
-            'TW': '🇹🇼',
-            'JP': '🇯🇵',
-            'KR': '🇰🇷',
-            'SG': '🇸🇬',
-            'US': '🇺🇸',
-            'CA': '🇨🇦',
-            'UK': '🇬🇧',
-            'DE': '🇩🇪',
-            'FR': '🇫🇷',
-            'AU': '🇦🇺',
-            'RU': '🇷🇺',
-            'UA': '🇺🇦',
-            'BR': '🇧🇷',
-            'IN': '🇮🇳',
-            'ZA': '🇿🇦',
-            'LO': '🏠',
-            'OT': '🌍'
-        };
-
-        return flagMap[countryCode] || '🌎';
+        // 如果都没有，返回null表示使用图标字体
+        return null;
     }
 
     /**
