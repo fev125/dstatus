@@ -36,7 +36,10 @@ const setting={
 
     get(key){
         const result = P(this._get.get(key));
-        console.log(`获取设置: ${key}`, result ? '成功' : '失败');
+        // 只在设置不存在时输出日志
+        if (!result) {
+            console.log(`获取设置失败: ${key}`);
+        }
         return result;
     },
     _get:DB.prepare("SELECT * FROM setting WHERE key=?"),
@@ -49,7 +52,7 @@ const setting={
     all(){
         var s={};
         for(var {key,val} of this._all.all())s[key]=JSON.parse(val);
-        console.log('获取所有设置', Object.keys(s));
+        // 不输出日志，避免冗余信息
         return s;
     },
     _all:DB.prepare("SELECT * FROM setting"),
@@ -69,7 +72,7 @@ init("telegram", {
     enabled: false,
     token: "",
     chatIds: [],
-    webhook: false,
+    webhook: true,
     webhookPort: 443,
     // 默认使用官方 API 地址
     baseApiUrl: "https://api.telegram.org",

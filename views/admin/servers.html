@@ -7,7 +7,7 @@
 <div class="container mx-auto px-4 flex flex-col md:flex-row gap-6 justify-center" style="padding-top: calc(1.5rem + env(safe-area-inset-top));">
     <!-- 引入侧边栏 -->
     {% include "admin/sidebar.html" %}
-    
+
     <!-- 主内容区域 -->
     <div class="flex-1 md:max-w-4xl bg-slate-900/80 backdrop-blur rounded-lg border border-slate-800/50 p-6">
         <!-- 页面标题 -->
@@ -34,7 +34,7 @@
                 </div>
                 <!-- 操作按钮组 -->
                 <div class="flex items-center gap-2">
-                    <a href="/admin/servers/add" 
+                    <a href="/admin/servers/add"
                        class="flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-white bg-purple-500 hover:bg-purple-600 rounded-md transition-colors">
                         <i class="material-icons text-[18px]">add</i>
                         <span>新增服务器</span>
@@ -146,10 +146,23 @@ async function saveOrder(){
 }
 
 async function init(sid){
+    // 跳转到编辑页面进行安装，这样可以看到详细的安装日志
+    if(confirm('是否前往编辑页面进行安装？那里可以看到详细的安装日志。')) {
+        window.location.href = `/admin/servers/${sid}/#install`;
+        return;
+    }
+
+    // 如果用户选择直接安装，则在当前页面进行
     startloading();
     var res = await postjson(`/admin/servers/${sid}/init`);
     endloading();
-    notice(res.data);
+
+    // 显示结果
+    if(res.status) {
+        notice('安装成功！', 'success');
+    } else {
+        notice(res.data || '安装失败', 'error');
+    }
 }
 
 async function resetTraffic(sid, serverName){
