@@ -209,7 +209,7 @@ h3 .material-icons,
                                     <div class="flex items-center gap-1 text-gray-400 data-icon">
                                         <i class="material-icons">straighten</i>
                                         <span class="text-sm">内存</span>
-                                        <span id="mem-total" class="text-sm text-gray-400"></span>
+                                        <span id="mem-total" class="text-sm text-gray-400">({{strB(node.stat.mem.virtual.total)}})</span>
                                     </div>
                                     <span id="MEM" class="text-sm text-gray-200">{{((node.stat.mem.virtual.used/node.stat.mem.virtual.total)*100).toFixed(1)}}%</span>
                                 </div>
@@ -221,10 +221,16 @@ h3 .material-icons,
                                      class="progress-bar bg-purple-500"
                                      style="width: {{(node.stat.mem.virtual.used/node.stat.mem.virtual.total*100).toFixed(1)}}%;"></div>
                             </div>
+                            <div class="flex justify-between text-xs text-gray-400 mt-1">
+                                <span id="MEM_detail">{{strB(node.stat.mem.virtual.used)}} / {{strB(node.stat.mem.virtual.total)}}</span>
+                            </div>
                             <div class="progress-container">
                                 <div id="SWAP_progress"
                                      class="progress-bar bg-indigo-500"
                                      style="width: {{(node.stat.mem.swap.used/node.stat.mem.swap.total*100).toFixed(1)}}%;"></div>
+                            </div>
+                            <div class="flex justify-between text-xs text-gray-400 mt-1">
+                                <span id="SWAP_detail">{{strB(node.stat.mem.swap.used)}} / {{strB(node.stat.mem.swap.total)}}</span>
                             </div>
                         </div>
                     </div>
