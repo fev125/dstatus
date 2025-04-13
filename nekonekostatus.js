@@ -547,8 +547,11 @@ svr.get('/', (req, res) => {
             theme = 'list';
         }
 
+        // 获取最新设置，确保实时性
+        const currentSettings = svr.locals.setting || db.setting.all();
+
         // 如果还没有主题，使用系统默认主题
-        theme = theme || setting.theme || 'card';
+        theme = theme || currentSettings.theme || 'card';
 
         console.log(`[${new Date().toISOString()}] 主页请求 - 主题:${theme} 管理员:${isAdmin} 移动端:${req.isMobile}`);
 
@@ -558,7 +561,7 @@ svr.get('/', (req, res) => {
             groups: db.groups.getWithCount(),
             theme,
             admin: isAdmin,
-            setting
+            setting: currentSettings // 使用最新设置
         });
     } catch (error) {
         console.error('主页渲染错误:', error);
@@ -607,9 +610,12 @@ svr.post('/admin/change-password', (req, res) => {
 // 设置页面路由
 svr.get('/admin/setting', (req, res) => {
     try {
-        // 获取最新设置
+        // 始终从数据库获取最新设置，确保实时性
         const currentSettings = db.setting.all();
         console.log('[设置] 加载设置页面，当前设置:', currentSettings);
+
+        // 更新svr.locals.setting确保其他页面也能获取最新设置
+        svr.locals.setting = currentSettings;
 
         res.render('admin/setting.html', {
             setting: currentSettings,
@@ -635,7 +641,7 @@ svr.post('/admin/setting', (req, res) => {
         const updatedSettings = {
             ...currentSettings,
             ...Object.fromEntries(
-                Object.entries(data).filter(([key, value]) => value !== undefined)
+                Object.entries(data).filter(([_key, value]) => value !== undefined)
             )
         };
 
@@ -643,10 +649,10 @@ svr.post('/admin/setting', (req, res) => {
         db.setting.set('setting', updatedSettings);
         console.log('[设置] 保存到数据库:', updatedSettings);
 
-        // 更新本地设置
-        svr.locals.setting = updatedSettings;
+        // 重新从数据库加载所有设置，确保最新性
+        svr.locals.setting = db.setting.all();
 
-        console.log('[设置] 保存成功');
+        console.log('[设置] 保存成功，已更新全局设置');
         res.json({ code: 1, msg: 'ok' });
     } catch (err) {
         console.error('[设置] 保存出错:', err);
@@ -743,11 +749,10 @@ svr.post('/admin/personalization', async (req, res) => {
         db.setting.set('personalization', updatedSettings);
         console.log('[设置] 保存到数据库:', updatedSettings);
 
-        // 更新本地设置
-        svr.locals.setting.personalization = updatedSettings;
-        svr.locals.setting = db.setting.all(); // 重新加载所有设置
+        // 重新从数据库加载所有设置，确保最新性
+        svr.locals.setting = db.setting.all();
 
-        console.log('[设置] 保存成功，当前设置:', svr.locals.setting);
+        console.log('[设置] 保存成功，已更新全局设置');
         res.json({ code: 1, msg: 'ok' });
     } catch (error) {
         console.error('[设置] 保存失败:', error);
@@ -758,9 +763,12 @@ svr.post('/admin/personalization', async (req, res) => {
 // 美化设置路由
 svr.get('/admin/personalization', (req, res) => {
     try {
-        // 获取最新设置
+        // 始终从数据库获取最新设置，确保实时性
         const currentSettings = db.setting.all();
         console.log('[设置] 加载个性化设置页面，当前设置:', currentSettings);
+
+        // 更新svr.locals.setting确保其他页面也能获取最新设置
+        svr.locals.setting = currentSettings;
 
         res.render('admin/personalization.html', {
             setting: currentSettings,

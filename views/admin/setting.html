@@ -19,32 +19,32 @@
     .bg-slate-900\/80 {
         @apply bg-blur-card;
     }
-    
+
     /* 确保输入框等控件样式与主题兼容 */
     input, select, textarea {
         @apply bg-slate-800/50 border-slate-700/50;
     }
-    
+
     input:focus, select:focus, textarea:focus {
         @apply border-purple-500/50 ring-2 ring-purple-500/25;
     }
-    
+
     /* 确保SVG图标不受强调色影响 */
     .material-icons {
         color: inherit !important;
     }
-    
+
     /* 正确设置强调色图标 */
     .text-purple-400 .material-icons,
     .text-purple-500 .material-icons {
         color: inherit !important;
     }
-    
+
     /* 侧边栏菜单项图标颜色 */
     #admin-sidebar .material-icons {
         color: var(--color-slate-500) !important;
     }
-    
+
     #admin-sidebar a:hover .material-icons,
     #admin-sidebar a.active .material-icons,
     #admin-sidebar .text-purple-400 .material-icons {
@@ -57,7 +57,7 @@
 // 初始化背景设置
 document.addEventListener('DOMContentLoaded', function() {
     const body = document.body;
-    
+
     // 从localStorage获取背景设置
     try {
         // 尝试从localStorage中获取本地保存的背景设置
@@ -65,13 +65,13 @@ document.addEventListener('DOMContentLoaded', function() {
         if (personalizationSettings) {
             const settings = JSON.parse(personalizationSettings);
             const background = settings.background;
-            
+
             // 如果有背景图片
             if (background && background.type === 'image' && background.url) {
                 body.classList.add('has-background-image');
                 const darkenAmount = background.darken_amount || 60;
                 body.style.backgroundImage = `linear-gradient(rgba(0, 0, 0, ${darkenAmount / 100}), rgba(0, 0, 0, ${darkenAmount / 100})), url("${background.url}")`;
-            } 
+            }
             // 如果是服务器保存的数据
             else {
                 // 尝试从服务器设置中获取
@@ -102,7 +102,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <div class="container mx-auto px-4 flex flex-col md:flex-row gap-6 justify-center" style="padding-top: calc(1.5rem + env(safe-area-inset-top));">
     <!-- 引入侧边栏 -->
     {% include "admin/sidebar.html" %}
-    
+
     <!-- 主内容区域 -->
     <div class="flex-1 md:max-w-4xl bg-slate-900/80 backdrop-blur rounded-lg border border-slate-800/50 p-6">
         <!-- 页面标题 -->
@@ -117,7 +117,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             </div>
         </div>
-        
+
         <textarea id="setting_data" class="hidden">{{setting|dump}}</textarea>
 
         <!-- 所有设置内容 -->
@@ -128,16 +128,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label class="block text-sm font-medium text-slate-400 mb-2">监听端口</label>
-                        <input type="number" 
-                               value="{{setting.listen}}" 
+                        <input type="number"
+                               value="{{setting.listen}}"
                                key="listen"
                                class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-slate-400 mb-2">管理密码</label>
                         <div class="relative">
-                            <input type="password" 
-                                   value="{{setting.password}}" 
+                            <input type="password"
+                                   value="{{setting.password}}"
                                    key="password"
                                    class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
                             <span class="absolute inset-y-0 right-0 flex items-center pr-3 cursor-pointer toggle-password">
@@ -154,15 +154,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div>
                         <label class="block text-sm font-medium text-slate-400 mb-2">站点名称</label>
-                        <input type="text" 
-                               value="{{setting.site.name}}" 
+                        <input type="text"
+                               value="{{setting.site.name}}"
                                key="site.name"
                                class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
                     </div>
                     <div>
                         <label class="block text-sm font-medium text-slate-400 mb-2">站点网址</label>
-                        <input type="text" 
-                               value="{{setting.site.url}}" 
+                        <input type="text"
+                               value="{{setting.site.url}}"
                                key="site.url"
                                class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
                     </div>
@@ -182,8 +182,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 <h4 class="text-base font-medium text-slate-200">客户端设置</h4>
                 <div>
                     <label class="block text-sm font-medium text-slate-400 mb-2">neko-status 下载地址</label>
-                    <input type="text" 
-                           value="{{setting.neko_status_url}}" 
+                    <input type="text"
+                           value="{{setting.neko_status_url}}"
                            key="neko_status_url"
                            placeholder="https://fev125.github.io/dstatus/neko-status"
                            class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
@@ -194,8 +194,8 @@ document.addEventListener('DOMContentLoaded', function() {
             <!-- 调试设置 -->
             <div class="flex items-center space-x-2">
                 <label class="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" 
-                           {%if setting.debug%}checked{%endif%} 
+                    <input type="checkbox"
+                           {%if setting.debug%}checked{%endif%}
                            key="debug"
                            class="sr-only peer">
                     <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-500"></div>
@@ -211,30 +211,30 @@ document.addEventListener('DOMContentLoaded', function() {
                 <!-- 基本设置 -->
                 <div>
                     <label class="block text-sm font-medium text-slate-400 mb-2">Bot Token</label>
-                    <input type="text" 
-                           value="{{setting.telegram.token}}" 
+                    <input type="text"
+                           value="{{setting.telegram.token}}"
                            key="telegram.token"
                            class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-slate-400 mb-2">Chat ID 列表 (用,分割)</label>
-                    <input type="text" 
-                           value="{{setting.telegram.chatIds}}" 
-                           key="telegram.chatIds" 
+                    <input type="text"
+                           value="{{setting.telegram.chatIds}}"
+                           key="telegram.chatIds"
                            isarray=1
                            class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
                 </div>
-                
+
                 <!-- 连接方式选择 -->
                 <div class="col-span-1 md:col-span-2 bg-slate-800/30 p-4 rounded-lg">
                     <label class="block text-sm font-medium text-slate-300 mb-3">连接方式</label>
                     <div class="flex flex-col md:flex-row gap-4">
                         <!-- Webhook方式 -->
                         <label class="flex items-center space-x-3 cursor-pointer">
-                            <input type="radio" 
-                                   name="telegramMode" 
-                                   value="webhook" 
-                                   {%if setting.telegram.webhook%}checked{%endif%} 
+                            <input type="radio"
+                                   name="telegramMode"
+                                   value="webhook"
+                                   {%if setting.telegram.webhook%}checked{%endif%}
                                    key="telegram.webhook"
                                    class="form-radio h-4 w-4 text-purple-500 bg-slate-800 border-slate-600 focus:ring-purple-500">
                             <div>
@@ -242,13 +242,13 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <p class="text-xs text-slate-400">服务器接收推送通知，适合有公网IP的服务器</p>
                             </div>
                         </label>
-                        
+
                         <!-- Polling方式 -->
                         <label class="flex items-center space-x-3 cursor-pointer">
-                            <input type="radio" 
-                                   name="telegramMode" 
-                                   value="polling" 
-                                   {%if not setting.telegram.webhook%}checked{%endif%} 
+                            <input type="radio"
+                                   name="telegramMode"
+                                   value="polling"
+                                   {%if not setting.telegram.webhook%}checked{%endif%}
                                    key="telegram.polling"
                                    class="form-radio h-4 w-4 text-purple-500 bg-slate-800 border-slate-600 focus:ring-purple-500">
                             <div>
@@ -258,31 +258,31 @@ document.addEventListener('DOMContentLoaded', function() {
                         </label>
                     </div>
                 </div>
-                
+
                 <!-- API设置 -->
                 <div class="col-span-1 md:col-span-2">
                     <label class="block text-sm font-medium text-slate-400 mb-2">API基础URL (网络问题时修改)</label>
-                    <input type="text" 
-                           value="{%if setting.telegram.baseApiUrl%}{{setting.telegram.baseApiUrl}}{%else%}https://api.telegram.org{%endif%}" 
+                    <input type="text"
+                           value="{%if setting.telegram.baseApiUrl%}{{setting.telegram.baseApiUrl}}{%else%}https://api.telegram.org{%endif%}"
                            key="telegram.baseApiUrl"
                            placeholder="https://api.telegram.org"
                            class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
                     <p class="text-xs text-slate-500 mt-1">默认使用官方 API，如果无法访问可以使用反向代理地址，例如: https://botapi.ipxxxx.com</p>
                 </div>
-                
+
                 <!-- 启用和测试 -->
                 <div class="flex items-center justify-between col-span-1 md:col-span-2 bg-slate-800/30 p-4 rounded-lg">
                     <div class="flex items-center space-x-3">
                         <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" 
-                                   {%if setting.telegram.enabled%}checked{%endif%} 
+                            <input type="checkbox"
+                                   {%if setting.telegram.enabled%}checked{%endif%}
                                    key="telegram.enabled"
                                    class="sr-only peer">
                             <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-purple-500 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-500"></div>
                         </label>
                         <span class="text-sm font-medium text-slate-300">启用通知</span>
                     </div>
-                    <button onclick="testTelegramNotification()" 
+                    <button onclick="testTelegramNotification()"
                             class="inline-flex items-center px-3 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-900 transition-colors duration-200">
                         <span class="mr-2">
                             <i class="material-icons">notifications</i>
@@ -296,57 +296,57 @@ document.addEventListener('DOMContentLoaded', function() {
                     <label class="block text-sm font-medium text-slate-400 mb-2">通知类型</label>
                     <div class="space-y-2">
                         <div class="flex items-center">
-                            <input type="checkbox" 
-                                   id="server_online_notify" 
-                                   key="telegram.notificationTypes.serverOnline" 
+                            <input type="checkbox"
+                                   id="server_online_notify"
+                                   key="telegram.notificationTypes.serverOnline"
                                    {%if setting.telegram.notificationTypes.serverOnline%}checked{%endif%}
                                    class="w-4 h-4 text-purple-500 bg-slate-800 border-slate-700 rounded focus:ring-purple-500">
                             <label for="server_online_notify" class="ml-2 text-sm text-slate-300">服务器上线通知</label>
                         </div>
                         <div class="flex items-center">
-                            <input type="checkbox" 
-                                   id="server_offline_notify" 
-                                   key="telegram.notificationTypes.serverOffline" 
+                            <input type="checkbox"
+                                   id="server_offline_notify"
+                                   key="telegram.notificationTypes.serverOffline"
                                    {%if setting.telegram.notificationTypes.serverOffline%}checked{%endif%}
                                    class="w-4 h-4 text-purple-500 bg-slate-800 border-slate-700 rounded focus:ring-purple-500">
                             <label for="server_offline_notify" class="ml-2 text-sm text-slate-300">服务器下线通知</label>
                         </div>
                         <div class="flex items-center">
-                            <input type="checkbox" 
-                                   id="traffic_limit_notify" 
-                                   key="telegram.notificationTypes.trafficLimit" 
+                            <input type="checkbox"
+                                   id="traffic_limit_notify"
+                                   key="telegram.notificationTypes.trafficLimit"
                                    {%if setting.telegram.notificationTypes.trafficLimit%}checked{%endif%}
                                    class="w-4 h-4 text-purple-500 bg-slate-800 border-slate-700 rounded focus:ring-purple-500">
                             <label for="traffic_limit_notify" class="ml-2 text-sm text-slate-300">流量超限通知</label>
                         </div>
                         <div class="flex items-center">
-                            <input type="checkbox" 
-                                   id="test_notification" 
-                                   key="telegram.notificationTypes.testNotification" 
+                            <input type="checkbox"
+                                   id="test_notification"
+                                   key="telegram.notificationTypes.testNotification"
                                    {%if setting.telegram.notificationTypes.testNotification%}checked{%endif%}
                                    class="w-4 h-4 text-purple-500 bg-slate-800 border-slate-700 rounded focus:ring-purple-500">
                             <label for="test_notification" class="ml-2 text-sm text-slate-300">测试通知</label>
                         </div>
                         <div class="flex items-center">
-                            <input type="checkbox" 
-                                   id="status_summary_notify" 
-                                   key="telegram.notificationTypes.statusSummary" 
+                            <input type="checkbox"
+                                   id="status_summary_notify"
+                                   key="telegram.notificationTypes.statusSummary"
                                    {%if setting.telegram.notificationTypes.statusSummary%}checked{%endif%}
                                    class="w-4 h-4 text-purple-500 bg-slate-800 border-slate-700 rounded focus:ring-purple-500">
                             <label for="status_summary_notify" class="ml-2 text-sm text-slate-300">状态汇总通知</label>
                         </div>
                         <div class="flex items-center">
-                            <input type="checkbox" 
-                                   id="new_server_discovered_notify" 
-                                   key="telegram.notificationTypes.newServerDiscovered" 
+                            <input type="checkbox"
+                                   id="new_server_discovered_notify"
+                                   key="telegram.notificationTypes.newServerDiscovered"
                                    {%if setting.telegram.notificationTypes.newServerDiscovered%}checked{%endif%}
                                    class="w-4 h-4 text-purple-500 bg-slate-800 border-slate-700 rounded focus:ring-purple-500">
                             <label for="new_server_discovered_notify" class="ml-2 text-sm text-slate-300">新服务器发现通知</label>
                         </div>
                         <div class="flex items-center">
-                            <input type="checkbox" 
-                                   id="server_approved_notify" 
-                                   key="telegram.notificationTypes.serverApproved" 
+                            <input type="checkbox"
+                                   id="server_approved_notify"
+                                   key="telegram.notificationTypes.serverApproved"
                                    {%if setting.telegram.notificationTypes.serverApproved%}checked{%endif%}
                                    class="w-4 h-4 text-purple-500 bg-slate-800 border-slate-700 rounded focus:ring-purple-500">
                             <label for="server_approved_notify" class="ml-2 text-sm text-slate-300">服务器批准通知</label>
@@ -360,15 +360,15 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="bg-slate-800/50 backdrop-blur rounded-lg border border-slate-700/50 mt-6 p-4 space-y-4">
             <h4 class="text-base font-medium text-slate-200">数据库管理</h4>
             <div class="flex items-center gap-4">
-                <button onclick="DatabaseManager.downloadBackup()" 
+                <button onclick="DatabaseManager.downloadBackup()"
                         class="inline-flex items-center px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-900">
                     <span class="mr-2">
                         <i class="material-icons">download</i>
                     </span>
                     下载数据库备份
                 </button>
-                
-                <button onclick="DatabaseManager.startRestore()" 
+
+                <button onclick="DatabaseManager.startRestore()"
                         class="inline-flex items-center px-4 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:ring-offset-2 focus:ring-offset-slate-900">
                     <span class="mr-2">
                         <i class="material-icons">restore</i>
@@ -378,10 +378,10 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
 
             <!-- 隐藏的文件输入 -->
-            <input type="file" 
-                   id="dbFileInput" 
-                   accept=".db" 
-                   class="hidden" 
+            <input type="file"
+                   id="dbFileInput"
+                   accept=".db"
+                   class="hidden"
                    onchange="DatabaseManager.handleFileSelect(this)">
         </div>
 
@@ -437,7 +437,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <div class="text-slate-200 text-sm" id="restartMessage"></div>
                                 </div>
                             </div>
-                            <button onclick="DatabaseManager.closeDialog()" 
+                            <button onclick="DatabaseManager.closeDialog()"
                                     class="w-full px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-md">
                                 关闭
                             </button>
@@ -451,7 +451,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <i class="material-icons text-4xl">error</i>
                             </div>
                             <p class="text-slate-200" id="errorMessage"></p>
-                            <button onclick="DatabaseManager.closeDialog()" 
+                            <button onclick="DatabaseManager.closeDialog()"
                                     class="w-full px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-md">
                                 关闭
                             </button>
@@ -463,7 +463,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         <!-- 保存按钮 -->
         <div class="mt-6 flex justify-end">
-            <button id="saveSettingsButton" onclick="edit()" 
+            <button id="saveSettingsButton" onclick="edit()"
                     class="inline-flex items-center px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 focus:ring-offset-slate-900 transition-colors">
                 <i class="material-icons mr-2">save</i>
                 保存设置
@@ -560,9 +560,29 @@ async function edit(){
 
         if(res.code === 1){
             notice('保存成功', 'success');
-            setTimeout(() => {
-                location.reload();
-            }, 1000);
+
+            // 更新页面标题和导航栏标题，无需刷新整个页面
+            if(setting.site && setting.site.name) {
+                // 更新页面标题
+                document.title = setting.site.name + ' - Dstatus';
+
+                // 更新导航栏标题
+                const siteNameElement = document.querySelector('a[href="/"] span.text-lg');
+                if(siteNameElement) {
+                    siteNameElement.textContent = setting.site.name;
+                }
+
+                console.log('已更新页面标题为:', setting.site.name);
+            }
+
+            // 更新设置数据缓存
+            // 将新的设置合并到现有的设置中
+            const currentSettings = JSON.parse(document.getElementById('setting_data').textContent);
+            const updatedSettings = {...currentSettings, ...setting};
+            document.getElementById('setting_data').textContent = JSON.stringify(updatedSettings);
+
+            // 隐藏加载动画
+            if (spinner) spinner.classList.add('hidden');
         } else {
             notice(res.msg || '保存失败', 'error');
             if (spinner) spinner.classList.add('hidden');
@@ -593,7 +613,7 @@ async function testTelegramNotification() {
             },
             body: JSON.stringify({telegram: setting.telegram})
         });
-        
+
         // 检查HTTP状态
         if (response.ok) {
             notice('测试通知已发送', 'success');
@@ -615,7 +635,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const input = this.parentElement.querySelector('input');
             const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
             input.setAttribute('type', type);
-            
+
             // 切换图标
             const icon = this.querySelector('i');
             icon.textContent = type === 'password' ? 'visibility' : 'visibility_off';
