@@ -10,7 +10,7 @@ CYAN='\033[0;36m'
 NC='\033[0m' # 恢复默认颜色
 
 # 版本信息
-VERSION="1.1.0"
+VERSION="1.2.0"
 
 # 打印横幅
 print_banner() {
@@ -142,6 +142,20 @@ select_dstatus_version() {
 
     # 始终使用稳定版本
     VERSION_TAG="latest"
+
+    # 检查远程镜像是否可用
+    echo -e "${BLUE}检查远程镜像是否可用...${NC}"
+    if ! docker pull --quiet ghcr.io/fev125/dstatus:${VERSION_TAG} &>/dev/null; then
+        echo -e "${RED}警告: 无法连接到Docker镜像仓库或镜像不存在${NC}"
+        echo -e "${YELLOW}请检查您的网络连接或稍后再试${NC}"
+        read -p "是否继续? (y/n): " continue_choice
+        if [[ ! $continue_choice =~ ^[Yy]$ ]]; then
+            return 1
+        fi
+    else
+        echo -e "${GREEN}镜像可用，继续安装...${NC}"
+    fi
+
     return 0
 }
 
@@ -180,6 +194,10 @@ install_dstatus() {
     # 拉取镜像并启动容器
     echo -e "${BLUE}强制拉取最新的${VERSION_TAG}镜像并启动容器...${NC}"
     docker pull --no-cache ghcr.io/fev125/dstatus:${VERSION_TAG}
+
+    # 确保获取最新镜像
+    echo -e "${BLUE}清理可能的旧镜像缓存...${NC}"
+    docker image prune -f
 
     docker run -d \
         --name dstatus \
@@ -267,6 +285,14 @@ update_dstatus() {
 
     # 拉取最新镜像
     echo -e "${BLUE}强制拉取最新的${VERSION_TAG}镜像...${NC}"
+    docker pull --no-cache ghcr.io/fev125/dstatus:${VERSION_TAG}
+
+    # 清理旧镜像和缓存
+    echo -e "${BLUE}清理旧镜像和缓存...${NC}"
+    docker image prune -f
+
+    # 再次拉取以确保获取最新版本
+    echo -e "${BLUE}再次拉取以确保获取最新版本...${NC}"
     docker pull --no-cache ghcr.io/fev125/dstatus:${VERSION_TAG}
 
     # 启动新容器
