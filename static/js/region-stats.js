@@ -14,16 +14,16 @@ window.RegionStatsModule = {
             mobileRegionStats: document.getElementById('region-stats-mobile')
         };
     },
-    
+
     // 元素缓存
     elements: null,
-    
+
     // 当前的地区统计数据
     regionData: new Map(),
-    
+
     // 当前激活的筛选器
     activeFilter: null,
-    
+
     /**
      * 初始化地区统计模块
      */
@@ -32,7 +32,7 @@ window.RegionStatsModule = {
         this.setupEventListeners();
         console.debug('地区统计模块已初始化');
     },
-    
+
     /**
      * 初始化样式
      */
@@ -52,7 +52,7 @@ window.RegionStatsModule = {
         `;
         document.head.appendChild(style);
     },
-    
+
     /**
      * 设置事件监听器
      */
@@ -72,7 +72,7 @@ window.RegionStatsModule = {
             });
         });
     },
-    
+
     /**
      * 从节点数据中收集地区统计信息
      * @param {Object} nodesData - 节点数据
@@ -83,52 +83,55 @@ window.RegionStatsModule = {
         let processedNodes = 0;
         let onlineNodes = 0;
         let nodesWithRegion = 0;
-        
+
         // 处理每个节点
         Object.entries(nodesData || {}).forEach(([sid, node]) => {
             processedNodes++;
             // 跳过非节点数据
             if (!node || typeof node !== 'object' || !node.name) return;
-            
+
             // 统计地区分布(仅统计在线节点)
             const isOnline = node.stat && typeof node.stat === 'object' && !node.stat.offline;
             if (isOnline) {
                 onlineNodes++;
-                
-                // 检查地区信息 - 新的数据结构 data.location.code
+
+                // 检查地区信息 - 只使用新的数据结构 data.location.code
                 if (node.data?.location?.code) {
                     nodesWithRegion++;
                     const key = node.data.location.code;
-                    
+
                     // 根据国家代码获取国家名称
-                    let countryName = '未知国家';
-                    let countryFlag = '🏳️';
-                    
+                    let countryName = node.data.location.country_name || node.data.location.name_zh || '未知国家';
+                    let countryFlag = node.data.location.flag || '/img/flags/unknown.png';
+
                     // 常见国家代码映射
                     const countryMap = {
-                        'CN': { name: '中国', flag: '🇨🇳' },
-                        'US': { name: '美国', flag: '🇺🇸' },
-                        'JP': { name: '日本', flag: '🇯🇵' },
-                        'KR': { name: '韩国', flag: '🇰🇷' },
-                        'SG': { name: '新加坡', flag: '🇸🇬' },
-                        'HK': { name: '香港', flag: '🇭🇰' },
-                        'TW': { name: '台湾', flag: '🇹🇼' },
-                        'GB': { name: '英国', flag: '🇬🇧' },
-                        'DE': { name: '德国', flag: '🇩🇪' },
-                        'FR': { name: '法国', flag: '🇫🇷' },
-                        'RU': { name: '俄罗斯', flag: '🇷🇺' },
-                        'CA': { name: '加拿大', flag: '🇨🇦' },
-                        'AU': { name: '澳大利亚', flag: '🇦🇺' },
-                        'IN': { name: '印度', flag: '🇮🇳' },
-                        'BR': { name: '巴西', flag: '🇧🇷' },
-                        'CL': { name: '智利', flag: '🇨🇱' }
+                        'CN': { name: '中国', flag: '/img/flags/CN.SVG' },
+                        'US': { name: '美国', flag: '/img/flags/US.SVG' },
+                        'JP': { name: '日本', flag: '/img/flags/JP.SVG' },
+                        'KR': { name: '韩国', flag: '/img/flags/KR.SVG' },
+                        'SG': { name: '新加坡', flag: '/img/flags/SG.SVG' },
+                        'HK': { name: '香港', flag: '/img/flags/HK.SVG' },
+                        'TW': { name: '台湾', flag: '/img/flags/TW.SVG' },
+                        'GB': { name: '英国', flag: '/img/flags/GB.SVG' },
+                        'UK': { name: '英国', flag: '/img/flags/GB.SVG' },
+                        'DE': { name: '德国', flag: '/img/flags/DE.SVG' },
+                        'FR': { name: '法国', flag: '/img/flags/FR.SVG' },
+                        'RU': { name: '俄罗斯', flag: '/img/flags/RU.SVG' },
+                        'CA': { name: '加拿大', flag: '/img/flags/CA.SVG' },
+                        'AU': { name: '澳大利亚', flag: '/img/flags/AU.SVG' },
+                        'IN': { name: '印度', flag: '/img/flags/IN.SVG' },
+                        'BR': { name: '巴西', flag: '/img/flags/BR.SVG' },
+                        'CL': { name: '智利', flag: '/img/flags/CL.SVG' },
+                        'LO': { name: '本地网络', flag: null },
+                        'OT': { name: '其他网络', flag: null }
                     };
-                    
+
                     if (countryMap[key]) {
                         countryName = countryMap[key].name;
                         countryFlag = countryMap[key].flag;
                     }
-                    
+
                     if (!regionStats.has(key)) {
                         regionStats.set(key, {
                             code: key,
@@ -138,27 +141,7 @@ window.RegionStatsModule = {
                         });
                     }
                     regionStats.get(key).count++;
-                    
-                    // 将地区信息添加到节点数据上，用于后续筛选
-                    if (!node.regionCode) {
-                        node.regionCode = key;
-                    }
-                }
-                // 兼容旧的数据结构 data.location.country
-                else if (node.data?.location?.country?.code) {
-                    nodesWithRegion++;
-                    const country = node.data.location.country;
-                    const key = country.code;
-                    if (!regionStats.has(key)) {
-                        regionStats.set(key, {
-                            code: key,
-                            name: country.name_zh || country.name,
-                            flag: country.flag || '🏳️',
-                            count: 0
-                        });
-                    }
-                    regionStats.get(key).count++;
-                    
+
                     // 将地区信息添加到节点数据上，用于后续筛选
                     if (!node.regionCode) {
                         node.regionCode = key;
@@ -175,15 +158,10 @@ window.RegionStatsModule = {
                         });
                     }
                     regionStats.get(key).count++;
-                    
-                    // 添加默认地区码
-                    if (!node.regionCode) {
-                        node.regionCode = key;
-                    }
                 }
             }
         });
-        
+
         console.debug('地区统计收集结果:', {
             处理节点数: processedNodes,
             在线节点数: onlineNodes,
@@ -191,11 +169,11 @@ window.RegionStatsModule = {
             地区统计数: regionStats.size,
             地区列表: Array.from(regionStats.keys())
         });
-        
+
         this.regionData = regionStats;
         return regionStats;
     },
-    
+
     /**
      * 获取排序后的前N个地区统计
      * @param {number} limit - 限制返回数量
@@ -206,24 +184,37 @@ window.RegionStatsModule = {
             .sort((a, b) => b.count - a.count)
             .slice(0, limit);
     },
-    
+
     /**
      * 更新DOM中的地区统计显示
      * @param {Array} topRegions - 排序后的地区统计数组
      */
     updateRegionStatsDisplay(topRegions) {
+        // 创建国旗HTML
+        const createFlagHtml = (region) => {
+            if (region.flag) {
+                return `<img src="${region.flag}" alt="${region.code}" class="flag-img" title="${region.code}">`;
+            } else if (region.code === 'LO') {
+                return `<i class="material-icons md-14" title="本地网络">home</i>`;
+            } else if (region.code === 'OT') {
+                return `<i class="material-icons md-14" title="其他网络">public</i>`;
+            } else {
+                return `<i class="material-icons md-14" title="未知国家">help_outline</i>`;
+            }
+        };
+
         // 更新桌面版地区统计
         if (this.elements.desktopRegionStats) {
             this.elements.desktopRegionStats.innerHTML = topRegions.map(region => `
                 <div class="w-[65px] flex items-center justify-between bg-slate-800 rounded-full px-2 py-1 hover:bg-slate-700 cursor-pointer region-filter" data-region="${region.code}" title="点击查看${region.name}的服务器">
                     <div class="flex items-center min-w-0">
-                        <span class="text-sm mr-1">${region.flag}</span>
+                        <span class="text-sm mr-1">${createFlagHtml(region)}</span>
                         <span class="text-xs font-medium">${region.code}</span>
                         <span class="text-xs font-bold ml-1">${region.count}</span>
                     </div>
                 </div>
             `).join('');
-            
+
             // 添加点击事件处理
             Array.from(this.elements.desktopRegionStats.querySelectorAll('.region-filter')).forEach(el => {
                 el.addEventListener('click', () => {
@@ -232,19 +223,19 @@ window.RegionStatsModule = {
                 });
             });
         }
-        
+
         // 更新移动版地区统计
         if (this.elements.mobileRegionStats) {
             this.elements.mobileRegionStats.innerHTML = topRegions.map(region => `
                 <div class="w-[60px] flex items-center justify-between bg-slate-800 rounded-full px-1.5 py-0.5 hover:bg-slate-700 cursor-pointer region-filter" data-region="${region.code}" title="点击查看${region.name}的服务器">
                     <div class="flex items-center min-w-0">
-                        <span class="text-xs mr-0.5">${region.flag}</span>
+                        <span class="text-xs mr-0.5">${createFlagHtml(region)}</span>
                         <span class="text-[8px] font-medium">${region.code}</span>
                         <span class="text-[8px] font-bold ml-0.5">${region.count}</span>
                     </div>
                 </div>
             `).join('');
-            
+
             // 添加点击事件处理
             Array.from(this.elements.mobileRegionStats.querySelectorAll('.region-filter')).forEach(el => {
                 el.addEventListener('click', () => {
@@ -253,24 +244,36 @@ window.RegionStatsModule = {
                 });
             });
         }
+
+        // 添加错误处理
+        document.querySelectorAll('.flag-img').forEach(img => {
+            img.onerror = function() {
+                this.style.display = 'none';
+                const icon = document.createElement('i');
+                icon.className = 'material-icons md-14';
+                icon.title = 'Flag loading failed';
+                icon.textContent = 'help_outline';
+                this.parentNode.appendChild(icon);
+            };
+        });
     },
-    
+
     /**
      * 根据地区代码筛选服务器卡片
      * @param {string} regionCode - 地区代码
      */
     filterByRegion(regionCode) {
         console.debug('按地区筛选:', regionCode);
-        
+
         // 重置所有过滤状态
         const resetFilter = !regionCode || regionCode === 'ALL';
-        
+
         // 记录当前激活的筛选器
         this.activeFilter = resetFilter ? null : regionCode;
-        
+
         // 获取所有服务器卡片 - 不再依赖标签页和视图组
         let allCards = [];
-        
+
         try {
             // 先尝试获取激活的标签页和视图组
             const activeTab = document.querySelector('.tab-btn.active');
@@ -282,7 +285,7 @@ window.RegionStatsModule = {
                     console.debug(`从激活视图组 ${activeGroupId} 中找到 ${allCards.length} 个卡片`);
                 }
             }
-            
+
             // 如果没有找到卡片，尝试从所有可见的卡片中获取
             if (allCards.length === 0) {
                 const visibleViews = Array.from(document.querySelectorAll('.group-view:not([style*="display: none"]'));
@@ -294,13 +297,13 @@ window.RegionStatsModule = {
                     console.debug(`从可见视图组中找到 ${allCards.length} 个卡片`);
                 }
             }
-            
+
             // 如果还是没有找到卡片，尝试获取所有卡片
             if (allCards.length === 0) {
                 allCards = Array.from(document.querySelectorAll('.server-card'));
                 console.debug(`从所有元素中找到 ${allCards.length} 个卡片`);
             }
-            
+
             // 如果还是没有找到卡片，返回错误
             if (allCards.length === 0) {
                 console.warn('未找到任何服务器卡片');
@@ -310,7 +313,7 @@ window.RegionStatsModule = {
             console.error('获取服务器卡片时出错:', error);
             return;
         }
-        
+
         if (resetFilter) {
             // 重置所有卡片显示状态
             allCards.forEach(card => {
@@ -320,33 +323,33 @@ window.RegionStatsModule = {
                 // 移除地区筛选标记
                 card.classList.remove('hidden-by-region');
             });
-            
+
             // 移除所有地区筛选状态样式
             document.querySelectorAll('.region-filter').forEach(el => {
                 el.classList.remove('active-filter');
             });
-            
+
             this.activeFilter = null;
             console.debug('重置地区筛选，显示所有卡片');
         } else {
             // 设置新的筛选状态
             console.debug(`开始按地区代码 ${regionCode} 筛选 ${allCards.length} 个卡片`);
-            
+
             // 记录匹配和不匹配的卡片数量
             let matchedCards = 0;
             let unmatchedCards = 0;
             let missingRegionCards = 0;
-            
+
             allCards.forEach(card => {
                 // 根据地区属性筛选卡片
                 const cardRegion = card.dataset.region;
-                
+
                 // 记录卡片的地区信息
                 if (!cardRegion) {
                     console.debug(`卡片 ${card.dataset.sid} 没有地区信息`);
                     missingRegionCards++;
                 }
-                
+
                 if (cardRegion === regionCode) {
                     matchedCards++;
                     if (card.style.display === 'none' && !card.classList.contains('hidden-by-status')) {
@@ -361,9 +364,9 @@ window.RegionStatsModule = {
                     card.classList.add('hidden-by-region');
                 }
             });
-            
+
             console.debug(`筛选结果: 匹配 ${matchedCards} 个卡片, 不匹配 ${unmatchedCards} 个卡片, 缺失地区信息 ${missingRegionCards} 个卡片`);
-            
+
             // 更新地区筛选按钮样式
             document.querySelectorAll('.region-filter').forEach(el => {
                 if (el.dataset.region === regionCode) {
@@ -372,11 +375,11 @@ window.RegionStatsModule = {
                     el.classList.remove('active-filter');
                 }
             });
-            
+
             this.activeFilter = regionCode;
             console.debug(`应用地区筛选: ${regionCode}`);
         }
-        
+
         // 应用当前排序
         // 兼容stats.js中的applyCurrentSort和applySort函数
         if (window.applyCurrentSort && typeof window.applyCurrentSort === 'function') {
@@ -388,14 +391,14 @@ window.RegionStatsModule = {
             }
         }
     },
-    
+
     /**
      * 重置地区筛选
      */
     resetFilter() {
         this.filterByRegion('ALL');
     },
-    
+
     /**
      * 更新地区统计
      * @param {Object} nodesData - 节点数据
@@ -404,30 +407,30 @@ window.RegionStatsModule = {
         try {
             // 每次更新时重新获取DOM元素
             this.elements = this.getElements();
-            
+
             // 检查DOM元素是否存在
             if (!this.elements.desktopRegionStats && !this.elements.mobileRegionStats) {
                 console.debug('未找到地区统计DOM元素，跳过更新');
                 return;
             }
-            
+
             // 收集地区统计数据
             this.collectRegionStats(nodesData);
-            
+
             if (this.regionData.size === 0) {
                 console.debug('无地区数据可显示');
                 return;
             }
-            
+
             // 获取并显示前9个地区
             const topRegions = this.getTopRegions(9);
             this.updateRegionStatsDisplay(topRegions);
-            
+
             // 如果有激活的筛选，重新应用
             if (this.activeFilter) {
                 this.filterByRegion(this.activeFilter);
             }
-            
+
             console.debug('地区统计已更新', topRegions.length, '个地区');
         } catch (error) {
             console.error('地区统计更新失败:', error);
