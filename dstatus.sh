@@ -10,7 +10,8 @@ CYAN='\033[0;36m'
 NC='\033[0m' # 恢复默认颜色
 
 # 版本信息
-VERSION="1.2.0"
+VERSION="1.2.1"
+
 
 # 打印横幅
 print_banner() {
