@@ -10,7 +10,7 @@ CYAN='\033[0;36m'
 NC='\033[0m' # 恢复默认颜色
 
 # 版本信息
-VERSION="1.2.1"
+VERSION="1.3.0"
 
 
 # 打印横幅
@@ -185,6 +185,25 @@ install_dstatus() {
         return
     fi
 
+    # 设置端口
+    DEFAULT_PORT=5555
+    read -p "请输入外部端口号 [默认: ${DEFAULT_PORT}]: " PORT
+    PORT=${PORT:-${DEFAULT_PORT}}
+
+    # 验证端口是否为数字
+    if ! [[ "$PORT" =~ ^[0-9]+$ ]]; then
+        echo -e "${YELLOW}端口必须为数字，使用默认端口 ${DEFAULT_PORT}${NC}"
+        PORT=${DEFAULT_PORT}
+    fi
+
+    # 验证端口范围
+    if [ "$PORT" -lt 1 ] || [ "$PORT" -gt 65535 ]; then
+        echo -e "${YELLOW}端口必须在 1-65535 范围内，使用默认端口 ${DEFAULT_PORT}${NC}"
+        PORT=${DEFAULT_PORT}
+    fi
+
+    echo -e "${GREEN}将使用端口: ${PORT}${NC}"
+
     # 检查容器是否已存在
     if docker ps -a | grep -q dstatus; then
         echo -e "${YELLOW}发现已有DStatus容器，正在移除...${NC}"
@@ -202,7 +221,7 @@ install_dstatus() {
 
     docker run -d \
         --name dstatus \
-        -p 5555:5555 \
+        -p ${PORT}:5555 \
         --restart unless-stopped \
         -e TZ=Asia/Shanghai \
         -e NODE_ENV=production \
@@ -223,14 +242,14 @@ install_dstatus() {
         echo ""
         echo -e "${PURPLE}==============================================${NC}"
         echo -e "${GREEN}DStatus 已成功安装并运行!${NC}"
-        echo -e "${YELLOW}访问地址: http://$IP:5555${NC}"
+        echo -e "${YELLOW}访问地址: http://$IP:${PORT}${NC}"
         echo -e "${YELLOW}默认密码: dstatus${NC}"
         echo -e "${RED}重要: 首次登录后请立即修改默认密码!${NC}"
         echo -e "${PURPLE}==============================================${NC}"
     else
         echo -e "${RED}DStatus 安装失败!${NC}"
         echo -e "${YELLOW}请检查错误信息并重试，或手动运行Docker命令:${NC}"
-        echo "docker run -d --name dstatus -p 5555:5555 --restart unless-stopped -e TZ=Asia/Shanghai -e NODE_ENV=production -v /opt/dstatus/data:/app/data ghcr.io/fev125/dstatus:${VERSION_TAG}"
+        echo "docker run -d --name dstatus -p ${PORT}:5555 --restart unless-stopped -e TZ=Asia/Shanghai -e NODE_ENV=production -v /opt/dstatus/data:/app/data -v /opt/dstatus/logs:/app/logs ghcr.io/fev125/dstatus:${VERSION_TAG}"
     fi
 
     echo ""
@@ -296,15 +315,39 @@ update_dstatus() {
     echo -e "${BLUE}再次拉取以确保获取最新版本...${NC}"
     docker pull --no-cache ghcr.io/fev125/dstatus:${VERSION_TAG}
 
+    # 设置端口
+    DEFAULT_PORT=5555
+
+    # 尝试获取当前容器的端口映射
+    CURRENT_PORT=$(docker inspect --format='{{range $p, $conf := .HostConfig.PortBindings}}{{(index $conf 0).HostPort}}{{end}}' dstatus 2>/dev/null || echo "${DEFAULT_PORT}")
+
+    read -p "请输入外部端口号 [当前: ${CURRENT_PORT}, 默认: ${DEFAULT_PORT}]: " PORT
+    PORT=${PORT:-${CURRENT_PORT}}
+
+    # 验证端口是否为数字
+    if ! [[ "$PORT" =~ ^[0-9]+$ ]]; then
+        echo -e "${YELLOW}端口必须为数字，使用默认端口 ${DEFAULT_PORT}${NC}"
+        PORT=${DEFAULT_PORT}
+    fi
+
+    # 验证端口范围
+    if [ "$PORT" -lt 1 ] || [ "$PORT" -gt 65535 ]; then
+        echo -e "${YELLOW}端口必须在 1-65535 范围内，使用默认端口 ${DEFAULT_PORT}${NC}"
+        PORT=${DEFAULT_PORT}
+    fi
+
+    echo -e "${GREEN}将使用端口: ${PORT}${NC}"
+
     # 启动新容器
     echo -e "${BLUE}启动新容器...${NC}"
     docker run -d \
         --name dstatus \
-        -p 5555:5555 \
+        -p ${PORT}:5555 \
         --restart unless-stopped \
         -e TZ=Asia/Shanghai \
         -e NODE_ENV=production \
         -v /opt/dstatus/data:/app/data \
+        -v /opt/dstatus/logs:/app/logs \
         ghcr.io/fev125/dstatus:${VERSION_TAG}
 
     # 检查容器是否成功启动
@@ -320,7 +363,7 @@ update_dstatus() {
         echo ""
         echo -e "${PURPLE}==============================================${NC}"
         echo -e "${GREEN}DStatus 已成功更新至${VERSION_TAG}版本并重新启动!${NC}"
-        echo -e "${YELLOW}访问地址: http://$IP:5555${NC}"
+        echo -e "${YELLOW}访问地址: http://$IP:${PORT}${NC}"
         echo -e "${CYAN}数据备份位置: /opt/dstatus/${BACKUP_DIR}${NC}"
         echo -e "${PURPLE}==============================================${NC}"
     else
@@ -331,11 +374,12 @@ update_dstatus() {
         if [ ! -z "$CURRENT_IMAGE" ]; then
             docker run -d \
                 --name dstatus \
-                -p 5555:5555 \
+                -p ${PORT}:5555 \
                 --restart unless-stopped \
                 -e TZ=Asia/Shanghai \
                 -e NODE_ENV=production \
                 -v /opt/dstatus/data:/app/data \
+                -v /opt/dstatus/logs:/app/logs \
                 $CURRENT_IMAGE
 
             if [ $? -eq 0 ]; then
