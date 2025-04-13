@@ -13,9 +13,19 @@ rt.post("/admin/setting",(req,res)=>{
         // 保存所有设置
         for(var [key,val] of Object.entries(req.body)){
             db.setting.set(key,val);
-            svr.locals.setting[key]=val;
+            // 更新svr.locals.setting
+            if (key === 'site') {
+                // 对于site对象，需要确保不覆盖未修改的属性
+                svr.locals.setting.site = {
+                    ...svr.locals.setting.site,
+                    ...val
+                };
+                console.log('更新站点设置:', svr.locals.setting.site);
+            } else {
+                svr.locals.setting[key] = val;
+            }
         }
-        
+
         // 如果修改了监听端口，需要重启服务器
         if(req.body.listen && req.body.listen !== svr.locals.setting.listen){
             res.json({code: 1, msg: "修改成功，服务器将在1秒后重启"});
@@ -27,6 +37,9 @@ rt.post("/admin/setting",(req,res)=>{
                 });
             }, 1000);
         } else {
+            // 重新加载所有设置，确保svr.locals.setting是最新的
+            svr.locals.setting = db.setting.all();
+            console.log('已重新加载所有设置');
             res.json({code: 1, msg: "修改成功"});
         }
     } catch (error) {

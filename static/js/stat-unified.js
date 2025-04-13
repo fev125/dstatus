@@ -944,10 +944,18 @@
                     const hostnameElem = document.getElementById('system-hostname');
                     const osElem = document.getElementById('system-os');
                     const uptimeElem = document.getElementById('uptime-display');
+                    const memTotalElem = document.getElementById('mem-total');
 
                     if (hostnameElem && stat.host.hostname) {
                         hostnameElem.textContent = stat.host.hostname;
                         console.log('[Debug] 更新主机名:', stat.host.hostname);
+                    }
+
+                    // 更新内存总量显示
+                    if (memTotalElem && stat.mem && stat.mem.virtual && stat.mem.virtual.total) {
+                        const totalMemory = TrafficFormat.formatBytes(stat.mem.virtual.total);
+                        memTotalElem.textContent = `(${totalMemory})`;
+                        console.log('[Debug] 更新内存总量:', totalMemory);
                     }
 
                     if (osElem && stat.host.platform) {
@@ -997,6 +1005,7 @@
                     const memTotalElem = document.getElementById('MEM');
                     const memProgress = document.getElementById('MEM_progress');
                     const memDetail = document.getElementById('MEM_detail');
+                    const memTotalDisplay = document.getElementById('mem-total');
 
                     // 验证并计算内存使用率
                     const memTotal = stat.mem.virtual.total || 0;
@@ -1028,6 +1037,13 @@
                         const totalStr = TrafficFormat.formatBytes(memTotal);
                         memDetail.textContent = `${usedStr} / ${totalStr}`;
                         console.log('[Debug] 更新内存详情:', `${usedStr} / ${totalStr}`);
+                    }
+
+                    // 更新内存总量显示
+                    if (memTotalDisplay) {
+                        const totalStr = TrafficFormat.formatBytes(memTotal);
+                        memTotalDisplay.textContent = `(${totalStr})`;
+                        console.log('[Debug] 更新内存总量显示:', totalStr);
                     }
 
                     // 更新swap使用率

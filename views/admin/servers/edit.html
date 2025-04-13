@@ -363,14 +363,22 @@
 </div>
 
 <!-- 安装进度弹窗 -->
-<div id="install-progress-modal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-    <div class="bg-slate-900 rounded-lg p-6 max-w-md w-full mx-4 border border-slate-800/50">
+<div id="install-progress-modal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50">
+    <div class="flex items-center justify-center h-full w-full">
+    <div class="bg-slate-900 rounded-lg p-6 max-w-xl w-full mx-4 border border-slate-800/50">
         <div class="text-center">
             <div class="animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent mx-auto mb-4"></div>
             <h3 class="text-lg font-medium text-white mb-2">系统安装中</h3>
             <p id="install-status" class="text-sm text-slate-400 mb-4">正在安装系统组件...</p>
+
+            <!-- 安装日志区域 -->
+            <div id="install-log-container" class="mt-4 mb-4 max-h-60 overflow-y-auto text-left">
+                <pre id="install-log" class="text-xs text-slate-300 bg-slate-800/50 p-3 rounded-md whitespace-pre-wrap"></pre>
+            </div>
+
             <div class="text-xs text-slate-500">安装过程可能需要几分钟，请耐心等待</div>
         </div>
+    </div>
     </div>
 </div>
 {% endblock %}
@@ -824,6 +832,7 @@ function showInstallModal(title = '系统安装中', status = '正在安装系�
     if (modal) {
         modal.querySelector('h3').textContent = title;
         document.getElementById('install-status').textContent = status;
+        document.getElementById('install-log').textContent = ''; // 清空日志
         modal.classList.remove('hidden');
     }
 }
@@ -842,6 +851,18 @@ function updateInstallStatus(status) {
     }
 }
 
+function updateInstallLog(log) {
+    const logElement = document.getElementById('install-log');
+    if (logElement) {
+        logElement.textContent = log;
+        // 滚动到日志底部
+        const container = document.getElementById('install-log-container');
+        if (container) {
+            container.scrollTop = container.scrollHeight;
+        }
+    }
+}
+
 // 修改现有的 init 函数
 async function init() {
     if (!confirm('确认重新安装探针？这可能需要几分钟时间。')) {
@@ -853,34 +874,66 @@ async function init() {
         const sid = V('sid');
         const res = await postjson(`/admin/servers/${sid}/init`);
 
+        // 如果有安装日志，显示安装日志
+        if (res.log) {
+            updateInstallLog(res.log);
+        }
+
         if (res.status) {
+            // 更新状态
+            updateInstallStatus('安装成功！');
+
+            // 显示成功通知
             notice('安装成功！', 'success');
+
+            // 延时关闭弹窗，给用户时间查看日志
             setTimeout(() => {
                 hideInstallModal();
-            }, 1000);
+            }, 3000);
         } else {
+            // 更新状态
+            updateInstallStatus('安装失败');
+
+            // 显示错误日志
+            if (res.log) {
+                updateInstallLog(res.log);
+            }
+
+            // 延时关闭弹窗，给用户时间查看错误日志
+            setTimeout(() => {
+                const errorMsg = res.data || '未知错误';
+                const retryInstall = confirm(`探针安装失败: ${errorMsg}\n\n是否重试安装？`);
+
+                hideInstallModal();
+
+                if (retryInstall) {
+                    return init(); // 递归调用重试
+                } else {
+                    notice('探针安装失败', 'error');
+                }
+            }, 3000);
+        }
+    } catch (error) {
+        console.error('安装失败:', error);
+
+        // 更新状态
+        updateInstallStatus('安装过程出错');
+
+        // 显示错误日志
+        updateInstallLog(`错误: ${error.message || '未知错误'}`);
+
+        // 延时关闭弹窗，给用户时间查看错误日志
+        setTimeout(() => {
+            const retryInstall = confirm(`安装过程出错: ${error.message || '未知错误'}\n\n是否重试安装？`);
+
             hideInstallModal();
-            const errorMsg = res.data || '未知错误';
-            const retryInstall = confirm(`探针安装失败: ${errorMsg}\n\n是否重试安装？`);
 
             if (retryInstall) {
                 return init(); // 递归调用重试
             } else {
-                notice('探针安装失败', 'error');
+                notice('探针安装失败: ' + (error.message || '未知错误'), 'error');
             }
-        }
-    } catch (error) {
-        console.error('安装失败:', error);
-        hideInstallModal();
-
-        const retryInstall = confirm(`安装过程出错: ${error.message || '未知错误'}\n\n是否重试安装？`);
-        if (retryInstall) {
-            return init(); // 递归调用重试
-        } else {
-            notice('探针安装失败: ' + (error.message || '未知错误'), 'error');
-        }
-    } finally {
-        hideInstallModal();
+        }, 3000);
     }
 }
 
@@ -1048,6 +1101,18 @@ document.querySelectorAll('.toggle-password').forEach(toggle => {
             icon.textContent = 'visibility';
         }
     });
+});
+
+// 检查URL中的锚点，如果是#install，则自动触发安装
+document.addEventListener('DOMContentLoaded', function() {
+    if (window.location.hash === '#install') {
+        // 延时一下，确保页面已经加载完成
+        setTimeout(() => {
+            init();
+            // 清除锚点，防止刷新页面时再次触发
+            history.replaceState(null, null, window.location.pathname);
+        }, 500);
+    }
 });
 </script>
 {% endblock %}
