@@ -282,14 +282,14 @@
                                 <input type="checkbox"
                                        id="edit_location_manual"
                                        class="sr-only"
-                                       {% if server.data.location.country.manual %}
+                                       {% if server.data.location.manual %}
                                        checked
                                        {% endif %}>
                                 <div onclick="toggleLocationManual()"
                                      class="w-11 h-6 bg-slate-700 rounded-full cursor-pointer transition-colors relative">
                                     <div id="location-manual-toggle"
                                          class="w-5 h-5 rounded-full bg-white absolute left-0.5 top-0.5 transition-transform duration-200 transform
-                                         {% if server.data.location.country.manual %}
+                                         {% if server.data.location.manual %}
                                          translate-x-5 bg-purple-500
                                          {% endif %}">
                                     </div>
@@ -302,7 +302,7 @@
                     <!-- 手动获取位置信息按钮 -->
                     <div>
                         <label class="block text-sm font-medium text-slate-400 mb-2">获取位置信息</label>
-                        <div id="fetch-location-container" class="{% if server.data.location.country.manual %}hidden{% endif %}">
+                        <div id="fetch-location-container" class="{% if server.data.location.manual %}hidden{% endif %}">
                             <button type="button"
                                   id="fetch-location-button"
                                   onclick="fetchLocationInfo()"
@@ -314,30 +314,50 @@
                         </div>
                     </div>
 
-                    <div id="country-select-container" class="{% if not server.data.location.country.manual %}hidden{% endif %}">
+                    <div id="country-select-container" class="{% if not server.data.location.manual %}hidden{% endif %}">
                         <label class="block text-sm font-medium text-slate-400 mb-2">国家/地区</label>
-                        <select id="edit_location_country_code"
-                                class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
-                            <option value="CN" {% if server.data.location.country.code == 'CN' %}selected{% endif %}>中国 (CN)</option>
-                            <option value="HK" {% if server.data.location.country.code == 'HK' %}selected{% endif %}>香港 (HK)</option>
-                            <option value="TW" {% if server.data.location.country.code == 'TW' %}selected{% endif %}>台湾 (TW)</option>
-                            <option value="JP" {% if server.data.location.country.code == 'JP' %}selected{% endif %}>日本 (JP)</option>
-                            <option value="KR" {% if server.data.location.country.code == 'KR' %}selected{% endif %}>韩国 (KR)</option>
-                            <option value="SG" {% if server.data.location.country.code == 'SG' %}selected{% endif %}>新加坡 (SG)</option>
-                            <option value="US" {% if server.data.location.country.code == 'US' %}selected{% endif %}>美国 (US)</option>
-                            <option value="CA" {% if server.data.location.country.code == 'CA' %}selected{% endif %}>加拿大 (CA)</option>
-                            <option value="UK" {% if server.data.location.country.code == 'UK' %}selected{% endif %}>英国 (UK)</option>
-                            <option value="DE" {% if server.data.location.country.code == 'DE' %}selected{% endif %}>德国 (DE)</option>
-                            <option value="FR" {% if server.data.location.country.code == 'FR' %}selected{% endif %}>法国 (FR)</option>
-                            <option value="AU" {% if server.data.location.country.code == 'AU' %}selected{% endif %}>澳大利亚 (AU)</option>
-                            <option value="RU" {% if server.data.location.country.code == 'RU' %}selected{% endif %}>俄罗斯 (RU)</option>
-                            <option value="UA" {% if server.data.location.country.code == 'UA' %}selected{% endif %}>乌克兰 (UA)</option>
-                            <option value="BR" {% if server.data.location.country.code == 'BR' %}selected{% endif %}>巴西 (BR)</option>
-                            <option value="IN" {% if server.data.location.country.code == 'IN' %}selected{% endif %}>印度 (IN)</option>
-                            <option value="ZA" {% if server.data.location.country.code == 'ZA' %}selected{% endif %}>南非 (ZA)</option>
-                            <option value="LO" {% if server.data.location.country.code == 'LO' %}selected{% endif %}>本地网络 (LO)</option>
-                            <option value="OT" {% if server.data.location.country.code == 'OT' or not server.data.location.country.code %}selected{% endif %}>其他地区 (OT)</option>
-                        </select>
+
+                        <!-- 隐藏的选择器，用于存储选中的国家代码 -->
+                        <input type="hidden" id="edit_location_country_code" value="{% if server.data.location.code %}{{ server.data.location.code }}{% else %}OT{% endif %}">
+
+                        <!-- 搜索输入框 -->
+                        <div class="relative mb-2">
+                            <input type="text"
+                                   id="country-search"
+                                   placeholder="输入国家代码或名称搜索..."
+                                   class="w-full px-3 py-2 bg-slate-800/50 border border-slate-700 rounded-md text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                            <div class="absolute inset-y-0 right-0 flex items-center pr-3">
+                                <i class="material-icons text-slate-400">search</i>
+                            </div>
+                        </div>
+
+                        <!-- 当前选中的国家显示 -->
+                        <div id="selected-country" class="flex items-center gap-2 p-2 bg-slate-800 rounded-md mb-2">
+                            <div id="selected-country-flag" class="w-8 h-6 flex-shrink-0 overflow-hidden rounded-sm border border-slate-700"></div>
+                            <div id="selected-country-name" class="text-slate-200 flex-grow"></div>
+                            <div id="selected-country-code" class="text-slate-400 text-sm"></div>
+                        </div>
+
+                        <!-- 国家列表容器 -->
+                        <div id="country-list-container" class="max-h-60 overflow-y-auto bg-slate-800/50 border border-slate-700 rounded-md hidden">
+                            <div id="country-list" class="grid grid-cols-2 gap-1 p-2">
+                                <!-- 国家列表将通过JavaScript动态生成 -->
+                            </div>
+                        </div>
+
+                        <!-- 特殊选项 -->
+                        <div class="flex flex-wrap gap-2 mt-2">
+                            <div class="country-option cursor-pointer flex items-center gap-2 p-2 bg-slate-800 rounded-md hover:bg-slate-700" data-code="LO">
+                                <i class="material-icons text-slate-200">home</i>
+                                <span class="text-slate-200">本地网络</span>
+                                <span class="text-slate-400 text-sm">LO</span>
+                            </div>
+                            <div class="country-option cursor-pointer flex items-center gap-2 p-2 bg-slate-800 rounded-md hover:bg-slate-700" data-code="OT">
+                                <i class="material-icons text-slate-200">public</i>
+                                <span class="text-slate-200">其他地区</span>
+                                <span class="text-slate-400 text-sm">OT</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -709,33 +729,38 @@ async function edit() {
         if (isManualLocation) {
             // 获取选择的国家代码
             const countryCode = V('edit_location_country_code');
-            const countrySelect = document.getElementById('edit_location_country_code');
-            const selectedOption = countrySelect.options[countrySelect.selectedIndex];
 
-            // 获取国家名称和国旗emoji
-            const flagAndName = selectedOption.textContent.trim();
+            // 获取国家名称
+            const countryNameElement = document.getElementById('selected-country-name');
+            const countryName = countryNameElement ? countryNameElement.textContent.trim() : countryCode;
 
-            // 正确提取国旗emoji（国旗emoji通常是两个区域指示符）
-            // 在我们的选项中，国旗是开头的元素，并且从第一个空格前的内容
-            const spaceIndex = flagAndName.indexOf(' ');
-            const flag = spaceIndex > 0 ? flagAndName.substring(0, spaceIndex) : '🌐';
+            // 构造国旗URL（使用本地SVG文件）
+            let flagUrl = null;
+            if (countryCode === 'LO') {
+                // 本地网络使用null，表示使用图标字体
+                flagUrl = null;
+            } else if (countryCode === 'OT') {
+                // 其他网络使用null，表示使用图标字体
+                flagUrl = null;
+            } else if (countryCode === 'UK') {
+                // 英国使用GB代码
+                flagUrl = '/img/flags/GB.SVG';
+            } else {
+                // 其他国家使用国家代码
+                flagUrl = `/img/flags/${countryCode}.SVG`;
+            }
 
-            // 提取国家名称（空格后到括号前的内容）
-            const name = spaceIndex > 0 ? flagAndName.substring(spaceIndex + 1).split(' (')[0] : countryCode;
-
-            // 添加到服务器数据中
+            // 添加到服务器数据中 - 使用新的数据结构
             serverData.location = {
-                country: {
-                    code: countryCode,         // 国家代码，用于显示（如CN, US）
-                    name: name,                // 国家英文名称
-                    name_zh: name,             // 国家中文名称
-                    flag: flag,                // 国旗emoji符号
-                    continent: 'Unknown',      // 大陆信息（可选）
-                    region: 'Unknown',         // 区域信息（可选）
-                    manual: true,              // 标记为手动设置
-                    updated_at: Date.now()     // 更新时间戳
-                }
+                code: countryCode,           // 国家代码，用于显示（如CN, US）
+                flag: flagUrl,               // 国旗URL
+                country_name: countryName,   // 国家名称
+                name_zh: countryName,        // 国家中文名称
+                manual: true,                // 标记为手动设置
+                updated_at: Date.now()        // 更新时间戳
             };
+
+            console.log('位置信息:', serverData.location);
         }
 
         // 构造请求数据
@@ -1114,5 +1139,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 500);
     }
 });
+
+// 引入国家选择器JavaScript文件
+document.write('<script src="/js/country-selector.js"><\/script>');
 </script>
 {% endblock %}
