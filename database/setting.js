@@ -8,7 +8,7 @@ function P(pair){
 }
 const setting={
     ins(key,val){
-        console.log(`正在插入设置: ${key}`, val);
+        console.log(`初始化设置: ${key}`, val);
         this._ins.run(key,S(val));
     },
     _ins:DB.prepare("INSERT INTO setting (key,val) VALUES (?,?)"),
@@ -38,7 +38,7 @@ const setting={
         const result = P(this._get.get(key));
         // 只在设置不存在时输出日志
         if (!result) {
-            console.log(`获取设置失败: ${key}`);
+            console.log(`设置不存在，将初始化: ${key}`);
         }
         return result;
     },
@@ -57,7 +57,12 @@ const setting={
     },
     _all:DB.prepare("SELECT * FROM setting"),
 };
-function init(key,val){if(setting.get(key)==undefined)setting.ins(key,val);}
+function init(key,val){
+    // 如果设置不存在，则初始化为默认值
+    if(setting.get(key)==undefined){
+        setting.ins(key,val);
+    }
+}
 init("listen",5555);
 init("password","dstatus");
 init("site",{
@@ -66,8 +71,7 @@ init("site",{
 });
 init("neko_status_url","https://github.com/nkeonkeo/nekonekostatus/releases/download/v0.1/neko-status");
 init("debug",0);
-// 初始化版本号设置
-init("version", "2.5.0");
+// 版本号已硬编码在footer.html中，不再需要在数据库中保存
 init("telegram", {
     enabled: false,
     token: "",
@@ -115,81 +119,11 @@ init("personalization", {
     }
 });
 
-// 确保现有设置中的personalization配置完整
-const existingPersonalization = setting.get("personalization");
-if (existingPersonalization) {
-    // 默认壁纸配置
-    const defaultWallpaper = {
-        enabled: false,
-        url: "",
-        brightness: 75,
-        fixed: false,
-        blur: {
-            enabled: false,
-            amount: 5
-        }
-    };
+// 不再在启动时自动更新personalization设置
+// 如果需要更新设置，请在美化设置页面中进行操作
 
-    // 默认模糊效果配置
-    const defaultBlur = {
-        enabled: false,
-        amount: 5,
-        quality: 'normal'
-    };
-
-    // 默认卡片美化配置
-    const defaultCard = {
-        backgroundColor: "#1e293b",
-        backgroundOpacity: 0.95,
-        backgroundImage: {
-            enabled: false,
-            url: "",
-            opacity: 0.8
-        }
-    };
-
-    // 合并现有配置和默认配置
-    existingPersonalization.wallpaper = {
-        ...defaultWallpaper,
-        ...(existingPersonalization.wallpaper || {})
-    };
-
-    // 添加模糊效果配置
-    existingPersonalization.blur = {
-        ...defaultBlur,
-        ...(existingPersonalization.blur || {})
-    };
-
-    // 添加卡片美化配置
-    existingPersonalization.card = {
-        ...defaultCard,
-        ...(existingPersonalization.card || {})
-    };
-
-    // 更新设置
-    setting.set("personalization", existingPersonalization);
-    console.log('已更新personalization设置:', existingPersonalization);
-}
-
-// 确保现有设置中的通知类型配置完整
-const existingTelegram = setting.get("telegram");
-if (existingTelegram) {
-    const defaultNotificationTypes = {
-        serverOnline: true,
-        serverOffline: true,
-        trafficLimit: true,
-        testNotification: true
-    };
-
-    // 合并现有配置和默认配置
-    existingTelegram.notificationTypes = {
-        ...defaultNotificationTypes,
-        ...(existingTelegram.notificationTypes || {})
-    };
-
-    // 更新设置
-    setting.set("telegram", existingTelegram);
-}
+// 不再在启动时自动更新telegram设置
+// 如果需要更新设置，请在设置页面中进行操作
 
 return {setting};
 }

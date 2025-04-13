@@ -8,8 +8,13 @@ const MonthlyTraffic = require('./monthly-traffic');
 // 创建IP地理位置服务实例
 const ipLocationService = new IPLocationService();
 
+// 将IP位置服务添加到svr.locals中，便于其他模块使用
+
 function sleep(ms){return new Promise(resolve=>setTimeout(()=>resolve(),ms));};
 module.exports=async(svr)=>{
+// 将IP位置服务添加到svr.locals中
+svr.locals.ipLocationService = ipLocationService;
+
 const {db,pr,bot,setting}=svr.locals;
 var stats={},fails={},highcpu={},highDown={},updating=new Set(),noticed={};
 
@@ -18,7 +23,7 @@ const serverStatusCache = {};
 // 记录系统启动时间，用于特殊处理启动初始阶段
 const SYSTEM_START_TIME = Date.now();
 // 系统初始化阶段标志（启动后30秒内视为初始化阶段）
-const INITIALIZATION_PERIOD = 30 * 1000; 
+const INITIALIZATION_PERIOD = 30 * 1000;
 // 在初始化阶段，记录服务器的初始状态，但不发送通知
 let initialStatusCollectionComplete = false;
 // 存储初始化定时器的引用，便于在需要时清除
@@ -32,15 +37,30 @@ if (initializationTimer) {
 
 // 在初始化阶段结束后自动标记状态收集完成
 console.log(`[状态监控] 开始服务器状态初始化阶段 (${INITIALIZATION_PERIOD/1000}秒)`);
-initializationTimer = setTimeout(() => {
+initializationTimer = setTimeout(async () => {
     console.log(`[状态监控] 服务器初始状态收集完成，后续状态变化将正常发送通知`);
     initialStatusCollectionComplete = true;
-    
+
     // 输出当前收集到的服务器状态摘要
     const onlineCount = Object.values(serverStatusCache).filter(status => status === true).length;
     const offlineCount = Object.values(serverStatusCache).filter(status => status === false).length;
     const unknownCount = Object.values(serverStatusCache).filter(status => status === null).length;
     console.log(`[状态监控] 初始状态统计: 在线=${onlineCount}, 离线=${offlineCount}, 未知=${unknownCount}, 总计=${Object.keys(serverStatusCache).length}`);
+
+    // 初始化完成后，检查所有服务器的位置信息
+    try {
+        console.log(`[状态监控] 开始检查服务器位置信息...`);
+
+        // 使用IP位置服务检查并更新缺失的位置信息
+        if (svr.locals.ipLocationService) {
+            const result = await svr.locals.ipLocationService.checkAndUpdateMissingLocations(db);
+            console.log(`[状态监控] 位置信息检查完成: 共检查 ${result.totalChecked} 个服务器，更新 ${result.totalUpdated} 个，成功 ${result.totalSuccess} 个`);
+        } else {
+            console.warn(`[状态监控] IP位置服务未初始化，跳过位置信息检查`);
+        }
+    } catch (error) {
+        console.error(`[状态监控] 检查服务器位置信息时出错:`, error);
+    }
 }, INITIALIZATION_PERIOD);
 
 // 将通知管理器添加到 svr.locals 中
@@ -67,17 +87,17 @@ const notification = svr.locals.notification;
 function getStatsData(isAdmin = false, shouldFilter = true) {
     try {
         const statsData = getStats(isAdmin);
-        
+
         // 处理每个节点的数据
         Object.entries(statsData).forEach(([sid, node]) => {
             // 过滤敏感数据
             if (shouldFilter && node.data) {
                 let processedData = null;
-                
+
                 // 管理员可以看到更多信息，但需要过滤敏感数据
                 if (isAdmin) {
                     processedData = {...node.data};
-                    
+
                     // 处理SSH信息 - 移除所有敏感凭据
                     if (processedData.ssh) {
                         const ssh = {...processedData.ssh};
@@ -88,7 +108,7 @@ function getStatsData(isAdmin = false, shouldFilter = true) {
                         if (ssh.pri) delete ssh.pri; // 一些旧版本可能使用pri字段
                         processedData.ssh = ssh;
                     }
-                    
+
                     // 处理API信息 - 部分模糊API密钥
                     if (processedData.api && processedData.api.key) {
                         const api = {...processedData.api};
@@ -105,10 +125,10 @@ function getStatsData(isAdmin = false, shouldFilter = true) {
                     // 非管理员只保留地区信息
                     let locationCode = null;
                     if (node.data.location) {
-                        locationCode = node.data.location.code || 
+                        locationCode = node.data.location.code ||
                                      (node.data.location.country ? node.data.location.country.code : null);
                     }
-                    
+
                     // 替换data对象，只保留地区信息
                     processedData = locationCode ? {
                         location: {
@@ -116,11 +136,11 @@ function getStatsData(isAdmin = false, shouldFilter = true) {
                         }
                     } : null;
                 }
-                
+
                 // 更新node.data
                 node.data = processedData;
             }
-            
+
             // 处理stat对象
             if (typeof node.stat === 'number' || !node.stat) {
                 // 如果stat是数字或不存在，转换为标准对象结构
@@ -156,8 +176,8 @@ function getStatsData(isAdmin = false, shouldFilter = true) {
                         ...node.stat,
                         cpu: {
                             multi: cpuMulti >= 0 ? cpuMulti : 0,
-                            single: Array.isArray(node.stat.cpu?.single) ? 
-                                   node.stat.cpu.single.map(v => Number(v) >= 0 ? Number(v) : 0) : 
+                            single: Array.isArray(node.stat.cpu?.single) ?
+                                   node.stat.cpu.single.map(v => Number(v) >= 0 ? Number(v) : 0) :
                                    [0]
                         },
                         mem: {
@@ -181,7 +201,7 @@ function getStatsData(isAdmin = false, shouldFilter = true) {
                 };
             }
         });
-        
+
         // 添加详细的数据日志
         if (setting.debug) {
             const sampleNode = Object.values(statsData)[0];
@@ -195,7 +215,7 @@ function getStatsData(isAdmin = false, shouldFilter = true) {
                 } : '不存在'
             });
         }
-        
+
         return statsData;
     } catch (error) {
         console.error('获取状态数据失败:', error);
@@ -212,10 +232,10 @@ function getStats(isAdmin=false){
             // - 如果没有stats记录，返回-1（初始状态）
             // - 如果stats.stat === false，说明连接失败
             // - 如果有具体数据，说明在线
-            const stat = !serverStats ? -1 : 
+            const stat = !serverStats ? -1 :
                         serverStats.stat === false ? 0 :
                         serverStats.stat;
-            
+
             Stats[server.sid] = {
                 name: server.name,
                 stat: stat,
@@ -243,9 +263,9 @@ svr.get("/",(req,res)=>{
     try {
         const theme = req.query.theme || db.setting.get("theme") || "card";
         const isAdmin = req.admin;
-        
+
         console.log(`[${new Date().toISOString()}] 首页请求 - 主题:${theme} 管理员:${isAdmin}`);
-        
+
         res.render(`stats/${theme}`,{
             stats: getStatsData(isAdmin),
             groups: db.groups.getWithCount(),
@@ -262,7 +282,7 @@ svr.get("/stats/data",(req,res)=>{
     try {
         const isAdmin = req.admin;
         console.log(`[${new Date().toISOString()}] 数据API请求 - 管理员:${isAdmin}`);
-        
+
         res.json(getStatsData(isAdmin));
     } catch (error) {
         console.error('数据API错误:', error);
@@ -277,7 +297,7 @@ svr.get("/stats/:sid",(req,res)=>{
     if (!node) {
         return res.status(404).send('Node not found');
     }
-    
+
     // 获取服务器完整信息
     const server = db.servers.get(sid);
     if (server) {
@@ -286,13 +306,13 @@ svr.get("/stats/:sid",(req,res)=>{
         node.traffic_calibration_value = server.traffic_calibration_value || 0;
         node.traffic_limit = server.traffic_limit || 0;
         node.traffic_reset_day = server.traffic_reset_day || 1;
-        
+
         // 预处理数据，确保所有值都有默认值
         node.traffic_used = node.traffic_used || 0;
         node.traffic_limit = node.traffic_limit || 0;
         node.traffic_reset_day = node.traffic_reset_day || 1;
     }
-    
+
     // 添加预处理的JSON数据
     const preProcessedData = {
         traffic_used: node.traffic_used || 0,
@@ -302,7 +322,7 @@ svr.get("/stats/:sid",(req,res)=>{
         traffic_calibration_value: node.traffic_calibration_value || 0,
         calibration_base_traffic: node.calibration_base_traffic || null
     };
-    
+
     res.render('stat',{
         sid,
         node,
@@ -322,18 +342,18 @@ svr.get("/stats/:sid/data",(req,res)=>{
 svr.get("/stats/:sid/traffic", async (req, res) => {
     const { sid } = req.params;
     const server = db.servers.get(sid);
-    
+
     if (!server) {
         return res.json({
             error: '服务器不存在',
             data: null
         });
     }
-    
+
     try {
         // 获取traffic表中的完整数据
         const trafficData = await db.traffic.get(sid);
-        
+
         // 计算月度流量使用情况
         const monthlyTraffic = MonthlyTraffic.calculateMonthlyUsage({
             ds: trafficData?.ds || [],
@@ -342,14 +362,14 @@ svr.get("/stats/:sid/traffic", async (req, res) => {
             calibration_date: server.traffic_calibration_date || 0,
             calibration_value: server.traffic_calibration_value || 0
         });
-        
+
         res.json({
             data: {
                 // 基础流量数据
                 ds: trafficData?.ds || [],  // 天级流量记录数据（31天）
                 hs: trafficData?.hs || [],  // 小时流量记录数据（24小时）
                 ms: trafficData?.ms || [],  // 月度流量记录数据（12个月）
-                
+
                 // 月度流量统计结果
                 monthly: monthlyTraffic
             }
@@ -366,7 +386,7 @@ svr.get("/stats/:sid/traffic", async (req, res) => {
 svr.post("/stats/update", async (req, res) => {
     let {sid, data} = req.body;
     stats[sid] = data;
-    
+
     // 调用自动发现拦截器
     try {
         if (svr.locals.autodiscovery && svr.locals.autodiscovery.interceptor) {
@@ -376,7 +396,7 @@ svr.post("/stats/update", async (req, res) => {
         console.error('[自动发现] 拦截器错误:', error);
         // 不影响正常状态上报
     }
-    
+
     res.json(pr(1, 'update success'));
 });
 
@@ -397,7 +417,7 @@ async function getStat(server){
 }
 async function update(server){
     let {sid}=server;
-    
+
     // 如果是首次更新，初始化服务器状态缓存
     if (serverStatusCache[sid] === undefined) {
         if (stats[sid] && stats[sid].stat !== false) {
@@ -406,10 +426,34 @@ async function update(server){
         } else {
             // 假设初始状态未知，设置为null以避免错误的通知
             serverStatusCache[sid] = null;
-            console.log(`[状态监控] 初始化服务器状态: ${server.name} => 未知`);
+
+            // 检查服务器是否有位置信息
+            const hasLocation = server.data &&
+                              server.data.location &&
+                              server.data.location.code &&
+                              server.data.location.code !== '--';
+
+            const locationInfo = hasLocation ?
+                `位置: ${server.data.location.country?.name || server.data.location.code}` :
+                '位置: 未知';
+
+            console.log(`[状态监控] 初始化服务器状态: ${server.name} => 未知 (${locationInfo})`);
+
+            // 如果服务器没有位置信息，尝试获取
+            if (!hasLocation && svr.locals.ipLocationService) {
+                // 异步获取位置信息，不阻塞初始化过程
+                setTimeout(async () => {
+                    try {
+                        await svr.locals.ipLocationService.updateServerLocation(server, db);
+                        console.log(`[状态监控] 已异步获取服务器位置信息: ${server.name}`);
+                    } catch (error) {
+                        console.error(`[状态监控] 异步获取服务器位置信息失败: ${server.name}`, error);
+                    }
+                }, 100);
+            }
         }
     }
-    
+
     // 如果服务器状态为禁用，删除状态并返回
     if(server.status<=0){
         delete stats[sid];
@@ -417,13 +461,13 @@ async function update(server){
         serverStatusCache[sid] = null;
         return;
     }
-    
+
     let stat=await getStat(server);
     if(stat){
         let notice = false;
         // 检查是否需要发送上线通知：之前状态为离线或初始状态，现在状态为在线
         if(!stats[sid] || stats[sid].stat === false) notice = true;
-        
+
         // 1. 确保基础网络数据结构完整
         if (!stat.net || typeof stat.net !== 'object') {
             stat.net = {
@@ -465,7 +509,7 @@ async function update(server){
             // 保留原始devices数据，确保前端可以访问网络设备信息
             devices: stat.net.devices || {}
         };
-        
+
         // 4. 更新服务器状态
         stats[sid] = {
             name: server.name,
@@ -481,30 +525,30 @@ async function update(server){
             traffic_calibration_value: server.traffic_calibration_value || 0,
             calibration_base_traffic: stats[sid]?.calibration_base_traffic || null
         };
-        
+
         fails[sid]=0;
         if(notice) {
             const notifyMessage = `#恢复 ${server.name} ${new Date().toLocaleString()}`;
             const telegramSetting = db.setting.get('telegram');
-            
+
             // 判断是否需要发送通知
             const currentTime = Date.now();
-            
+
             // 判断是否处于初始化阶段
             const isInitialPeriod = !initialStatusCollectionComplete;
-            
+
             // 更新状态缓存前的旧状态
             const oldStatus = serverStatusCache[sid];
-            
+
             // 更新状态缓存
             serverStatusCache[server.sid] = true;
-            
+
             // 修改通知条件：
             // 1. 初始化阶段已完成
             // 2. 从离线到在线状态变化，或者是首次检测到在线状态
             const shouldNotify = !isInitialPeriod && // 初始化阶段结束后才发送通知
                                 (oldStatus === false || oldStatus === null); // 状态从离线变为在线，或者是首次检测到在线状态
-            
+
             if (shouldNotify && telegramSetting?.enabled && telegramSetting?.chatIds?.length > 0) {
                 // 检查服务器上线通知是否启用
                 if (telegramSetting?.notificationTypes?.serverOnline) {
@@ -515,12 +559,12 @@ async function update(server){
                             const maxRetries = 3;
                             let retryCount = 0;
                             let success = false;
-                            
+
                             while (!success && retryCount < maxRetries) {
                                 try {
                                     // 修改：正确处理通知系统的返回值
                                     const notificationResult = await notification.sendNotification('服务器恢复', notifyMessage, telegramSetting.chatIds);
-                                    
+
                                     // 检查通知系统返回的结果
                                     if (notificationResult.success) {
                                         success = true;
@@ -536,7 +580,7 @@ async function update(server){
                                     await sleep(2000);
                                 }
                             }
-                            
+
                             // 恢复重要日志信息
                             if (!success) {
                                 console.error(`[状态监控] 服务器恢复通知发送失败，已达到最大重试次数: ${server.name}`);
@@ -561,10 +605,10 @@ async function update(server){
     } else {
         let notice = false;
         fails[sid] = (fails[sid] || 0) + 1;
-        
+
         // 不再记录掉线计数到日志
         // console.log(`[状态监控] 服务器 ${server.name} 掉线计数: ${fails[sid]}/5`);
-        
+
         if(fails[sid] > 5) {
             if(stats[sid] && stats[sid].stat !== false) notice = true;
             stats[sid] = {
@@ -577,25 +621,25 @@ async function update(server){
         if(notice) {
             const notifyMessage = `#掉线 ${server.name} ${new Date().toLocaleString()}`;
             const telegramSetting = db.setting.get('telegram');
-            
+
             // 判断是否需要发送通知
             const currentTime = Date.now();
-            
+
             // 判断是否处于初始化阶段
             const isInitialPeriod = !initialStatusCollectionComplete;
-            
+
             // 更新状态缓存前的旧状态
             const oldStatus = serverStatusCache[sid];
-            
+
             // 更新状态缓存
             serverStatusCache[server.sid] = false;
-            
+
             // 简化通知条件：
             // 1. 初始化阶段已完成
             // 2. 从在线到离线状态变化
             const shouldNotify = !isInitialPeriod && // 初始化阶段结束后才发送通知
                                 oldStatus === true; // 状态从在线变为离线
-            
+
             if (shouldNotify && telegramSetting?.enabled && telegramSetting?.chatIds?.length > 0) {
                 // 检查服务器下线通知是否启用
                 if (telegramSetting?.notificationTypes?.serverOffline) {
@@ -606,12 +650,12 @@ async function update(server){
                             const maxRetries = 3;
                             let retryCount = 0;
                             let success = false;
-                            
+
                             while (!success && retryCount < maxRetries) {
                                 try {
                                     // 修改：正确处理通知系统的返回值
                                     const notificationResult = await notification.sendNotification('服务器掉线', notifyMessage, telegramSetting.chatIds);
-                                    
+
                                     // 检查通知系统返回的结果
                                     if (notificationResult.success) {
                                         success = true;
@@ -627,7 +671,7 @@ async function update(server){
                                     await sleep(2000);
                                 }
                             }
-                            
+
                             // 恢复重要日志信息
                             if (!success) {
                                 console.error(`[状态监控] 服务器掉线通知发送失败，已达到最大重试次数: ${server.name}`);
@@ -673,14 +717,14 @@ function calc(){
         let ni=stat.stat.net.total.in,
             no=stat.stat.net.total.out,
             t=db.lt.get(sid)||db.lt.ins(sid);
-        
+
         // 只处理正向流量差额，如果是负值则不计入
         let ti=ni<t.traffic[0]?0:ni-t.traffic[0],
             to=no<t.traffic[1]?0:no-t.traffic[1];
-        
+
         // 更新最后记录的流量值
         db.lt.set(sid,[ni,no]);
-        
+
         // 只在有实际流量变化时更新记录
         if (ti > 0 || to > 0) {
             db.traffic.add(sid,[ti,to]);
@@ -750,7 +794,7 @@ schedule.scheduleJob('0 * * * *', async () => {
     console.log('Updating traffic stats...');
     for(let server of db.servers.all()) {
         if(server.status <= 0) continue;
-        
+
         // 更新流量统计
         const currentStats = stats[server.sid] || {};
         stats[server.sid] = {
@@ -767,11 +811,11 @@ schedule.scheduleJob('0 * * * *', async () => {
  */
 async function initializeServerLocations() {
     console.log(`[${new Date().toISOString()}] 开始初始化服务器IP位置信息...`);
-    
+
     try {
         // 使用新添加的 checkAndUpdateMissingLocations 方法检查并更新没有位置信息的服务器
         const result = await ipLocationService.checkAndUpdateMissingLocations(db);
-        
+
         console.log(`[${new Date().toISOString()}] 服务器IP位置初始化完成，共检查 ${result.totalChecked} 个服务器，更新 ${result.totalUpdated} 个，成功 ${result.totalSuccess} 个`);
     } catch (error) {
         console.error(`[${new Date().toISOString()}] 初始化服务器IP位置失败:`, error);
@@ -798,27 +842,27 @@ svr.get("/stats/refresh-ip/:sid", async (req, res) => {
     try {
         const { sid } = req.params;
         const isAdmin = req.admin;
-        
+
         // 调用 iplocation.js 中的 refreshServerLocation 方法处理 IP 位置更新
         const result = await ipLocationService.refreshServerLocation(sid, db, isAdmin);
-        
+
         // 处理返回结果
         if (result.status) {
             // 如果有状态码，说明是错误状态
             return res.status(result.status).json({ success: false, message: result.message });
         }
-        
+
         // 判断是否成功获取了位置信息
         if (result.server_data && result.server_data.location && result.server_data.location.code) {
             // 如果返回了位置信息，则认为更新成功，即使 result.success 为 false
             console.log(`[${new Date().toISOString()}] API 返回成功更新位置信息: ${result.server_data.name} -> ${result.server_data.location.code}`);
-            return res.json({ 
-                success: true, 
-                message: '刷新成功', 
-                server_data: result.server_data 
+            return res.json({
+                success: true,
+                message: '刷新成功',
+                server_data: result.server_data
             });
         }
-        
+
         // 返回原始处理结果
         res.json(result);
     } catch (error) {

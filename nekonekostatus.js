@@ -533,7 +533,7 @@ setInterval(() => {
 }, 60000); // 每分钟更新一次
 
 const port=process.env.PORT||db.setting.get("listen"),host=process.env.HOST||'';
-svr.server=svr.listen(port,host,()=>{console.log(`server running @ http://${host ? host : 'localhost'}:${port} (v${svr.locals.setting.version || '2.5.0'})`);})
+svr.server=svr.listen(port,host,()=>{console.log(`server running @ http://${host ? host : 'localhost'}:${port}`);})
 
 // 添加主页路由处理
 svr.get('/', (req, res) => {
