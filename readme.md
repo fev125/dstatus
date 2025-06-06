@@ -531,3 +531,6 @@ GET /stats/:serverID/data
 ```
 https://fev125.github.io/dstatus/neko-status
 ```
+
+### 赞助商家
+[![Powered by DartNode](https://dartnode.com/branding/DN-Open-Source-sm.png)](https://dartnode.com "Powered by DartNode - Free VPS for Open Source")
