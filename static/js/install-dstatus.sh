@@ -85,75 +85,22 @@ read_existing_config() {
     fi
 }
 
-# 交互式选择模式
-interactive_mode() {
-    echo ""
-    print_info "=== DStatus客户端安装/更新向导 ==="
-    echo ""
+# 简化的错误处理函数
+die() {
+    print_error "$1"
+    exit "${2:-1}"
+}
 
-    if check_existing_installation; then
-        print_success "检测到已安装的DStatus客户端"
-        read_existing_config
-        echo ""
-        print_info "请选择操作模式:"
-        echo "  1) 更新客户端 (保留现有配置和注册信息)"
-        echo "  2) 全新安装 (重新注册，会丢失面板配置)"
-        echo "  3) 退出"
-        echo ""
+# 统一的初始化函数
+init_environment() {
+    check_root
+    get_system_info
+    detect_architecture
+}
 
-        while true; do
-            read -p "请输入选择 [1-3]: " choice
-            case $choice in
-                1)
-                    MODE="update"
-                    print_info "选择了更新模式"
-                    break
-                    ;;
-                2)
-                    MODE="install"
-                    print_warning "注意：全新安装会重新注册，面板上的配置将丢失！"
-                    read -p "确认继续？[y/N]: " confirm
-                    if [[ $confirm =~ ^[Yy]$ ]]; then
-                        print_info "选择了全新安装模式"
-                        break
-                    else
-                        print_info "已取消"
-                        exit 0
-                    fi
-                    ;;
-                3)
-                    print_info "已退出"
-                    exit 0
-                    ;;
-                *)
-                    print_error "无效选择，请输入 1-3"
-                    ;;
-            esac
-        done
-    else
-        print_info "未检测到现有安装，将进行全新安装"
-        MODE="install"
-    fi
-
-    # 根据模式获取参数
-    if [ "$MODE" = "install" ]; then
-        echo ""
-        read -p "请输入注册密钥: " REGISTRATION_KEY
-        read -p "请输入服务器URL: " SERVER_URL
-
-        if [ -z "$REGISTRATION_KEY" ] || [ -z "$SERVER_URL" ]; then
-            print_error "注册密钥和服务器URL不能为空"
-            exit 1
-        fi
-    elif [ "$MODE" = "update" ]; then
-        echo ""
-        read -p "请输入服务器URL (留空使用现有配置): " SERVER_URL
-
-        # 如果没有输入服务器URL，尝试从现有配置推断
-        if [ -z "$SERVER_URL" ]; then
-            print_info "将使用配置文件中的API密钥对应的服务器"
-        fi
-    fi
+# 通用的参数验证
+validate_install_params() {
+    [ -n "$1" ] && [ -n "$2" ] || die "注册密钥和服务器URL不能为空"
 }
 
 # 获取系统信息
@@ -733,47 +680,41 @@ start_service() {
     fi
 }
 
-# 全新安装DStatus客户端
-install_dstatus() {
-    local REGISTRATION_KEY="$1"
-    local SERVER_URL="$2"
-
-    # 检查参数
-    if [ -z "$REGISTRATION_KEY" ] || [ -z "$SERVER_URL" ]; then
-        print_error "全新安装需要注册密钥和服务器URL"
-        exit 1
-    fi
+# 通用的安装流程
+common_install_steps() {
+    local server_url="$1"
 
     # 去除URL末尾的斜杠
-    SERVER_URL=${SERVER_URL%/}
+    server_url=${server_url%/}
+
+    install_dependencies
+
+    # 下载客户端
+    if ! download_neko_status "$server_url"; then
+        die "下载失败，安装中止"
+    fi
+}
+
+# 全新安装DStatus客户端
+install_dstatus() {
+    local registration_key="$1"
+    local server_url="$2"
+
+    validate_install_params "$registration_key" "$server_url"
 
     print_info "开始全新安装DStatus客户端..."
 
-    # 检测系统架构
-    detect_architecture
-
-    # 安装必要的命令
-    install_dependencies
-
     # 注册到自动发现服务
-    if ! register_autodiscovery "$REGISTRATION_KEY" "$SERVER_URL"; then
-        print_error "注册失败，安装中止"
-        exit 1
+    if ! register_autodiscovery "$registration_key" "$server_url"; then
+        die "注册失败，安装中止"
     fi
 
-    # 下载neko-status客户端
-    if ! download_neko_status "$SERVER_URL"; then
-        print_error "下载neko-status失败，安装中止"
-        exit 1
-    fi
+    # 通用安装步骤
+    common_install_steps "$server_url"
 
     # 创建系统服务（不保留配置）
     create_service "$API_KEY" "false"
-
-    # 配置防火墙
     configure_firewall
-
-    # 启动服务
     start_service
 
     print_success "DStatus客户端全新安装完成"
@@ -782,42 +723,23 @@ install_dstatus() {
 
 # 更新DStatus客户端
 update_dstatus() {
-    local SERVER_URL="$1"
+    local server_url="${1:-https://github.com/fev125/dstatus/releases/download/v1.1}"
 
     print_info "开始更新DStatus客户端..."
 
     # 读取现有配置
-    if ! read_existing_config; then
-        print_error "无法读取现有配置，请使用全新安装模式"
-        exit 1
-    fi
-
-    # 如果没有提供服务器URL，尝试使用默认值
-    if [ -z "$SERVER_URL" ]; then
-        # 可以在这里添加从配置推断服务器URL的逻辑
-        # 暂时使用一个默认值或要求用户提供
-        print_warning "未提供服务器URL，将尝试从默认源下载"
-        SERVER_URL="https://github.com/fev125/dstatus/releases/download/v1.1"
-    else
-        # 去除URL末尾的斜杠
-        SERVER_URL=${SERVER_URL%/}
-    fi
-
-    # 检测系统架构
-    detect_architecture
-
-    # 安装必要的命令
-    install_dependencies
+    read_existing_config || die "无法读取现有配置，请使用全新安装模式"
 
     # 备份现有配置
-    print_info "备份现有配置..."
-    cp /etc/neko-status/config.yaml /etc/neko-status/config.yaml.backup.$(date +%Y%m%d_%H%M%S)
+    local backup_file="/etc/neko-status/config.yaml.backup.$(date +%Y%m%d_%H%M%S)"
+    cp /etc/neko-status/config.yaml "$backup_file"
+    print_info "配置已备份到: $backup_file"
 
     # 停止现有服务
     stop_service
 
-    # 下载新版本客户端
-    if ! download_neko_status "$SERVER_URL"; then
+    # 通用安装步骤
+    if ! common_install_steps "$server_url"; then
         print_error "下载新版本失败，恢复服务..."
         start_service
         exit 1
@@ -825,8 +747,6 @@ update_dstatus() {
 
     # 创建系统服务（保留配置）
     create_service "$EXISTING_API_KEY" "true"
-
-    # 启动服务
     start_service
 
     print_success "DStatus客户端更新完成"
@@ -834,7 +754,7 @@ update_dstatus() {
     print_info "  API密钥: ${EXISTING_API_KEY:0:8}... (已保留)"
     print_info "  端口: ${EXISTING_PORT:-9999}"
     print_info "  配置文件: /etc/neko-status/config.yaml"
-    print_info "  备份文件: /etc/neko-status/config.yaml.backup.*"
+    print_info "  备份文件: $backup_file"
 
     show_service_info
 }
@@ -880,63 +800,143 @@ show_service_info() {
     fi
 }
 
+# 智能参数处理 - 支持curl管道安装
+smart_parameter_handling() {
+    # 如果通过curl管道安装且提供了参数，将参数作为默认值
+    if [ -n "$1" ] && [ -n "$2" ]; then
+        # 检测是否为有效的注册密钥和URL格式
+        if [[ "$1" =~ ^[A-Za-z0-9]{8,}$ ]] && [[ "$2" =~ ^https?:// ]]; then
+            CURL_REGISTRATION_KEY="$1"
+            CURL_SERVER_URL="$2"
+            print_info "检测到curl安装参数: 注册密钥=${CURL_REGISTRATION_KEY:0:8}..., 服务器=${CURL_SERVER_URL}"
+            return 0
+        fi
+    fi
+    return 1
+}
+
+# 增强的交互模式 - 支持curl参数预填
+enhanced_interactive_mode() {
+    echo ""
+    print_info "=== DStatus客户端安装/更新向导 ==="
+    echo ""
+
+    if check_existing_installation; then
+        print_success "检测到已安装的DStatus客户端"
+        read_existing_config
+        echo ""
+        print_info "请选择操作模式:"
+        echo "  1) 更新客户端 (保留现有配置和注册信息)"
+        echo "  2) 全新安装 (重新注册，会丢失面板配置)"
+        echo "  3) 退出"
+        echo ""
+
+        while true; do
+            read -p "请输入选择 [1-3]: " choice
+            case $choice in
+                1)
+                    MODE="update"
+                    print_info "选择了更新模式"
+                    break
+                    ;;
+                2)
+                    MODE="install"
+                    print_warning "注意：全新安装会重新注册，面板上的配置将丢失！"
+                    read -p "确认继续？[y/N]: " confirm
+                    if [[ $confirm =~ ^[Yy]$ ]]; then
+                        print_info "选择了全新安装模式"
+                        break
+                    else
+                        print_info "已取消"
+                        exit 0
+                    fi
+                    ;;
+                3)
+                    print_info "已退出"
+                    exit 0
+                    ;;
+                *)
+                    print_error "无效选择，请输入 1-3"
+                    ;;
+            esac
+        done
+    else
+        print_info "未检测到现有安装，将进行全新安装"
+        MODE="install"
+    fi
+
+    # 根据模式获取参数
+    if [ "$MODE" = "install" ]; then
+        echo ""
+        # 如果有curl参数，提供默认值
+        if [ -n "$CURL_REGISTRATION_KEY" ]; then
+            read -p "请输入注册密钥 [${CURL_REGISTRATION_KEY:0:8}...]: " input_key
+            REGISTRATION_KEY="${input_key:-$CURL_REGISTRATION_KEY}"
+        else
+            read -p "请输入注册密钥: " REGISTRATION_KEY
+        fi
+
+        if [ -n "$CURL_SERVER_URL" ]; then
+            read -p "请输入服务器URL [$CURL_SERVER_URL]: " input_url
+            SERVER_URL="${input_url:-$CURL_SERVER_URL}"
+        else
+            read -p "请输入服务器URL: " SERVER_URL
+        fi
+
+        if [ -z "$REGISTRATION_KEY" ] || [ -z "$SERVER_URL" ]; then
+            print_error "注册密钥和服务器URL不能为空"
+            exit 1
+        fi
+    elif [ "$MODE" = "update" ]; then
+        echo ""
+        read -p "请输入服务器URL (留空使用默认源): " SERVER_URL
+        if [ -z "$SERVER_URL" ]; then
+            print_info "将使用默认下载源"
+        fi
+    fi
+}
+
 # 主函数
 main() {
     # 解析命令行参数
-    case "$1" in
+    case "${1:-}" in
         "help"|"-h"|"--help")
-            # 显示帮助（不需要root权限）
             show_usage
             exit 0
             ;;
         "install")
-            # 检查root权限
-            check_root
-            # 获取系统信息
-            get_system_info
-            # 全新安装模式
-            if [ -z "$2" ] || [ -z "$3" ]; then
-                print_error "全新安装模式需要注册密钥和服务器URL"
-                show_usage
-                exit 1
-            fi
+            init_environment
+            validate_install_params "$2" "$3"
             install_dstatus "$2" "$3"
             ;;
         "update")
-            # 检查root权限
-            check_root
-            # 获取系统信息
-            get_system_info
-            # 更新模式
+            init_environment
             update_dstatus "$2"
             ;;
         "")
-            # 检查root权限
-            check_root
-            # 获取系统信息
-            get_system_info
-            # 交互模式
-            interactive_mode
-            if [ "$MODE" = "install" ]; then
-                install_dstatus "$REGISTRATION_KEY" "$SERVER_URL"
-            elif [ "$MODE" = "update" ]; then
-                update_dstatus "$SERVER_URL"
-            fi
+            init_environment
+            enhanced_interactive_mode
+            case "$MODE" in
+                "install") install_dstatus "$REGISTRATION_KEY" "$SERVER_URL" ;;
+                "update") update_dstatus "$SERVER_URL" ;;
+            esac
             ;;
         *)
-            # 兼容旧版本调用方式
-            if [ -n "$1" ] && [ -n "$2" ]; then
-                # 检查root权限
-                check_root
-                # 获取系统信息
-                get_system_info
-                print_warning "检测到旧版本调用方式，将作为全新安装处理"
-                print_warning "建议使用新的调用方式: $0 install $1 $2"
+            # 智能处理curl管道安装和兼容旧版本
+            if smart_parameter_handling "$1" "$2"; then
+                init_environment
+                enhanced_interactive_mode
+                case "$MODE" in
+                    "install") install_dstatus "$REGISTRATION_KEY" "$SERVER_URL" ;;
+                    "update") update_dstatus "$SERVER_URL" ;;
+                esac
+            elif [ -n "$1" ] && [ -n "$2" ]; then
+                # 兼容旧版本调用方式
+                init_environment
+                print_warning "检测到旧版本调用方式，建议使用: $0 install $1 $2"
                 install_dstatus "$1" "$2"
             else
-                print_error "无效的参数"
-                show_usage
-                exit 1
+                die "无效的参数\n$(show_usage)"
             fi
             ;;
     esac
