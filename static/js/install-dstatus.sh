@@ -2,7 +2,10 @@
 
 # DStatus Agent 一键安装脚本
 # 支持从旧版 neko-status 迁移
-# 仅支持: curl ... | sudo bash -s install <注册密钥> <服务器URL>
+# 支持格式:
+#   1. curl ... | sudo bash -s install <注册密钥> <服务器URL>
+#   2. curl ... | sudo bash -s -- <注册密钥> <服务器URL> (面板格式)
+#   3. curl ... | sudo bash -s <注册密钥> <服务器URL>
 
 # --- 名称定义 ---
 NEW_AGENT_BINARY_NAME="dstatus-agent"
@@ -59,7 +62,7 @@ detect_architecture() {
               else DOWNLOAD_ARCH="arm64"; fi ;;
         *) DOWNLOAD_ARCH="amd64"; print_warning "未知架构: $DOWNLOAD_ARCH，默认使用amd64" ;;
     esac
-    if [ "$DOWNLOAD_OS_TYPE" = "darwin" ]; then # macOS只支持amd64和arm64
+    if [ "$DOWNLOAD_OS_TYPE" = "darwin" ]; then
         if [ "$DOWNLOAD_ARCH" != "amd64" ] && [ "$DOWNLOAD_ARCH" != "arm64" ]; then DOWNLOAD_ARCH="amd64"; fi
     fi
     print_info "用于下载的系统类型: $DOWNLOAD_OS_TYPE, 架构: $DOWNLOAD_ARCH"
@@ -69,12 +72,12 @@ install_dependencies() {
     print_info "安装必要的工具..."
     if [[ "$OS_FAMILY" == "alpine" ]]; then
         apk update >/dev/null && apk add --no-cache curl wget procps iptables ip6tables openrc
-        apk add --no-cache iptables-persistent || apk add --no-cache iptables # 尝试安装持久化工具
+        apk add --no-cache iptables-persistent || apk add --no-cache iptables
     elif [[ "$OS_FAMILY" == "ubuntu" || "$OS_FAMILY" == "debian" ]]; then
         apt-get update -qq >/dev/null && apt-get install -y -qq curl wget
     elif [[ "$OS_FAMILY" == "centos" || "$OS_FAMILY" == "rhel" || "$OS_FAMILY" == "fedora" ]]; then
         yum install -y -q curl wget
-    elif [[ "$OS_FAMILY" == "arch" || "$OS_FAMILY" == "manjaro" ]]; then # Arch系
+    elif [[ "$OS_FAMILY" == "arch" || "$OS_FAMILY" == "manjaro" ]]; then
         pacman -S --noconfirm curl wget >/dev/null
     else
         print_warning "不支持的操作系统 ($OS_FAMILY)，请确保已安装: curl wget"
@@ -89,10 +92,10 @@ stop_and_disable_service() {
     if command -v systemctl &> /dev/null; then
         systemctl stop "$service_name_to_stop" 2>/dev/null || true
         systemctl disable "$service_name_to_stop" 2>/dev/null || true
-    elif command -v rc-service &> /dev/null && [ -f "/etc/init.d/$service_name_to_stop" ]; then # Alpine
+    elif command -v rc-service &> /dev/null && [ -f "/etc/init.d/$service_name_to_stop" ]; then
         rc-service "$service_name_to_stop" stop 2>/dev/null || true
         rc-update delete "$service_name_to_stop" default 2>/dev/null || true
-    elif [ -f "/etc/init.d/$service_name_to_stop" ]; then # SysV
+    elif [ -f "/etc/init.d/$service_name_to_stop" ]; then
         /etc/init.d/"$service_name_to_stop" stop 2>/dev/null || true
         update-rc.d -f "$service_name_to_stop" remove 2>/dev/null || \
         chkconfig "$service_name_to_stop" off 2>/dev/null || true
@@ -111,7 +114,6 @@ cleanup_old_version_files() {
         rm -f "$OLD_BINARY_PATH" && print_info "已删除旧二进制文件: $OLD_BINARY_PATH" && cleaned=true
     fi
     if [ -d "$OLD_CONFIG_DIR" ]; then
-        # mv "$OLD_CONFIG_DIR" "${OLD_CONFIG_DIR}.bak_$(date +%Y%m%d%H%M%S)" && print_info "旧配置目录已备份至 ${OLD_CONFIG_DIR}.bak_..."
         rm -rf "$OLD_CONFIG_DIR" && print_info "已删除旧配置目录: $OLD_CONFIG_DIR" && cleaned=true
     fi
     if [ -f "/etc/systemd/system/$OLD_SERVICE_NAME.service" ]; then
@@ -137,7 +139,7 @@ download_agent_binary() {
         download_prefix_url=$(echo "$server_prefix_response" | grep -o '"url":"[^"]*' | cut -d'"' -f4)
         print_info "从服务器获取到下载链接前缀: $download_prefix_url"
     else
-        download_prefix_url="https://github.com/fev125/dstatus/releases/download/v1.1" # 默认值
+        download_prefix_url="https://github.com/fev125/dstatus/releases/download/v1.1"
         print_info "无法从服务器获取下载前缀或响应无效，使用默认下载链接前缀: $download_prefix_url"
     fi
 
@@ -171,7 +173,7 @@ register_with_server() {
     local reg_key_for_server="$1"
     local server_url_for_reg="$2"
     print_info "向服务器注册 ${NEW_AGENT_BINARY_NAME}: $server_url_for_reg"
-    API_KEY_FROM_SERVER="" # 清空，确保获取新值
+    API_KEY_FROM_SERVER=""
 
     local register_payload
     register_payload=$(cat <<EOF
@@ -243,7 +245,7 @@ ExecStart=${NEW_BINARY_PATH} -c ${NEW_CONFIG_FILE}
 WantedBy=multi-user.target
 EOF
         systemctl daemon-reload
-    elif [ -d /etc/init.d ]; then # Fallback to SysV init
+    elif [ -d /etc/init.d ]; then
         cat > "/etc/init.d/${NEW_SERVICE_NAME}" <<EOF
 #!/bin/sh
 ### BEGIN INIT INFO
@@ -256,7 +258,7 @@ EOF
 ### END INIT INFO
 DAEMON="${NEW_BINARY_PATH}"
 DAEMON_ARGS="-c ${NEW_CONFIG_FILE}"
-PIDFILE="/var/run/${NEW_SERVICE_NAME}.pid" # SysV typically uses /var/run
+PIDFILE="/var/run/${NEW_SERVICE_NAME}.pid"
 start() { echo "启动DStatus Agent..."; start-stop-daemon --start --quiet --background --make-pidfile --pidfile \$PIDFILE --exec \$DAEMON -- \$DAEMON_ARGS || return 2; }
 stop() { echo "停止DStatus Agent..."; start-stop-daemon --stop --quiet --pidfile \$PIDFILE || return 2; rm -f \$PIDFILE; }
 restart() { stop; sleep 1; start; }
@@ -307,7 +309,7 @@ start_new_service() {
     fi
 
     sleep 2
-    if pgrep -f "${NEW_AGENT_BINARY_NAME} -c ${NEW_CONFIG_FILE}" > /dev/null; then # More specific pgrep
+    if pgrep -f "${NEW_AGENT_BINARY_NAME} -c ${NEW_CONFIG_FILE}" > /dev/null; then
         print_success "服务 ${NEW_SERVICE_NAME} 已成功启动。"
     else
         print_error "服务 ${NEW_SERVICE_NAME} 启动失败，请检查日志。"
@@ -320,15 +322,13 @@ start_new_service() {
 process_installation() {
     local user_input_reg_key="$1"
     local user_input_server_url="$2"
-    user_input_server_url=${user_input_server_url%/} # 去除URL末尾的斜杠
+    user_input_server_url=${user_input_server_url%/}
 
-    # 1. 初始化环境
     check_root
     get_system_info
     detect_architecture
     install_dependencies
 
-    # 2. 旧版本检测与迁移准备
     local migrated_api_key_from_old_config=""
     print_info "检查旧版本 (${OLD_AGENT_BINARY_NAME}) ..."
     if [ -f "$OLD_CONFIG_FILE" ]; then
@@ -339,7 +339,6 @@ process_installation() {
             print_warning "旧配置文件 $OLD_CONFIG_FILE 存在，但未能读取到API密钥。"
         fi
     fi
-    # 停止并禁用旧服务 (如果存在)
     if [ -f "$OLD_BINARY_PATH" ] || [ -d "$OLD_CONFIG_DIR" ] || \
        (command -v systemctl &>/dev/null && systemctl list-unit-files | grep -q "$OLD_SERVICE_NAME.service") || \
        [ -f "/etc/init.d/$OLD_SERVICE_NAME" ]; then
@@ -349,13 +348,11 @@ process_installation() {
         print_info "未检测到活动的旧版本 ${OLD_AGENT_BINARY_NAME}。"
     fi
 
-
-    # 3. 决定是否需要重新注册
     local final_api_key_for_config=""
     local should_re_register=true
     local existing_api_key_from_new_config=""
 
-    if [ -n "$migrated_api_key_from_old_config" ]; then # 优先使用从旧配置迁移的API Key
+    if [ -n "$migrated_api_key_from_old_config" ]; then
         print_info "将使用从旧版本迁移的API密钥进行比较。"
         if [ "$user_input_reg_key" == "$migrated_api_key_from_old_config" ]; then
             print_info "传入的注册密钥与迁移的API密钥相同。将保留此API密钥，不重新注册。"
@@ -364,7 +361,7 @@ process_installation() {
         else
             print_warning "传入的注册密钥与迁移的API密钥不符。将执行重新注册。"
         fi
-    elif [ -f "$NEW_CONFIG_FILE" ]; then # 其次检查新路径下的配置
+    elif [ -f "$NEW_CONFIG_FILE" ]; then
         existing_api_key_from_new_config=$(grep "^key:" "$NEW_CONFIG_FILE" | cut -d' ' -f2 | tr -d '"' | tr -d "'")
         if [ -n "$existing_api_key_from_new_config" ]; then
             print_info "从现有配置文件 $NEW_CONFIG_FILE 读取到API密钥: ${existing_api_key_from_new_config:0:8}..."
@@ -378,20 +375,16 @@ process_installation() {
         else
             print_warning "新配置文件 $NEW_CONFIG_FILE 存在但无法读取API密钥。将执行注册。"
         fi
-    else # 全新安装或无任何可识别的旧密钥
+    else
         print_info "未找到任何现有配置或迁移密钥。将执行注册。"
     fi
 
+    stop_and_disable_service "$NEW_SERVICE_NAME" "$NEW_AGENT_BINARY_NAME"
 
-    # 4. 停止当前可能运行的新名称服务 (以防上次安装未完成)
-    stop_and_disable_service "$NEW_SERVICE_NAME" "$NEW_AGENT_BINARY_NAME" # 确保停止的是新服务
-
-    # 5. 下载新的 dstatus-agent 二进制文件
     if ! download_agent_binary "$user_input_server_url"; then
         die "${NEW_AGENT_BINARY_NAME} 下载失败，操作中止。"
     fi
 
-    # 6. 执行注册 (如果需要)
     if [ "$should_re_register" = true ]; then
         print_info "执行自动发现注册流程..."
         if ! register_with_server "$user_input_reg_key" "$user_input_server_url"; then
@@ -400,26 +393,17 @@ process_installation() {
         final_api_key_for_config="$API_KEY_FROM_SERVER"
     else
         print_info "跳过注册流程，使用已确定/迁移的API密钥。"
-        # final_api_key_for_config 已被设置
     fi
 
     if [ -z "$final_api_key_for_config" ]; then
         die "错误：最终的API密钥为空，无法继续。请检查注册或现有配置。"
     fi
 
-    # 7. 创建新服务和新配置
     create_new_service_and_config "$final_api_key_for_config"
-
-    # 8. 配置防火墙
     configure_firewall_rules
-
-    # 9. 启动新服务
     start_new_service
-
-    # 10. 清理旧版本文件 (在新版本成功启动后)
     cleanup_old_version_files
 
-    # 11. 打印最终信息
     if [ "$should_re_register" = true ]; then
         print_success "${NEW_AGENT_BINARY_NAME} 全新安装/重新注册完成。"
     else
@@ -432,12 +416,41 @@ process_installation() {
 
 # --- 主函数入口 ---
 main() {
-    if [ "$1" != "install" ] || [ -z "$2" ] || [ -z "$3" ]; then
-        echo "使用方法: curl <script_url> | sudo bash -s install <注册密钥> <服务器URL>"
-        echo "示例: curl ... | sudo bash -s install abc123https://status.example.com"
+    local operation=""
+    local key_param=""
+    local url_param=""
+
+    if [ "$1" == "install" ] && [ "$#" -eq 3 ]; then
+        operation="install"
+        key_param="$2"
+        url_param="$3"
+        print_info "检测到 'install' 命令模式。"
+    elif [ "$#" -eq 2 ]; then
+        operation="install"
+        key_param="$1"
+        url_param="$2"
+        print_info "检测到直接参数模式 (KEY URL)，视为 'install' 操作。"
+    else
+        print_error "参数格式不正确。"
+        echo "支持的格式:"
+        echo "  1. curl ... | sudo bash -s install <注册密钥> <服务器URL>"
+        echo "  2. curl ... | sudo bash -s -- <注册密钥> <服务器URL>"
+        echo "  3. curl ... | sudo bash -s <注册密钥> <服务器URL>"
+        echo "示例 (格式1): curl ... | sudo bash -s install abc123https://status.example.com"
+        echo "示例 (格式2): curl ... | sudo bash -s -- abc123https://status.example.com"
         exit 1
     fi
-    process_installation "$2" "$3"
+
+    if [ -z "$key_param" ]; then die "注册密钥不能为空。"; fi
+    if [ -z "$url_param" ]; then die "服务器URL不能为空。"; fi
+    if [[ ! "$url_param" =~ ^https?:// ]]; then die "服务器URL格式无效，应以 http:// 或 https:// 开头。"; fi
+
+    if [ "$operation" == "install" ]; then
+        process_installation "$key_param" "$url_param"
+    else
+        print_error "未知的操作模式。" # Should not happen due to checks above
+        exit 1
+    fi
 }
 
 main "$@"
