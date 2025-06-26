@@ -200,7 +200,6 @@ EOF
             print_error "未能从服务器响应中获取API密钥。响应: $register_response"
             return 1
         fi
-        # SID 可以为空，如果服务器没有返回
         print_success "注册成功。API密钥: ${API_KEY_FROM_SERVER:0:8}..., Server ID: ${SID_FROM_SERVER:-未提供}"
         return 0
     else
@@ -211,27 +210,25 @@ EOF
 
 create_new_service_and_config() {
     local api_key_for_config="$1"
-    local report_server_url_config="$2" # 用户传入的服务器 URL
+    local report_server_url_config="$2"
     local server_id_for_config="$3"
-    local report_interval_val="15" # 默认上报间隔15秒
+    local report_interval_val="15"
 
     mkdir -p "$NEW_CONFIG_DIR"
     print_info "写入配置文件 ${NEW_CONFIG_FILE}..."
     cat > "$NEW_CONFIG_FILE" <<EOF
 # DStatus Agent Configuration
 key: "${api_key_for_config}"
-port: 9999 # Agent监听端口，确保与防火墙规则一致
+port: 9999
 debug: false
 
 # 主动上报配置
 report_enabled: true
 report_server: "${report_server_url_config}"
 report_interval: ${report_interval_val}
-report_server_key: "${api_key_for_config}" # 与主 key 一致
+report_server_key: "${api_key_for_config}"
 server_id: "${server_id_for_config}"
 EOF
-    # 如果需要 mode 配置项，在此处添加，例如：
-    # echo "mode: 1" >> "$NEW_CONFIG_FILE"
 
     print_info "创建/更新服务 ${NEW_SERVICE_NAME}..."
     if [[ "$OS_FAMILY" == "alpine" ]] && command -v rc-service &> /dev/null; then
@@ -289,7 +286,7 @@ EOF
 }
 
 configure_firewall_rules() {
-    local agent_port="9999" # 与 config.yaml 中的 port 一致
+    local agent_port="9999"
     print_info "配置防火墙规则 (端口 ${agent_port})..."
     if [[ "$OS_FAMILY" == "alpine" ]]; then
         iptables -C INPUT -p tcp --dport "${agent_port}" -j ACCEPT 2>/dev/null || iptables -A INPUT -p tcp --dport "${agent_port}" -j ACCEPT
@@ -355,7 +352,7 @@ process_installation() {
     local migrated_server_id_from_old_config=""
     if [ -f "$OLD_CONFIG_FILE" ]; then
         migrated_api_key_from_old_config=$(grep "^key:" "$OLD_CONFIG_FILE" | cut -d' ' -f2 | tr -d '"' | tr -d "'")
-        migrated_server_id_from_old_config=$(grep "^server_id:" "$OLD_CONFIG_FILE" | cut -d' ' -f2 | tr -d '"' | tr -d "'") # 尝试读取旧SID
+        migrated_server_id_from_old_config=$(grep "^server_id:" "$OLD_CONFIG_FILE" | cut -d' ' -f2 | tr -d '"' | tr -d "'")
         if [ -n "$migrated_api_key_from_old_config" ]; then
             print_info "检测到旧版 (${OLD_AGENT_BINARY_NAME}) API密钥: ${migrated_api_key_from_old_config:0:8}..."
             final_api_key_for_config="$migrated_api_key_from_old_config"
@@ -378,15 +375,15 @@ process_installation() {
     if [ "$api_key_source" == "none" ] && [ -f "$NEW_CONFIG_FILE" ]; then
         existing_api_key_in_new_config=$(grep "^key:" "$NEW_CONFIG_FILE" | cut -d' ' -f2 | tr -d '"' | tr -d "'")
         existing_server_id_in_new_config=$(grep "^server_id:" "$NEW_CONFIG_FILE" | cut -d' ' -f2 | tr -d '"' | tr -d "'")
-        if [ -n "$existing_api_key_in_new_config" ]; {
+        if [ -n "$existing_api_key_in_new_config" ]; then # Corrected: removed {
             print_info "检测到当前 (${NEW_AGENT_BINARY_NAME}) API密钥: ${existing_api_key_in_new_config:0:8}..."
             final_api_key_for_config="$existing_api_key_in_new_config"
             final_server_id_for_config="$existing_server_id_in_new_config"
             api_key_source="existing_new"
             should_re_register_based_on_keys=false
-        } else {
+        else # Corrected: this else now correctly pairs with the if above
             print_warning "当前配置文件 $NEW_CONFIG_FILE 存在但无有效API密钥。"
-        }
+        fi # Corrected: fi for if [ -n "$existing_api_key_in_new_config" ]
     fi
 
     local force_new_key_acquisition=false
@@ -410,7 +407,6 @@ process_installation() {
         actual_should_re_register=true; print_info "需要获取新的API密钥。"
     fi
 
-    # 如果不重新注册，但Server ID缺失，则强制重新注册以获取完整信息
     if [ "$actual_should_re_register" = false ] && [ -z "$final_server_id_for_config" ] && [ -n "$final_api_key_for_config" ]; then
         print_warning "API密钥 (${final_api_key_for_config:0:8}) 已存在但Server ID缺失。将强制使用注册密钥获取完整配置。"
         actual_should_re_register=true
@@ -466,13 +462,12 @@ process_installation() {
     print_success "--------------------------------------------------"
     print_warning "${YELLOW}卸载说明:${NC}"
     print_warning "  要卸载 ${NEW_AGENT_BINARY_NAME}, 请运行以下命令 (复制粘贴并执行):"
-    # 生成一个多行命令，用户可以直接复制
-    UNINSTALL_CMD="sudo bash -c \"echo '正在卸载 ${NEW_AGENT_BINARY_NAME}...'; "
+    local UNINSTALL_CMD="sudo bash -c \"echo '正在卸载 ${NEW_AGENT_BINARY_NAME}...'; "
     UNINSTALL_CMD+="systemctl stop ${NEW_SERVICE_NAME} 2>/dev/null; systemctl disable ${NEW_SERVICE_NAME} 2>/dev/null; "
     UNINSTALL_CMD+="rc-service ${NEW_SERVICE_NAME} stop 2>/dev/null; rc-update delete ${NEW_SERVICE_NAME} default 2>/dev/null; "
     UNINSTALL_CMD+="/etc/init.d/${NEW_SERVICE_NAME} stop 2>/dev/null; update-rc.d -f ${NEW_SERVICE_NAME} remove 2>/dev/null; "
     UNINSTALL_CMD+="rm -f ${NEW_BINARY_PATH} /etc/systemd/system/${NEW_SERVICE_NAME}.service /etc/init.d/${NEW_SERVICE_NAME} ${NEW_CONFIG_FILE} 2>/dev/null; "
-    UNINSTALL_CMD+="rmdir ${NEW_CONFIG_DIR} 2>/dev/null || true; " # 尝试删除目录，如果为空
+    UNINSTALL_CMD+="rmdir ${NEW_CONFIG_DIR} 2>/dev/null || true; "
     UNINSTALL_CMD+="echo '${NEW_AGENT_BINARY_NAME} 已卸载。防火墙规则可能需要手动清理。'\""
     echo -e "    ${UNINSTALL_CMD}"
     print_success "--------------------------------------------------"
@@ -505,7 +500,7 @@ main() {
     if [ "$operation" == "install" ]; then
         process_installation "$key_param" "$url_param"
     else
-        print_error "未知的操作模式。" # Should not happen
+        print_error "未知的操作模式。"
         exit 1
     fi
 }
