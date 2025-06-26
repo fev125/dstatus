@@ -278,7 +278,7 @@ download_neko_status() {
     local TEMP_FILE="/tmp/neko-status.new"
 
     # 构建下载URL
-    BASE_URL="https://github.com/fev125/dstatus/releases/download/v1.0.1"
+    BASE_URL="https://github.com/fev125/dstatus/releases/download/v1.1"
     DOWNLOAD_URL="${BASE_URL}/neko-status_${OS_TYPE}_${ARCH}"
     SERVER_ARCH_URL="${SERVER_URL}/neko-status_${OS_TYPE}_${ARCH}"
     
