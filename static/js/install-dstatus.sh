@@ -5,7 +5,7 @@
 # 2. 支持通过注册密钥自动注册到服务器
 # 3. 支持多系统多架构
 # 4. 支持安装和更新两种模式
-# 修改时间: 2024-06-26
+# 修改时间: 2025-06-26
 # Alpine优化版本
 
 # 颜色定义
@@ -815,8 +815,14 @@ smart_parameter_handling() {
     return 1
 }
 
-# 增强的交互模式 - 支持curl参数预填
-enhanced_interactive_mode() {
+# 检测是否在curl管道环境下运行
+is_piped_execution() {
+    # 检查标准输入是否被重定向（curl管道）
+    [ ! -t 0 ]
+}
+
+# 智能模式选择 - 支持curl管道安装
+smart_mode_selection() {
     echo ""
     print_info "=== DStatus客户端安装/更新向导 ==="
     echo ""
@@ -825,41 +831,58 @@ enhanced_interactive_mode() {
         print_success "检测到已安装的DStatus客户端"
         read_existing_config
         echo ""
+
+        # 如果在curl管道环境下且有参数，智能选择模式
+        if is_piped_execution && [ -n "$CURL_REGISTRATION_KEY" ]; then
+            print_info "检测到curl管道安装环境，自动选择更新模式以保留现有配置"
+            MODE="update"
+            SERVER_URL="$CURL_SERVER_URL"
+            print_info "选择了更新模式，将使用服务器: $SERVER_URL"
+            return
+        fi
+
+        # 交互式选择
         print_info "请选择操作模式:"
         echo "  1) 更新客户端 (保留现有配置和注册信息)"
         echo "  2) 全新安装 (重新注册，会丢失面板配置)"
         echo "  3) 退出"
         echo ""
 
-        while true; do
+        # 如果在管道环境下，提供默认选择
+        if is_piped_execution; then
+            print_info "检测到管道执行环境，将自动选择更新模式以保留现有配置"
+            print_info "如需全新安装，请直接运行脚本而非通过curl管道"
+            choice=1
+        else
             read -p "请输入选择 [1-3]: " choice
-            case $choice in
-                1)
-                    MODE="update"
-                    print_info "选择了更新模式"
-                    break
-                    ;;
-                2)
-                    MODE="install"
-                    print_warning "注意：全新安装会重新注册，面板上的配置将丢失！"
+        fi
+
+        case $choice in
+            1)
+                MODE="update"
+                print_info "选择了更新模式"
+                ;;
+            2)
+                MODE="install"
+                print_warning "注意：全新安装会重新注册，面板上的配置将丢失！"
+                if ! is_piped_execution; then
                     read -p "确认继续？[y/N]: " confirm
-                    if [[ $confirm =~ ^[Yy]$ ]]; then
-                        print_info "选择了全新安装模式"
-                        break
-                    else
+                    if [[ ! $confirm =~ ^[Yy]$ ]]; then
                         print_info "已取消"
                         exit 0
                     fi
-                    ;;
-                3)
-                    print_info "已退出"
-                    exit 0
-                    ;;
-                *)
-                    print_error "无效选择，请输入 1-3"
-                    ;;
-            esac
-        done
+                fi
+                print_info "选择了全新安装模式"
+                ;;
+            3)
+                print_info "已退出"
+                exit 0
+                ;;
+            *)
+                print_error "无效选择，默认使用更新模式"
+                MODE="update"
+                ;;
+        esac
     else
         print_info "未检测到现有安装，将进行全新安装"
         MODE="install"
@@ -868,30 +891,36 @@ enhanced_interactive_mode() {
     # 根据模式获取参数
     if [ "$MODE" = "install" ]; then
         echo ""
-        # 如果有curl参数，提供默认值
-        if [ -n "$CURL_REGISTRATION_KEY" ]; then
-            read -p "请输入注册密钥 [${CURL_REGISTRATION_KEY:0:8}...]: " input_key
-            REGISTRATION_KEY="${input_key:-$CURL_REGISTRATION_KEY}"
+        # 如果有curl参数，直接使用
+        if [ -n "$CURL_REGISTRATION_KEY" ] && [ -n "$CURL_SERVER_URL" ]; then
+            REGISTRATION_KEY="$CURL_REGISTRATION_KEY"
+            SERVER_URL="$CURL_SERVER_URL"
+            print_info "使用curl参数: 注册密钥=${REGISTRATION_KEY:0:8}..., 服务器=$SERVER_URL"
+        elif is_piped_execution; then
+            die "curl管道安装需要提供注册密钥和服务器URL参数"
         else
+            # 交互式输入
             read -p "请输入注册密钥: " REGISTRATION_KEY
-        fi
-
-        if [ -n "$CURL_SERVER_URL" ]; then
-            read -p "请输入服务器URL [$CURL_SERVER_URL]: " input_url
-            SERVER_URL="${input_url:-$CURL_SERVER_URL}"
-        else
             read -p "请输入服务器URL: " SERVER_URL
-        fi
 
-        if [ -z "$REGISTRATION_KEY" ] || [ -z "$SERVER_URL" ]; then
-            print_error "注册密钥和服务器URL不能为空"
-            exit 1
+            if [ -z "$REGISTRATION_KEY" ] || [ -z "$SERVER_URL" ]; then
+                die "注册密钥和服务器URL不能为空"
+            fi
         fi
     elif [ "$MODE" = "update" ]; then
         echo ""
-        read -p "请输入服务器URL (留空使用默认源): " SERVER_URL
-        if [ -z "$SERVER_URL" ]; then
-            print_info "将使用默认下载源"
+        # 如果有curl参数，使用服务器URL
+        if [ -n "$CURL_SERVER_URL" ]; then
+            SERVER_URL="$CURL_SERVER_URL"
+            print_info "使用curl参数中的服务器URL: $SERVER_URL"
+        elif is_piped_execution; then
+            print_info "使用默认下载源进行更新"
+            SERVER_URL=""
+        else
+            read -p "请输入服务器URL (留空使用默认源): " SERVER_URL
+            if [ -z "$SERVER_URL" ]; then
+                print_info "将使用默认下载源"
+            fi
         fi
     fi
 }
@@ -915,7 +944,7 @@ main() {
             ;;
         "")
             init_environment
-            enhanced_interactive_mode
+            smart_mode_selection
             case "$MODE" in
                 "install") install_dstatus "$REGISTRATION_KEY" "$SERVER_URL" ;;
                 "update") update_dstatus "$SERVER_URL" ;;
@@ -925,7 +954,7 @@ main() {
             # 智能处理curl管道安装和兼容旧版本
             if smart_parameter_handling "$1" "$2"; then
                 init_environment
-                enhanced_interactive_mode
+                smart_mode_selection
                 case "$MODE" in
                     "install") install_dstatus "$REGISTRATION_KEY" "$SERVER_URL" ;;
                     "update") update_dstatus "$SERVER_URL" ;;
