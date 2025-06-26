@@ -14,11 +14,11 @@ NEW_CONFIG_DIR="/etc/dstatus-agent"
 NEW_CONFIG_FILE="${NEW_CONFIG_DIR}/config.yaml"
 NEW_BINARY_PATH="/usr/bin/${NEW_AGENT_BINARY_NAME}"
 
-OLD_AGENT_BINARY_NAME="neko-status"
+OLD_AGENT_BINARY_NAME="neko-status" # 用于下载远程的旧文件名
 OLD_SERVICE_NAME="nekonekostatus"
 OLD_CONFIG_DIR="/etc/neko-status"
 OLD_CONFIG_FILE="${OLD_CONFIG_DIR}/config.yaml"
-OLD_BINARY_PATH="/usr/bin/${OLD_AGENT_BINARY_NAME}"
+OLD_BINARY_PATH="/usr/bin/${OLD_AGENT_BINARY_NAME}" # 旧的本地路径
 
 # --- 颜色定义 ---
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[0;33m'; BLUE='\033[0;34m'; NC='\033[0m'
@@ -128,10 +128,11 @@ cleanup_old_version_files() {
 
 download_agent_binary() {
     local server_url_for_download="$1"
-    local temp_file="/tmp/${NEW_AGENT_BINARY_NAME}.new"
+    # 下载时用旧名相关的临时文件名，因为远程资源可能是旧名
+    local temp_file_downloaded="/tmp/${OLD_AGENT_BINARY_NAME}.downloaded_$(date +%s%N)"
     local download_prefix_url=""
 
-    print_info "尝试从服务器获取 ${NEW_AGENT_BINARY_NAME} 下载链接前缀: ${server_url_for_download}/api/client/download-prefix"
+    print_info "尝试从服务器获取 ${NEW_AGENT_BINARY_NAME} (远程可能为 ${OLD_AGENT_BINARY_NAME}) 下载链接前缀: ${server_url_for_download}/api/client/download-prefix"
     local server_prefix_response
     server_prefix_response=$(curl -s -m 10 "${server_url_for_download}/api/client/download-prefix" || echo "")
 
@@ -139,35 +140,54 @@ download_agent_binary() {
         download_prefix_url=$(echo "$server_prefix_response" | grep -o '"url":"[^"]*' | cut -d'"' -f4)
         print_info "从服务器获取到下载链接前缀: $download_prefix_url"
     else
-        download_prefix_url="https://github.com/fev125/dstatus/releases/download/v1.1"
+        download_prefix_url="https://github.com/fev125/dstatus/releases/download/v1.1" # 默认值
         print_info "无法从服务器获取下载前缀或响应无效，使用默认下载链接前缀: $download_prefix_url"
     fi
 
-    local client_download_url="${download_prefix_url}/${NEW_AGENT_BINARY_NAME}_${DOWNLOAD_OS_TYPE}_${DOWNLOAD_ARCH}"
-    local client_download_url_alt_server="${server_url_for_download}/${NEW_AGENT_BINARY_NAME}_${DOWNLOAD_OS_TYPE}_${DOWNLOAD_ARCH}"
+    # 构建下载URL时，使用旧的二进制文件名前缀 (OLD_AGENT_BINARY_NAME)，因为远程资源可能尚未更新
+    local remote_filename_to_download="${OLD_AGENT_BINARY_NAME}_${DOWNLOAD_OS_TYPE}_${DOWNLOAD_ARCH}"
+    local client_download_url="${download_prefix_url}/${remote_filename_to_download}"
+    # 备用：直接从用户指定的服务器下载架构特定版本 (也假设远程是旧文件名)
+    local client_download_url_alt_server="${server_url_for_download}/${remote_filename_to_download}"
 
-    print_info "尝试下载 ${NEW_AGENT_BINARY_NAME} 从: $client_download_url"
-    if wget -q --show-progress --timeout=30 --tries=2 "$client_download_url" -O "$temp_file"; then
+
+    print_info "尝试下载远程文件 ${remote_filename_to_download} 从: $client_download_url"
+    # 下载到临时文件 $temp_file_downloaded
+    if wget -q --show-progress --progress=bar:force --timeout=30 --tries=2 "$client_download_url" -O "$temp_file_downloaded" 2>&1 | grep -qE '(100%|saved)'; then
         print_success "从主要源下载成功: $client_download_url"
-    elif wget -q --show-progress --timeout=30 --tries=2 "$client_download_url_alt_server" -O "$temp_file"; then
+    elif wget -q --show-progress --progress=bar:force --timeout=30 --tries=2 "$client_download_url_alt_server" -O "$temp_file_downloaded" 2>&1 | grep -qE '(100%|saved)'; then
         print_success "从备用服务器源下载成功: $client_download_url_alt_server"
-    elif curl -s -f -L --connect-timeout 30 --retry 2 "$client_download_url" -o "$temp_file"; then
+    elif curl -# -s -f -L --connect-timeout 30 --retry 2 "$client_download_url" -o "$temp_file_downloaded"; then
         print_success "使用curl从主要源下载成功: $client_download_url"
-    elif curl -s -f -L --connect-timeout 30 --retry 2 "$client_download_url_alt_server" -o "$temp_file"; then
+    elif curl -# -s -f -L --connect-timeout 30 --retry 2 "$client_download_url_alt_server" -o "$temp_file_downloaded"; then
         print_success "使用curl从备用服务器源下载成功: $client_download_url_alt_server"
     else
-        print_error "所有下载尝试均失败。"
+        print_error "所有下载尝试均失败 (尝试下载远程文件: ${remote_filename_to_download})。"
+        rm -f "$temp_file_downloaded" # 清理可能的空文件或部分文件
         return 1
     fi
 
-    if [ ! -s "$temp_file" ]; then print_error "下载文件为空，下载失败。"; return 1; fi
+    if [ ! -s "$temp_file_downloaded" ]; then
+        print_error "下载文件为空 (${temp_file_downloaded})，下载失败。"
+        rm -f "$temp_file_downloaded"
+        return 1
+    fi
+
+    # 下载成功后，将其移动并重命名为新的二进制文件路径
     mkdir -p "$(dirname "$NEW_BINARY_PATH")"
-    mv "$temp_file" "$NEW_BINARY_PATH"
+    mv "$temp_file_downloaded" "$NEW_BINARY_PATH"
     chmod +x "$NEW_BINARY_PATH"
-    if ! "$NEW_BINARY_PATH" -v >/dev/null 2>&1; then print_error "安装失败，${NEW_AGENT_BINARY_NAME} 二进制文件无法执行。"; return 1; fi
-    print_success "安装 ${NEW_AGENT_BINARY_NAME} 二进制文件成功。"
+
+    # 验证新路径下的二进制文件
+    if ! "$NEW_BINARY_PATH" -v >/dev/null 2>&1; then
+        print_error "安装失败，${NEW_AGENT_BINARY_NAME} (路径: ${NEW_BINARY_PATH}) 二进制文件无法执行。"
+        # rm -f "$NEW_BINARY_PATH" # 谨慎操作：如果验证失败是否删除？
+        return 1
+    fi
+    print_success "安装 ${NEW_AGENT_BINARY_NAME} 二进制文件到 ${NEW_BINARY_PATH} 成功。"
     return 0
 }
+
 
 register_with_server() {
     local reg_key_for_server="$1"
@@ -343,7 +363,7 @@ process_installation() {
        (command -v systemctl &>/dev/null && systemctl list-unit-files | grep -q "$OLD_SERVICE_NAME.service") || \
        [ -f "/etc/init.d/$OLD_SERVICE_NAME" ]; then
         print_warning "检测到旧版本 ${OLD_AGENT_BINARY_NAME} 的残留，将进行停止和禁用。"
-        stop_and_disable_service "$OLD_SERVICE_NAME" "$OLD_AGENT_BINARY_NAME"
+        stop_and_disable_service "$OLD_SERVICE_NAME" "$OLD_AGENT_BINARY_NAME" # 停止旧服务和旧进程
     else
         print_info "未检测到活动的旧版本 ${OLD_AGENT_BINARY_NAME}。"
     fi
@@ -379,7 +399,7 @@ process_installation() {
         print_info "未找到任何现有配置或迁移密钥。将执行注册。"
     fi
 
-    stop_and_disable_service "$NEW_SERVICE_NAME" "$NEW_AGENT_BINARY_NAME"
+    stop_and_disable_service "$NEW_SERVICE_NAME" "$NEW_AGENT_BINARY_NAME" # 停止新服务和新进程 (以防万一)
 
     if ! download_agent_binary "$user_input_server_url"; then
         die "${NEW_AGENT_BINARY_NAME} 下载失败，操作中止。"
@@ -448,7 +468,7 @@ main() {
     if [ "$operation" == "install" ]; then
         process_installation "$key_param" "$url_param"
     else
-        print_error "未知的操作模式。" # Should not happen due to checks above
+        print_error "未知的操作模式。"
         exit 1
     fi
 }
