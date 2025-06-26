@@ -14,11 +14,11 @@ NEW_CONFIG_DIR="/etc/dstatus-agent"
 NEW_CONFIG_FILE="${NEW_CONFIG_DIR}/config.yaml"
 NEW_BINARY_PATH="/usr/bin/${NEW_AGENT_BINARY_NAME}"
 
-OLD_AGENT_BINARY_NAME="neko-status" # 用于下载远程的旧文件名
+OLD_AGENT_BINARY_NAME="neko-status"
 OLD_SERVICE_NAME="nekonekostatus"
 OLD_CONFIG_DIR="/etc/neko-status"
 OLD_CONFIG_FILE="${OLD_CONFIG_DIR}/config.yaml"
-OLD_BINARY_PATH="/usr/bin/${OLD_AGENT_BINARY_NAME}" # 旧的本地路径
+OLD_BINARY_PATH="/usr/bin/${OLD_AGENT_BINARY_NAME}"
 
 # --- 颜色定义 ---
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[0;33m'; BLUE='\033[0;34m'; NC='\033[0m'
@@ -101,7 +101,7 @@ stop_and_disable_service() {
         chkconfig "$service_name_to_stop" off 2>/dev/null || true
     fi
     if [ -n "$process_name_to_kill" ]; then
-      pkill -9 -f "$process_name_to_kill" 2>/dev/null || true
+      pkill -9 -f "$process_name_to_kill" 2>/dev/null || true # 确保相关进程被杀死
     fi
     sleep 1
     print_success "服务 $service_name_to_stop 已尝试停止和禁用。"
@@ -128,7 +128,6 @@ cleanup_old_version_files() {
 
 download_agent_binary() {
     local server_url_for_download="$1"
-    # 下载时用旧名相关的临时文件名，因为远程资源可能是旧名
     local temp_file_downloaded="/tmp/${OLD_AGENT_BINARY_NAME}.downloaded_$(date +%s%N)"
     local download_prefix_url=""
 
@@ -140,19 +139,15 @@ download_agent_binary() {
         download_prefix_url=$(echo "$server_prefix_response" | grep -o '"url":"[^"]*' | cut -d'"' -f4)
         print_info "从服务器获取到下载链接前缀: $download_prefix_url"
     else
-        download_prefix_url="https://github.com/fev125/dstatus/releases/download/v1.1" # 默认值
+        download_prefix_url="https://github.com/fev125/dstatus/releases/download/v1.1"
         print_info "无法从服务器获取下载前缀或响应无效，使用默认下载链接前缀: $download_prefix_url"
     fi
 
-    # 构建下载URL时，使用旧的二进制文件名前缀 (OLD_AGENT_BINARY_NAME)，因为远程资源可能尚未更新
     local remote_filename_to_download="${OLD_AGENT_BINARY_NAME}_${DOWNLOAD_OS_TYPE}_${DOWNLOAD_ARCH}"
     local client_download_url="${download_prefix_url}/${remote_filename_to_download}"
-    # 备用：直接从用户指定的服务器下载架构特定版本 (也假设远程是旧文件名)
     local client_download_url_alt_server="${server_url_for_download}/${remote_filename_to_download}"
 
-
     print_info "尝试下载远程文件 ${remote_filename_to_download} 从: $client_download_url"
-    # 下载到临时文件 $temp_file_downloaded
     if wget -q --show-progress --progress=bar:force --timeout=30 --tries=2 "$client_download_url" -O "$temp_file_downloaded" 2>&1 | grep -qE '(100%|saved)'; then
         print_success "从主要源下载成功: $client_download_url"
     elif wget -q --show-progress --progress=bar:force --timeout=30 --tries=2 "$client_download_url_alt_server" -O "$temp_file_downloaded" 2>&1 | grep -qE '(100%|saved)'; then
@@ -163,7 +158,7 @@ download_agent_binary() {
         print_success "使用curl从备用服务器源下载成功: $client_download_url_alt_server"
     else
         print_error "所有下载尝试均失败 (尝试下载远程文件: ${remote_filename_to_download})。"
-        rm -f "$temp_file_downloaded" # 清理可能的空文件或部分文件
+        rm -f "$temp_file_downloaded"
         return 1
     fi
 
@@ -173,27 +168,23 @@ download_agent_binary() {
         return 1
     fi
 
-    # 下载成功后，将其移动并重命名为新的二进制文件路径
     mkdir -p "$(dirname "$NEW_BINARY_PATH")"
     mv "$temp_file_downloaded" "$NEW_BINARY_PATH"
     chmod +x "$NEW_BINARY_PATH"
 
-    # 验证新路径下的二进制文件
     if ! "$NEW_BINARY_PATH" -v >/dev/null 2>&1; then
         print_error "安装失败，${NEW_AGENT_BINARY_NAME} (路径: ${NEW_BINARY_PATH}) 二进制文件无法执行。"
-        # rm -f "$NEW_BINARY_PATH" # 谨慎操作：如果验证失败是否删除？
         return 1
     fi
     print_success "安装 ${NEW_AGENT_BINARY_NAME} 二进制文件到 ${NEW_BINARY_PATH} 成功。"
     return 0
 }
 
-
 register_with_server() {
-    local reg_key_for_server="$1"
+    local reg_key_for_server="$1" # 用户传入的注册密钥
     local server_url_for_reg="$2"
-    print_info "向服务器注册 ${NEW_AGENT_BINARY_NAME}: $server_url_for_reg"
-    API_KEY_FROM_SERVER=""
+    print_info "向服务器注册 ${NEW_AGENT_BINARY_NAME} (使用注册密钥: ${reg_key_for_server:0:8}...) 于: $server_url_for_reg"
+    API_KEY_FROM_SERVER="" # 全局变量，用于存储服务器返回的API Key
 
     local register_payload
     register_payload=$(cat <<EOF
@@ -219,7 +210,7 @@ EOF
             print_error "服务器响应: $register_response"
             return 1
         fi
-        print_success "自动发现注册成功。获取到API密钥: ${API_KEY_FROM_SERVER:0:8}..."
+        print_success "自动发现注册成功。服务器下发新的API密钥: ${API_KEY_FROM_SERVER:0:8}..."
         return 0
     else
         print_error "自动发现注册失败。"
@@ -340,7 +331,7 @@ start_new_service() {
 
 # --- 主安装/更新流程 ---
 process_installation() {
-    local user_input_reg_key="$1"
+    local user_input_reg_key="$1" # 用户传入的注册密钥
     local user_input_server_url="$2"
     user_input_server_url=${user_input_server_url%/}
 
@@ -349,82 +340,120 @@ process_installation() {
     detect_architecture
     install_dependencies
 
+    local final_api_key_for_config="" # 最终写入配置的API Key
+    local api_key_source="none" # 标记API Key来源: "migrated_old", "existing_new", "from_server"
+    local should_re_register_based_on_keys=true # 初步判断是否需要注册 (true = 需要)
+
+    # 1. 旧版本迁移检查
     local migrated_api_key_from_old_config=""
     print_info "检查旧版本 (${OLD_AGENT_BINARY_NAME}) ..."
     if [ -f "$OLD_CONFIG_FILE" ]; then
         migrated_api_key_from_old_config=$(grep "^key:" "$OLD_CONFIG_FILE" | cut -d' ' -f2 | tr -d '"' | tr -d "'")
         if [ -n "$migrated_api_key_from_old_config" ]; then
             print_info "从旧配置文件 $OLD_CONFIG_FILE 读取到API密钥: ${migrated_api_key_from_old_config:0:8}..."
+            final_api_key_for_config="$migrated_api_key_from_old_config"
+            api_key_source="migrated_old"
+            should_re_register_based_on_keys=false # 有可用的旧Key，初步认为不需要重注册
         else
-            print_warning "旧配置文件 $OLD_CONFIG_FILE 存在，但未能读取到API密钥。"
+            print_warning "旧配置文件 $OLD_CONFIG_FILE 存在，但未能读取到有效API密钥。"
         fi
     fi
+    # 停止并禁用旧服务 (如果存在任何旧版本迹象)
     if [ -f "$OLD_BINARY_PATH" ] || [ -d "$OLD_CONFIG_DIR" ] || \
        (command -v systemctl &>/dev/null && systemctl list-unit-files | grep -q "$OLD_SERVICE_NAME.service") || \
        [ -f "/etc/init.d/$OLD_SERVICE_NAME" ]; then
         print_warning "检测到旧版本 ${OLD_AGENT_BINARY_NAME} 的残留，将进行停止和禁用。"
-        stop_and_disable_service "$OLD_SERVICE_NAME" "$OLD_AGENT_BINARY_NAME" # 停止旧服务和旧进程
+        stop_and_disable_service "$OLD_SERVICE_NAME" "$OLD_AGENT_BINARY_NAME"
     else
         print_info "未检测到活动的旧版本 ${OLD_AGENT_BINARY_NAME}。"
     fi
 
-    local final_api_key_for_config=""
-    local should_re_register=true
-    local existing_api_key_from_new_config=""
-
-    if [ -n "$migrated_api_key_from_old_config" ]; then
-        print_info "将使用从旧版本迁移的API密钥进行比较。"
-        if [ "$user_input_reg_key" == "$migrated_api_key_from_old_config" ]; then
-            print_info "传入的注册密钥与迁移的API密钥相同。将保留此API密钥，不重新注册。"
-            should_re_register=false
-            final_api_key_for_config="$migrated_api_key_from_old_config"
+    # 2. 新版本现有配置检查 (仅当没有从旧版成功迁移Key时)
+    local existing_api_key_in_new_config=""
+    if [ "$api_key_source" == "none" ] && [ -f "$NEW_CONFIG_FILE" ]; then
+        existing_api_key_in_new_config=$(grep "^key:" "$NEW_CONFIG_FILE" | cut -d' ' -f2 | tr -d '"' | tr -d "'")
+        if [ -n "$existing_api_key_in_new_config" ]; then
+            print_info "从新配置文件 $NEW_CONFIG_FILE 读取到API密钥: ${existing_api_key_in_new_config:0:8}..."
+            final_api_key_for_config="$existing_api_key_in_new_config"
+            api_key_source="existing_new"
+            should_re_register_based_on_keys=false # 有可用的现有Key，初步认为不需要重注册
         else
-            print_warning "传入的注册密钥与迁移的API密钥不符。将执行重新注册。"
+            print_warning "新配置文件 $NEW_CONFIG_FILE 存在但无法读取有效API密钥。"
         fi
-    elif [ -f "$NEW_CONFIG_FILE" ]; then
-        existing_api_key_from_new_config=$(grep "^key:" "$NEW_CONFIG_FILE" | cut -d' ' -f2 | tr -d '"' | tr -d "'")
-        if [ -n "$existing_api_key_from_new_config" ]; then
-            print_info "从现有配置文件 $NEW_CONFIG_FILE 读取到API密钥: ${existing_api_key_from_new_config:0:8}..."
-            if [ "$user_input_reg_key" == "$existing_api_key_from_new_config" ]; then
-                print_info "传入的注册密钥与现有新配置中的API密钥相同。将保留此API密钥，不重新注册。"
-                should_re_register=false
-                final_api_key_for_config="$existing_api_key_from_new_config"
-            else
-                print_warning "传入的注册密钥与现有新配置中的API密钥不符。将执行重新注册。"
-            fi
-        else
-            print_warning "新配置文件 $NEW_CONFIG_FILE 存在但无法读取API密钥。将执行注册。"
-        fi
-    else
-        print_info "未找到任何现有配置或迁移密钥。将执行注册。"
     fi
 
-    stop_and_disable_service "$NEW_SERVICE_NAME" "$NEW_AGENT_BINARY_NAME" # 停止新服务和新进程 (以防万一)
+    # 3. 用户交互：如果已有API Key，询问是否强制获取新Key
+    local force_new_key_acquisition=false
+    if [ "$should_re_register_based_on_keys" = false ] && [ -n "$final_api_key_for_config" ]; then
+        local source_desc=""
+        if [ "$api_key_source" == "migrated_old" ]; then source_desc="从旧版 ${OLD_AGENT_BINARY_NAME} 迁移";
+        elif [ "$api_key_source" == "existing_new" ]; then source_desc="当前 ${NEW_AGENT_BINARY_NAME} 配置"; fi
 
+        print_warning "检测到已存在的 API Key (${final_api_key_for_config:0:8}...) 来源: $source_desc."
+        if [ -t 0 ] && [ -t 1 ]; then # 检查是否在交互式终端中
+            read -r -p "是否希望使用您提供的注册密钥 (${user_input_reg_key:0:8}...) 强制获取一个新的 API Key? 这可能导致服务器上的旧设备记录失效或需要重新审核。(y/N): " confirm_new_key
+            if [[ "$confirm_new_key" =~ ^[Yy]$ ]]; then
+                print_info "用户选择强制获取新的 API Key。"
+                force_new_key_acquisition=true
+            else
+                print_info "用户选择保留现有的 API Key。"
+            fi
+        else
+            print_info "非交互模式，将自动保留现有的 API Key (如果有效)。"
+        fi
+    fi
+
+    # 4. 最终决定是否重新注册
+    local actual_should_re_register=true # 最终决定，默认为true (需要注册)
+    if [ "$force_new_key_acquisition" = true ]; then
+        actual_should_re_register=true
+        print_info "将使用提供的注册密钥 (${user_input_reg_key:0:8}...) 获取新的 API Key。"
+    elif [ "$should_re_register_based_on_keys" = false ] && [ -n "$final_api_key_for_config" ]; then
+        actual_should_re_register=false # 初步判断不需要，且用户未强制，则不重新注册
+        print_info "将使用已存在的 API Key: ${final_api_key_for_config:0:8}..."
+    else # 没有可用的旧Key，或初步判断就需要注册 (例如旧Key无效)
+        actual_should_re_register=true
+        print_info "需要使用注册密钥 (${user_input_reg_key:0:8}...) 获取新的 API Key。"
+    fi
+
+    # 5. 停止当前可能运行的新名称服务 (以防上次安装未完成或脚本重入)
+    stop_and_disable_service "$NEW_SERVICE_NAME" "$NEW_AGENT_BINARY_NAME"
+
+    # 6. 下载新的 dstatus-agent 二进制文件 (总是执行以获取最新版本)
     if ! download_agent_binary "$user_input_server_url"; then
         die "${NEW_AGENT_BINARY_NAME} 下载失败，操作中止。"
     fi
 
-    if [ "$should_re_register" = true ]; then
-        print_info "执行自动发现注册流程..."
+    # 7. 执行注册 (如果需要)
+    if [ "$actual_should_re_register" = true ]; then
         if ! register_with_server "$user_input_reg_key" "$user_input_server_url"; then
             die "自动发现注册失败，操作中止。"
         fi
-        final_api_key_for_config="$API_KEY_FROM_SERVER"
+        final_api_key_for_config="$API_KEY_FROM_SERVER" # 使用从服务器获取的新的API Key
+        api_key_source="from_server" # 更新API Key来源
     else
-        print_info "跳过注册流程，使用已确定/迁移的API密钥。"
+        print_info "跳过注册流程，使用已有的/迁移的 API Key。"
+        # final_api_key_for_config 已经是正确的旧Key
     fi
 
     if [ -z "$final_api_key_for_config" ]; then
         die "错误：最终的API密钥为空，无法继续。请检查注册或现有配置。"
     fi
 
+    # 8. 创建新服务和新配置
     create_new_service_and_config "$final_api_key_for_config"
+
+    # 9. 配置防火墙
     configure_firewall_rules
+
+    # 10. 启动新服务
     start_new_service
+
+    # 11. 清理旧版本文件 (在新版本成功启动后)
     cleanup_old_version_files
 
-    if [ "$should_re_register" = true ]; then
+    # 12. 打印最终信息
+    if [ "$api_key_source" == "from_server" ]; then # 判断是否是新注册的
         print_success "${NEW_AGENT_BINARY_NAME} 全新安装/重新注册完成。"
     else
         print_success "${NEW_AGENT_BINARY_NAME} 更新完成 (API密钥已保留/迁移)。"
