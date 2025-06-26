@@ -212,7 +212,7 @@ create_new_service_and_config() {
     local api_key_for_config="$1"
     local report_server_url_config="$2"
     local server_id_for_config="$3"
-    local report_interval_val="15"
+    local report_interval_val="2"
 
     mkdir -p "$NEW_CONFIG_DIR"
     print_info "写入配置文件 ${NEW_CONFIG_FILE}..."
