@@ -4,7 +4,8 @@
 # 1. 此脚本用于安装DStatus客户端(neko-status)，支持自动发现功能
 # 2. 支持通过注册密钥自动注册到服务器
 # 3. 支持多系统多架构
-# 修改时间: 2023-11-01
+# 4. 支持安装和更新两种模式
+# 修改时间: 2024-06-26
 # Alpine优化版本
 
 # 颜色定义
@@ -31,12 +32,127 @@ print_error() {
     echo -e "${RED}[错误]${NC} $1"
 }
 
+# 显示使用帮助
+show_usage() {
+    echo "DStatus客户端安装/更新脚本"
+    echo ""
+    echo "使用方法:"
+    echo "  全新安装: sudo $0 install <注册密钥> <服务器URL>"
+    echo "  更新客户端: sudo $0 update [服务器URL]"
+    echo "  交互模式: sudo $0"
+    echo ""
+    echo "示例:"
+    echo "  sudo $0 install abc123 https://status.example.com"
+    echo "  sudo $0 update https://status.example.com"
+    echo "  sudo $0 update  # 使用配置文件中的服务器URL"
+    echo ""
+}
+
 # 检查是否为root用户
 check_root() {
     if [ "$(id -u)" != "0" ]; then
         print_error "此脚本需要root权限运行"
-        print_info "请使用sudo运行此脚本: sudo $0 注册密钥 服务器URL"
+        show_usage
         exit 1
+    fi
+}
+
+# 检查是否已安装
+check_existing_installation() {
+    if [ -f "/etc/neko-status/config.yaml" ] && [ -f "/usr/bin/neko-status" ]; then
+        return 0  # 已安装
+    else
+        return 1  # 未安装
+    fi
+}
+
+# 读取现有配置
+read_existing_config() {
+    if [ -f "/etc/neko-status/config.yaml" ]; then
+        EXISTING_API_KEY=$(grep "^key:" /etc/neko-status/config.yaml | cut -d' ' -f2 | tr -d '"' | tr -d "'")
+        EXISTING_PORT=$(grep "^port:" /etc/neko-status/config.yaml | cut -d' ' -f2 | tr -d '"' | tr -d "'")
+        EXISTING_DEBUG=$(grep "^debug:" /etc/neko-status/config.yaml | cut -d' ' -f2 | tr -d '"' | tr -d "'")
+
+        print_info "读取到现有配置:"
+        print_info "  API密钥: ${EXISTING_API_KEY:0:8}..."
+        print_info "  端口: ${EXISTING_PORT:-9999}"
+        print_info "  调试模式: ${EXISTING_DEBUG:-false}"
+
+        return 0
+    else
+        print_warning "未找到现有配置文件"
+        return 1
+    fi
+}
+
+# 交互式选择模式
+interactive_mode() {
+    echo ""
+    print_info "=== DStatus客户端安装/更新向导 ==="
+    echo ""
+
+    if check_existing_installation; then
+        print_success "检测到已安装的DStatus客户端"
+        read_existing_config
+        echo ""
+        print_info "请选择操作模式:"
+        echo "  1) 更新客户端 (保留现有配置和注册信息)"
+        echo "  2) 全新安装 (重新注册，会丢失面板配置)"
+        echo "  3) 退出"
+        echo ""
+
+        while true; do
+            read -p "请输入选择 [1-3]: " choice
+            case $choice in
+                1)
+                    MODE="update"
+                    print_info "选择了更新模式"
+                    break
+                    ;;
+                2)
+                    MODE="install"
+                    print_warning "注意：全新安装会重新注册，面板上的配置将丢失！"
+                    read -p "确认继续？[y/N]: " confirm
+                    if [[ $confirm =~ ^[Yy]$ ]]; then
+                        print_info "选择了全新安装模式"
+                        break
+                    else
+                        print_info "已取消"
+                        exit 0
+                    fi
+                    ;;
+                3)
+                    print_info "已退出"
+                    exit 0
+                    ;;
+                *)
+                    print_error "无效选择，请输入 1-3"
+                    ;;
+            esac
+        done
+    else
+        print_info "未检测到现有安装，将进行全新安装"
+        MODE="install"
+    fi
+
+    # 根据模式获取参数
+    if [ "$MODE" = "install" ]; then
+        echo ""
+        read -p "请输入注册密钥: " REGISTRATION_KEY
+        read -p "请输入服务器URL: " SERVER_URL
+
+        if [ -z "$REGISTRATION_KEY" ] || [ -z "$SERVER_URL" ]; then
+            print_error "注册密钥和服务器URL不能为空"
+            exit 1
+        fi
+    elif [ "$MODE" = "update" ]; then
+        echo ""
+        read -p "请输入服务器URL (留空使用现有配置): " SERVER_URL
+
+        # 如果没有输入服务器URL，尝试从现有配置推断
+        if [ -z "$SERVER_URL" ]; then
+            print_info "将使用配置文件中的API密钥对应的服务器"
+        fi
     fi
 }
 
@@ -59,10 +175,10 @@ get_system_info() {
 
     # 获取系统信息
     HOSTNAME=$(hostname)
-    
+
     # 更可靠的IP获取方法，尤其对于Alpine系统
     IP=$(curl -s -m 5 https://api.ipify.org || curl -s -m 5 https://ipinfo.io/ip || hostname -I 2>/dev/null | awk '{print $1}' || ip -4 addr show | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | grep -v 127.0.0.1 | head -n1)
-    
+
     # IP获取失败时的后备方案
     if [ -z "$IP" ]; then
         if command -v ifconfig >/dev/null 2>&1; then
@@ -74,7 +190,7 @@ get_system_info() {
             print_warning "无法获取外部IP，使用本地IP: $IP"
         fi
     fi
-    
+
     SYSTEM="$OS $VERSION"
     VERSION_INFO=$(uname -r)
 
@@ -102,20 +218,20 @@ get_system_info() {
 # 安装必要的命令
 install_dependencies() {
     print_info "安装必要的工具..."
-    
+
     if [[ "$OS" == "alpine" ]]; then
         print_info "安装Alpine Linux依赖..."
         # 更新包列表，避免安装错误
         apk update
-        
+
         # 安装基本工具包和OpenRC需要的包
         apk add --no-cache curl wget bash procps iptables ip6tables
-        
+
         # 检查是否需要安装OpenRC (可能在某些最小化安装中缺失)
         if ! command -v rc-service >/dev/null 2>&1; then
             apk add --no-cache openrc
         fi
-        
+
         # 安装用于防火墙持久化的工具
         apk add --no-cache iptables-persistent || apk add --no-cache iptables
     elif [[ "$OS" == "ubuntu" || "$OS" == "debian" ]]; then
@@ -240,7 +356,7 @@ detect_architecture() {
 # 停止服务 - 增强对Alpine的支持
 stop_service() {
     print_info "尝试停止已存在的服务..."
-    
+
     if [ "$OS" == "alpine" ] && command -v rc-service &> /dev/null; then
         # 对Alpine使用OpenRC
         rc-service nekonekostatus stop 2>/dev/null || true
@@ -257,10 +373,10 @@ stop_service() {
         # 尝试通过进程查找并关闭
         pkill -f "neko-status -c /etc/neko-status/config.yaml" 2>/dev/null || true
     fi
-    
+
     # 强制结束可能残留的进程
     pkill -9 -f "neko-status" 2>/dev/null || true
-    
+
     # 等待进程完全退出
     sleep 2
 
@@ -277,11 +393,28 @@ download_neko_status() {
     local SERVER_URL="$1"
     local TEMP_FILE="/tmp/neko-status.new"
 
+    # 获取客户端下载链接前缀
+    # 先尝试从服务器获取链接前缀
+    DOWNLOAD_PREFIX=""
+
+    # 尝试从服务器获取链接前缀
+    print_info "从服务器获取下载链接前缀..."
+    SERVER_PREFIX_RESPONSE=$(curl -s -m 5 "${SERVER_URL}/api/client/download-prefix" || echo "")
+
+    if [ -n "$SERVER_PREFIX_RESPONSE" ] && echo "$SERVER_PREFIX_RESPONSE" | grep -q "url"; then
+        # 从响应中提取链接前缀
+        DOWNLOAD_PREFIX=$(echo "$SERVER_PREFIX_RESPONSE" | grep -o '"url":"[^"]*' | cut -d'"' -f4)
+        print_info "从服务器获取到下载链接前缀: $DOWNLOAD_PREFIX"
+    else
+        # 使用默认链接前缀
+        DOWNLOAD_PREFIX="https://github.com/fev125/dstatus/releases/download/v1.1"
+        print_info "使用默认下载链接前缀: $DOWNLOAD_PREFIX"
+    fi
+
     # 构建下载URL
-    BASE_URL="https://github.com/fev125/dstatus/releases/download/v1.1"
-    DOWNLOAD_URL="${BASE_URL}/neko-status_${OS_TYPE}_${ARCH}"
+    DOWNLOAD_URL="${DOWNLOAD_PREFIX}/neko-status_${OS_TYPE}_${ARCH}"
     SERVER_ARCH_URL="${SERVER_URL}/neko-status_${OS_TYPE}_${ARCH}"
-    
+
     print_info "使用下载链接: $DOWNLOAD_URL"
     print_info "备用下载链接: $SERVER_ARCH_URL"
 
@@ -290,7 +423,7 @@ download_neko_status() {
 
     # 尝试从不同源下载
     print_info "开始下载..."
-    
+
     # 使用更安全的下载方法，显示进度
     if wget -q --show-progress --timeout=30 --tries=3 "$DOWNLOAD_URL" -O "$TEMP_FILE"; then
         print_success "从GitHub下载成功"
@@ -333,21 +466,21 @@ download_neko_status() {
 # 配置防火墙 - 改进Alpine支持
 configure_firewall() {
     print_info "配置防火墙规则..."
-    
+
     # 对Alpine系统的特殊处理
     if [ "$OS" == "alpine" ]; then
         # 确保iptables模块已加载
         modprobe -q iptables || true
-        
+
         # 添加防火墙规则
         iptables -C INPUT -p tcp --dport 9999 -j ACCEPT 2>/dev/null || iptables -A INPUT -p tcp --dport 9999 -j ACCEPT
-        
+
         # 保存iptables规则 - 针对Alpine的几种可能情况
         if command -v iptables-save >/dev/null 2>&1; then
             # 尝试直接保存
             mkdir -p /etc/iptables 2>/dev/null
             iptables-save > /etc/iptables/rules.v4 2>/dev/null || true
-            
+
             # 确保在启动时恢复规则
             if [ ! -f /etc/local.d/iptables.start ]; then
                 mkdir -p /etc/local.d
@@ -358,7 +491,7 @@ if [ -f /etc/iptables/rules.v4 ]; then
 fi
 EOF
                 chmod +x /etc/local.d/iptables.start
-                
+
                 # 确保local服务已启用
                 if command -v rc-update >/dev/null 2>&1; then
                     rc-update add local default 2>/dev/null || true
@@ -376,29 +509,42 @@ EOF
         # Generic iptables
         iptables -C INPUT -p tcp --dport 9999 -j ACCEPT 2>/dev/null || iptables -A INPUT -p tcp --dport 9999 -j ACCEPT
     fi
-    
+
     print_success "防火墙配置完成"
 }
 
 # 创建系统服务 - 增强Alpine支持
 create_service() {
     local API_KEY="$1"
+    local PRESERVE_CONFIG="$2"
 
     # 创建配置目录
     mkdir -p /etc/neko-status/
 
-    # 创建配置文件
-    cat > /etc/neko-status/config.yaml <<EOF
+    # 创建或更新配置文件
+    if [ "$PRESERVE_CONFIG" = "true" ] && [ -f "/etc/neko-status/config.yaml" ]; then
+        print_info "保留现有配置文件"
+        # 验证配置文件格式
+        if ! grep -q "^key:" /etc/neko-status/config.yaml; then
+            print_warning "配置文件格式异常，将重新创建"
+            PRESERVE_CONFIG="false"
+        fi
+    fi
+
+    if [ "$PRESERVE_CONFIG" != "true" ]; then
+        print_info "创建新的配置文件"
+        cat > /etc/neko-status/config.yaml <<EOF
 key: ${API_KEY}
 port: 9999
 debug: false
 EOF
+    fi
 
     # 根据系统类型创建不同服务管理文件
     if [ "$OS" == "alpine" ] && command -v rc-service &> /dev/null; then
         # 为Alpine创建OpenRC服务
         print_info "为Alpine创建OpenRC服务..."
-        
+
         cat > /etc/init.d/nekonekostatus <<EOF
 #!/sbin/openrc-run
 
@@ -419,10 +565,10 @@ start_pre() {
 }
 EOF
         chmod +x /etc/init.d/nekonekostatus
-        
+
         # 添加到启动项
         rc-update add nekonekostatus default 2>/dev/null
-        
+
     elif command -v systemctl &> /dev/null; then
         # 创建systemd服务 (对于使用systemd的系统)
         cat > /etc/systemd/system/nekonekostatus.service <<EOF
@@ -440,7 +586,7 @@ WantedBy=multi-user.target
 EOF
         # 重新加载systemd配置
         systemctl daemon-reload
-        
+
     # 对于使用init.d的系统
     elif [ -d /etc/init.d ]; then
         cat > /etc/init.d/nekonekostatus <<EOF
@@ -509,10 +655,10 @@ EOF
     else
         # 创建简单的启动脚本
         print_info "创建基本启动脚本..."
-        
+
         # 创建目录
         mkdir -p /usr/local/bin /var/log
-        
+
         cat > /usr/local/bin/nekonekostatus-start <<EOF
 #!/bin/sh
 nohup /usr/bin/neko-status -c /etc/neko-status/config.yaml > /var/log/nekonekostatus.log 2>&1 &
@@ -529,7 +675,7 @@ fi
 pkill -f "neko-status" 2>/dev/null || true
 EOF
         chmod +x /usr/local/bin/nekonekostatus-stop
-        
+
         # 如果是Alpine但没有OpenRC，创建启动脚本
         if [ "$OS" == "alpine" ]; then
             # 在开机时自动启动
@@ -540,7 +686,7 @@ EOF
 /usr/local/bin/nekonekostatus-start
 EOF
                 chmod +x /etc/local.d/nekonekostatus.start
-                
+
                 # 确保local服务已启用
                 if command -v rc-update >/dev/null 2>&1; then
                     rc-update add local default 2>/dev/null || true
@@ -548,14 +694,14 @@ EOF
             fi
         fi
     fi
-    
+
     print_success "服务创建完成"
 }
 
 # 启动服务 - 增强Alpine支持
 start_service() {
     print_info "正在启动服务..."
-    
+
     if [ "$OS" == "alpine" ] && command -v rc-service &> /dev/null; then
         # 对Alpine使用OpenRC
         rc-service nekonekostatus start
@@ -568,7 +714,7 @@ start_service() {
     elif [ -f /usr/local/bin/nekonekostatus-start ]; then
         /usr/local/bin/nekonekostatus-start
     fi
-    
+
     # 验证服务是否正在运行
     sleep 2
     if pgrep -f "neko-status" > /dev/null; then
@@ -576,7 +722,7 @@ start_service() {
     else
         print_warning "服务启动失败，尝试手动启动"
         nohup /usr/bin/neko-status -c /etc/neko-status/config.yaml > /var/log/nekonekostatus.log 2>&1 &
-        
+
         # 再次检查
         sleep 2
         if pgrep -f "neko-status" > /dev/null; then
@@ -587,19 +733,21 @@ start_service() {
     fi
 }
 
-# 安装DStatus客户端
+# 全新安装DStatus客户端
 install_dstatus() {
     local REGISTRATION_KEY="$1"
     local SERVER_URL="$2"
 
     # 检查参数
     if [ -z "$REGISTRATION_KEY" ] || [ -z "$SERVER_URL" ]; then
-        print_error "使用方法: $0 注册密钥 服务器URL"
+        print_error "全新安装需要注册密钥和服务器URL"
         exit 1
     fi
 
     # 去除URL末尾的斜杠
     SERVER_URL=${SERVER_URL%/}
+
+    print_info "开始全新安装DStatus客户端..."
 
     # 检测系统架构
     detect_architecture
@@ -619,8 +767,8 @@ install_dstatus() {
         exit 1
     fi
 
-    # 创建系统服务
-    create_service "$API_KEY"
+    # 创建系统服务（不保留配置）
+    create_service "$API_KEY" "false"
 
     # 配置防火墙
     configure_firewall
@@ -628,38 +776,170 @@ install_dstatus() {
     # 启动服务
     start_service
 
-    print_success "DStatus客户端安装完成"
+    print_success "DStatus客户端全新安装完成"
+    show_installation_info
+}
+
+# 更新DStatus客户端
+update_dstatus() {
+    local SERVER_URL="$1"
+
+    print_info "开始更新DStatus客户端..."
+
+    # 读取现有配置
+    if ! read_existing_config; then
+        print_error "无法读取现有配置，请使用全新安装模式"
+        exit 1
+    fi
+
+    # 如果没有提供服务器URL，尝试使用默认值
+    if [ -z "$SERVER_URL" ]; then
+        # 可以在这里添加从配置推断服务器URL的逻辑
+        # 暂时使用一个默认值或要求用户提供
+        print_warning "未提供服务器URL，将尝试从默认源下载"
+        SERVER_URL="https://github.com/fev125/dstatus/releases/download/v1.1"
+    else
+        # 去除URL末尾的斜杠
+        SERVER_URL=${SERVER_URL%/}
+    fi
+
+    # 检测系统架构
+    detect_architecture
+
+    # 安装必要的命令
+    install_dependencies
+
+    # 备份现有配置
+    print_info "备份现有配置..."
+    cp /etc/neko-status/config.yaml /etc/neko-status/config.yaml.backup.$(date +%Y%m%d_%H%M%S)
+
+    # 停止现有服务
+    stop_service
+
+    # 下载新版本客户端
+    if ! download_neko_status "$SERVER_URL"; then
+        print_error "下载新版本失败，恢复服务..."
+        start_service
+        exit 1
+    fi
+
+    # 创建系统服务（保留配置）
+    create_service "$EXISTING_API_KEY" "true"
+
+    # 启动服务
+    start_service
+
+    print_success "DStatus客户端更新完成"
+    print_info "配置信息:"
+    print_info "  API密钥: ${EXISTING_API_KEY:0:8}... (已保留)"
+    print_info "  端口: ${EXISTING_PORT:-9999}"
+    print_info "  配置文件: /etc/neko-status/config.yaml"
+    print_info "  备份文件: /etc/neko-status/config.yaml.backup.*"
+
+    show_service_info
+}
+
+# 显示安装信息
+show_installation_info() {
     print_info "服务器信息:"
     print_info "  主机名: $HOSTNAME"
     print_info "  IP地址: $IP"
     print_info "  系统: $SYSTEM"
     print_info "  API端口: 9999"
+    print_info "  服务器ID: $SID"
+    print_info "  API密钥: ${API_KEY:0:8}..."
     print_info "配置文件: /etc/neko-status/config.yaml"
 
+    show_service_info
+}
+
+# 显示服务信息
+show_service_info() {
     # 针对Alpine的特殊提示
     if [ "$OS" == "alpine" ]; then
-        print_info "Alpine Linux特殊说明:"
+        print_info "Alpine Linux服务管理:"
         print_info "  - 服务名称: nekonekostatus"
         print_info "  - 启动命令: rc-service nekonekostatus start"
         print_info "  - 停止命令: rc-service nekonekostatus stop"
         print_info "  - 查看状态: rc-service nekonekostatus status"
         print_info "  - 开机自启: rc-update add nekonekostatus default (已自动配置)"
         print_info "  - 日志文件: 使用 'tail -f /var/log/messages' 查看系统日志"
+    elif command -v systemctl &> /dev/null; then
+        print_info "Systemd服务管理:"
+        print_info "  - 服务名称: nekonekostatus"
+        print_info "  - 启动命令: systemctl start nekonekostatus"
+        print_info "  - 停止命令: systemctl stop nekonekostatus"
+        print_info "  - 查看状态: systemctl status nekonekostatus"
+        print_info "  - 开机自启: systemctl enable nekonekostatus (已自动配置)"
+        print_info "  - 查看日志: journalctl -u nekonekostatus -f"
+    else
+        print_info "服务管理:"
+        print_info "  - 启动命令: /etc/init.d/nekonekostatus start"
+        print_info "  - 停止命令: /etc/init.d/nekonekostatus stop"
+        print_info "  - 查看状态: /etc/init.d/nekonekostatus status"
     fi
-
-    exit 0
 }
 
 # 主函数
 main() {
-    # 检查root权限
-    check_root
-
-    # 获取系统信息
-    get_system_info
-
-    # 安装服务
-    install_dstatus "$1" "$2"
+    # 解析命令行参数
+    case "$1" in
+        "help"|"-h"|"--help")
+            # 显示帮助（不需要root权限）
+            show_usage
+            exit 0
+            ;;
+        "install")
+            # 检查root权限
+            check_root
+            # 获取系统信息
+            get_system_info
+            # 全新安装模式
+            if [ -z "$2" ] || [ -z "$3" ]; then
+                print_error "全新安装模式需要注册密钥和服务器URL"
+                show_usage
+                exit 1
+            fi
+            install_dstatus "$2" "$3"
+            ;;
+        "update")
+            # 检查root权限
+            check_root
+            # 获取系统信息
+            get_system_info
+            # 更新模式
+            update_dstatus "$2"
+            ;;
+        "")
+            # 检查root权限
+            check_root
+            # 获取系统信息
+            get_system_info
+            # 交互模式
+            interactive_mode
+            if [ "$MODE" = "install" ]; then
+                install_dstatus "$REGISTRATION_KEY" "$SERVER_URL"
+            elif [ "$MODE" = "update" ]; then
+                update_dstatus "$SERVER_URL"
+            fi
+            ;;
+        *)
+            # 兼容旧版本调用方式
+            if [ -n "$1" ] && [ -n "$2" ]; then
+                # 检查root权限
+                check_root
+                # 获取系统信息
+                get_system_info
+                print_warning "检测到旧版本调用方式，将作为全新安装处理"
+                print_warning "建议使用新的调用方式: $0 install $1 $2"
+                install_dstatus "$1" "$2"
+            else
+                print_error "无效的参数"
+                show_usage
+                exit 1
+            fi
+            ;;
+    esac
 }
 
 # 执行主函数
