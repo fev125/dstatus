@@ -223,7 +223,7 @@ port: 9999
 debug: false
 
 # 主动上报配置
-report_enabled: true
+report_enabled: false
 report_server: "${report_server_url_config}"
 report_interval: ${report_interval_val}
 report_server_key: "${api_key_for_config}"
