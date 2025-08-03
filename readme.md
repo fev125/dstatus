@@ -15,6 +15,7 @@ DStatus是一个现代化的服务器状态监控系统，提供简洁美观的U
 ## 📸 界面预览
 
 在线演示: [https://vps.mom](https://vps.mom)
+交流群组: [TG]([https://vps.mom](https://t.me/+_FtTLXFtEGpmZDM1))
 
 主要功能模块:
 - 系统状况：CPU、内存、硬盘使用率实时监控
