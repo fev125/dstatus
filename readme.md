@@ -48,7 +48,7 @@ curl -fsSL dstatus.sh | bash
 ## 关于本仓库
 
 - [Releases](https://github.com/fev125/dstatus/releases) 发布 DStatus Agent 安装包。
-- 仓库中的源码为早期开源版本，已停止更新；当前版本的安装与使用以官网和文档为准。
+- 仓库中的源码为早期开源版本，已停止更新，仅供参考；当前版本为商业软件，免费版可接入 3 个节点，安装与使用以官网和文档为准。
 
 ## English
 
